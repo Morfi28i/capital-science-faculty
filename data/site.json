@@ -1,0 +1,40 @@
+{
+  "subjects": [
+    {"id":"cs","title":"Computer Science","titleAr":"علوم الحاسب","category":"مواد عامة","url":"https://chat.whatsapp.com/Hxy7hdeeOQ48utbvmnyl2m","kind":"whatsapp"},
+    {"id":"zoology","title":"Zoology","titleAr":"علم الحيوان","category":"مواد عامة","url":"https://chat.whatsapp.com/JrvDSWWnaG0Acvj4vDOEvQ","kind":"whatsapp"},
+    {"id":"cs-section","title":"CS · د. دعاء · Group B","titleAr":"مادة CS · سكشن د. دعاء · جروب B","category":"سكاشن","url":"https://chat.whatsapp.com/IPOtJpAbz3F7MmeePj5zW5","kind":"whatsapp"},
+    {"id":"physics-chat","title":"Physics · Group B","titleAr":"شعبة فيزياء · جروب B","category":"سكاشن","url":"https://chat.whatsapp.com/Dxg9PJK3yJeFAkdIuCC2DA?s=cl&p=a&mlu=4&ilr=4","kind":"whatsapp"},
+    {"id":"physics-b","title":"Physics B","titleAr":"فيزياء B","category":"سكاشن","url":"https://chat.whatsapp.com/Kc0obu9Qyw53qgcA74xcmF","kind":"whatsapp"},
+    {"id":"inorganic-b","title":"Inorganic Chemistry B","titleAr":"كيمياء غير عضوية B","category":"سكاشن","url":"https://chat.whatsapp.com/DJrsdgJ4Rop51hGZFxuF4a","kind":"whatsapp"},
+    {"id":"lab-kit","title":"Lab equipment & coat","titleAr":"أدوات المعمل والبالطو","category":"موارد","url":"https://chat.whatsapp.com/Bxfdg5f1mXfFN3dgOlR9C5?s=cl&mlu=0&ilr=4","kind":"whatsapp","note":"مجموعة للاستفسار عن أدوات المعمل والبالطو."}
+  ],
+  "lectures": [],
+  "advising": [
+    {"id":"cohort-a","title":"دفعة 2026/2030 · الجروب الرسمي الأول","titleEn":"Class of 2026/2030 · Official group 1","category":"دفعة 2026/2030","url":"https://chat.whatsapp.com/GuQbyb1slil1z3kPcMTlS4?s=cl&p=i&mlu=4&ilr=4","kind":"whatsapp","note":"اختر جروبًا واحدًا فقط من الجروبين الرسميين. الجروبات للطلاب المقيدين بالدفعة فقط."},
+    {"id":"cohort-b","title":"دفعة 2026/2030 · الجروب الرسمي الثاني","titleEn":"Class of 2026/2030 · Official group 2","category":"دفعة 2026/2030","url":"https://chat.whatsapp.com/IdeykcrOnFO2EMFrYgQtKi?s=cl&p=i&mlu=4&ilr=4","kind":"whatsapp","note":"اختر جروبًا واحدًا فقط. لا ترسل طلب انضمام للجروبين معًا."},
+    {"id":"biology","title":"شعبة بيولوجي A & B","titleEn":"Biology section A & B","category":"الشعب الدراسية","url":"https://chat.whatsapp.com/BcX9FbpT9TL4F3d6z70QFG?s=cl&p=a&mlu=4&ilr=4","kind":"whatsapp"},
+    {"id":"physical-b","title":"شعبة فيزيائية · Group B","titleEn":"Physical sciences · Group B","category":"الشعب الدراسية","url":"https://chat.whatsapp.com/G64p6VWYcaf8FDiKyAJj6P?s=cl&p=a&mlu=4&ilr=4","kind":"whatsapp"},
+    {"id":"physical-a","title":"شعبة فيزيائية · Group A","titleEn":"Physical sciences · Group A","category":"الشعب الدراسية","url":"https://chat.whatsapp.com/EoZFZpzOCQ0INnzWlDlKY5?s=cl&p=a&mlu=4&ilr=4","kind":"whatsapp"},
+    {"id":"earth","title":"شعبة علوم الأرض A & B","titleEn":"Earth sciences · A & B","category":"الشعب الدراسية","url":"https://chat.whatsapp.com/LmYXNTaPzX85ag8BWeWd8d?s=cl&p=a&mlu=4&ilr=4","kind":"whatsapp"},
+    {"id":"advisor-physics","title":"الإرشاد الأكاديمي · فيزياء","titleEn":"Academic advising · Physics","category":"الإرشاد الأكاديمي","url":"https://chat.whatsapp.com/FrV7ta64hH89bCtlZcYomq?s=cl&p=a&mlu=4&ilr=4","kind":"whatsapp","note":"انضم إلى مجموعة المرشد الأكاديمي المسجل لك فقط."},
+    {"id":"advisor-mahmoud","title":"د. محمود سالم","titleEn":"Dr. Mahmoud Salem","category":"الإرشاد الأكاديمي","url":"https://chat.whatsapp.com/DWSvR2Sv21BFagRBYXfzc3?s=cl&p=a&mlu=4&ilr=4","kind":"whatsapp"},
+    {"id":"advisor-abdelrahman","title":"د. عبدالرحمن محمد","titleEn":"Dr. Abdelrahman Mohamed","category":"الإرشاد الأكاديمي","url":"https://chat.whatsapp.com/FQiEqJqcUeTG33oyCGlSlt?s=cl&p=a&mlu=4&ilr=4","kind":"whatsapp"},
+    {"id":"advisor-bahaa","title":"د. بهاء أحمد","titleEn":"Dr. Bahaa Ahmed","category":"الإرشاد الأكاديمي","url":"https://chat.whatsapp.com/KhYzclYeC317zi0uAkhj8z?s=cl&p=a&mlu=4&ilr=4","kind":"whatsapp"},
+    {"id":"advisor-rashad","title":"د. رشاد","titleEn":"Dr. Rashad","category":"الإرشاد الأكاديمي","url":"https://chat.whatsapp.com/DFXEGbopI2d1IeQ4GFMGnC","kind":"whatsapp","note":"يرجى التواصل معه على الخاص للحصول على رابط التسجيل المشار إليه في الإعلان."},
+    {"id":"advisor-wael","title":"د. وائل سيد","titleEn":"Dr. Wael Sayed","category":"الإرشاد الأكاديمي","url":"https://chat.whatsapp.com/CaF70AZ0U8DJYQFeqLSwmG","kind":"whatsapp"},
+    {"id":"official-union","title":"اتحاد طلاب كلية العلوم","titleEn":"Faculty of Science Student Union","category":"صفحات رسمية","url":"https://www.facebook.com/share/19e4Rjcn2a/?mibextid=wwXIfr","kind":"facebook"},
+    {"id":"official-pr","title":"العلاقات العامة لكلية العلوم","titleEn":"Faculty of Science Public Relations","category":"صفحات رسمية","url":"https://www.facebook.com/share/1HukM5eE9T/?mibextid=wwXIfr","kind":"facebook"},
+    {"id":"official-admin","title":"إدارة كلية العلوم","titleEn":"Faculty of Science Administration","category":"صفحات رسمية","url":"https://www.facebook.com/share/18RaBUbfCs/?mibextid=wwXIfr","kind":"facebook"},
+    {"id":"official-cohort","title":"صفحة دفعة 2026/2030","titleEn":"Class of 2026/2030 page","category":"صفحات رسمية","url":"https://www.facebook.com/share/g/1K2ZWanhu3","kind":"facebook"},
+    {"id":"official-college","title":"صفحات الكلية","titleEn":"Faculty pages","category":"صفحات رسمية","url":"https://www.facebook.com/share/p/19P47fUtwU/","kind":"facebook"}
+  ],
+  "contacts": [
+    {"name":"عبدالحميد رمضان","phone":"01122280342"},
+    {"name":"محمد ياسر","phone":"01113121997"},
+    {"name":"عبد الرحمن علي","phone":"01124527885"},
+    {"name":"أسامة محمد","phone":"01116623902"},
+    {"name":"معاذ رزق","phone":"01146036754"},
+    {"name":"فاروق الطيب","phone":"01123451724"},
+    {"name":"مصطفى الدمرداش","phone":"01013872846"}
+  ]
+}
