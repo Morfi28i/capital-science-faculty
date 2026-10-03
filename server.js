@@ -5,7 +5,7 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import nodemailer from 'nodemailer';
 
-const root=process.cwd(), dbPath=path.join(root,'data/site.json'), sessions=new Map();
+const root=process.cwd(), dbPath=path.join(root,'data/site.json'), driveCatalogPath=path.join(root,'data/drive-catalog.json'), sessions=new Map();
 await mkdir(path.join(root,'uploads'),{recursive:true});
 await mkdir(path.join(root,'public','uploads'),{recursive:true});
 const mime={'.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.js':'text/javascript; charset=utf-8','.json':'application/json; charset=utf-8','.svg':'image/svg+xml','.png':'image/png','.jpg':'image/jpeg','.webp':'image/webp','.pdf':'application/pdf'};
@@ -16,7 +16,7 @@ const saveDB=async d=>writeFile(dbPath,JSON.stringify(d,null,2));
 function session(req){const c=req.headers.cookie||'';const m=c.match(/(?:^|; )admin_session=([^;]+)/);return m&&sessions.has(m[1])?m[1]:null;}
 function safeUrl(u){try{const x=new URL(u);return ['https:','http:'].includes(x.protocol)}catch{return false}}
 async function api(req,res,url){
- if(req.method==='GET'&&url.pathname==='/api/site'){const db=await readDB();return json(res,200,{...db,emailNotificationsEnabled:Boolean(process.env.SMTP_HOST&&process.env.SMTP_USER&&process.env.SMTP_PASS)});}
+ if(req.method==='GET'&&url.pathname==='/api/site'){const db=await readDB();let driveFiles=db.lectures;try{driveFiles=JSON.parse(await readFile(driveCatalogPath,'utf8'))}catch{}return json(res,200,{...db,driveFiles,emailNotificationsEnabled:Boolean(process.env.SMTP_HOST&&process.env.SMTP_USER&&process.env.SMTP_PASS)});}
  if(req.method==='POST'&&url.pathname==='/api/register'){
   const d=await body(req,6_000_000);if(!d.name||!d.email||!d.gender)return json(res,400,{error:'Please complete the required fields'});
   const clean={name:String(d.name).trim().slice(0,100),email:String(d.email).trim().slice(0,254),gender:String(d.gender).slice(0,20),picture:d.picture?String(d.picture).slice(0,5_000_000):'generated-avatar'};
