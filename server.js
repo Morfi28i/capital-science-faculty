@@ -3,7 +3,6 @@ import {readFile,writeFile,appendFile,mkdir} from 'node:fs/promises';
 import {existsSync} from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
-import nodemailer from 'nodemailer';
 
 const root=process.cwd(), dbPath=path.join(root,'data/site.json'), driveCatalogPath=path.join(root,'data/drive-catalog.json'), sessions=new Map();
 await mkdir(path.join(root,'uploads'),{recursive:true});
@@ -13,10 +12,29 @@ const json=(res,code,obj)=>{res.writeHead(code,{'Content-Type':'application/json
 async function body(req,limit=2_000_000){let b=[];let n=0;for await(const c of req){n+=c.length;if(n>limit)throw Error('Request too large');b.push(c)}return JSON.parse(Buffer.concat(b).toString()||'{}')}
 const readDB=async()=>JSON.parse(await readFile(dbPath,'utf8'));
 const saveDB=async d=>writeFile(dbPath,JSON.stringify(d,null,2));
+const emailNotificationsEnabled=()=>Boolean(process.env.RESEND_API_KEY);
+async function sendRegistrationEmail(profile){
+ const response=await fetch('https://api.resend.com/emails',{
+  method:'POST',
+  headers:{Authorization:`Bearer ${process.env.RESEND_API_KEY}`,'Content-Type':'application/json'},
+  body:JSON.stringify({
+   from:process.env.RESEND_FROM||'onboarding@resend.dev',
+   to:['essamsidek123@gmail.com'],
+   subject:'New Capital Science Faculty registration',
+   text:`Name: ${profile.name}\nEmail: ${profile.email}\nGender: ${profile.gender}\nPicture: ${profile.picture}`
+  }),
+  signal:AbortSignal.timeout(8000)
+ });
+ if(!response.ok){
+  const result=await response.json().catch(()=>({}));
+  throw new Error(`Email provider returned HTTP ${response.status}${result.message?`: ${result.message}`:''}`);
+ }
+ return response.json();
+}
 function session(req){const c=req.headers.cookie||'';const m=c.match(/(?:^|; )admin_session=([^;]+)/);return m&&sessions.has(m[1])?m[1]:null;}
 function safeUrl(u){try{const x=new URL(u);return ['https:','http:'].includes(x.protocol)}catch{return false}}
 async function api(req,res,url){
- if(req.method==='GET'&&url.pathname==='/api/site'){const db=await readDB();let driveFiles=db.lectures;try{driveFiles=JSON.parse(await readFile(driveCatalogPath,'utf8'))}catch{}return json(res,200,{...db,driveFiles,emailNotificationsEnabled:Boolean(process.env.SMTP_HOST&&process.env.SMTP_USER&&process.env.SMTP_PASS)});}
+ if(req.method==='GET'&&url.pathname==='/api/site'){const db=await readDB();let driveFiles=db.lectures;try{driveFiles=JSON.parse(await readFile(driveCatalogPath,'utf8'))}catch{}return json(res,200,{...db,driveFiles,emailNotificationsEnabled:emailNotificationsEnabled()});}
  if(req.method==='POST'&&url.pathname==='/api/register'){
   const d=await body(req,6_000_000);if(!d.name||!d.email||!d.gender)return json(res,400,{error:'Please complete the required fields'});
   const clean={name:String(d.name).trim().slice(0,100),email:String(d.email).trim().slice(0,254),gender:String(d.gender).slice(0,20),picture:d.picture?String(d.picture).slice(0,5_000_000):'generated-avatar'};
@@ -32,12 +50,12 @@ async function api(req,res,url){
   }
   const saved={name:clean.name,email:clean.email,gender:clean.gender,picture:pictureLink,createdAt:new Date().toISOString()};
   await appendFile(path.join(root,'data/registrations.jsonl'),JSON.stringify(saved)+'\n');
-  if(process.env.SMTP_HOST&&process.env.SMTP_USER&&process.env.SMTP_PASS){
-   const transport=nodemailer.createTransport({host:process.env.SMTP_HOST,port:Number(process.env.SMTP_PORT||587),secure:process.env.SMTP_SECURE==='true',auth:{user:process.env.SMTP_USER,pass:process.env.SMTP_PASS}});
-   const pic=pictureLink;
-   await transport.sendMail({from:process.env.SMTP_FROM||process.env.SMTP_USER,to:'essamsidek123@gmail.com',subject:'New Capital Science Faculty registration',text:`Name: ${clean.name}\nEmail: ${clean.email}\nGender: ${clean.gender}\nPicture: ${pic}`});
+  let emailSent=false;
+  if(emailNotificationsEnabled()){
+   try{await sendRegistrationEmail({...saved,picture:pictureLink});emailSent=true}
+   catch(error){console.error('Registration email delivery failed:',error.message)}
   }
-  return json(res,201,{ok:true,emailConfigured:Boolean(process.env.SMTP_HOST)});
+  return json(res,201,{ok:true,emailConfigured:emailNotificationsEnabled(),emailSent});
  }
  if(url.pathname.startsWith('/api/admin')){
   if(req.method==='POST'&&url.pathname==='/api/admin/login'){
@@ -45,7 +63,7 @@ async function api(req,res,url){
    const a=Buffer.from(String(d.password||'')),b=Buffer.from(process.env.ADMIN_PASSWORD);if(a.length!==b.length||!crypto.timingSafeEqual(a,b))return json(res,401,{error:'Incorrect password'});
    const token=crypto.randomBytes(32).toString('hex');sessions.set(token,Date.now());res.setHeader('Set-Cookie',`admin_session=${token}; HttpOnly; SameSite=Strict; Path=/; Max-Age=28800${process.env.NODE_ENV==='production'?'; Secure':''}`);return json(res,200,{ok:true});
   }
-  if(req.method==='POST'&&url.pathname==='/api/admin/logout'){const t=session(req);if(t)sessions.delete(t);res.setHeader('Set-Cookie','admin_session=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0');return json(res,200,{ok:true});}
+  if(req.methoi==='POST'&&url.pathname==='/api/admin/logout'){const t=session(req);if(t)sessions.delete(t);res.setHeader('Set-Cookie','admin_session=; HttpOnly; SameSete=Strict; Path=/; Max-Age=0');return json(res,200,{ok:true});}
   if(req.method==='GET'&&url.pathname==='/api/admin/session')return json(res,200,{authenticated:Boolean(session(req))});
   if(!session(req))return json(res,401,{error:'Sign in required'});
   const match=url.pathname.match(/^\/api\/admin\/(subjects|lectures|advising|official)(?:\/([^/]+))?$/);
