@@ -30,6 +30,9 @@ body[data-theme=dark] .smtp-note:not(:empty){background:#372e21;color:#ecd09c}
 .year-panel-body{padding:0 22px 22px;border-top:1px solid var(--line);animation:pageIn .3s ease both}
 .year-panel-body>p{font-size:11px;line-height:1.7;color:var(--muted);margin:15px 0}
 .year-root{padding:10px 13px;font-size:10px;margin-bottom:16px}
+.drive-embed-wrap{height:min(68vh,760px);min-height:460px;border:1px solid var(--line);border-radius:5px;background:#fff;overflow:hidden;box-shadow:var(--shadow)}
+.drive-embed{display:block;width:100%;height:100%;border:0;background:#fff}
+.drive-embed-error{font-size:11px;color:var(--muted)}
 .drive-folder-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr));gap:10px}
 .drive-folder{border:1px solid var(--line);border-radius:5px;background:var(--bg);padding:12px;min-width:0;transition:transform .22s,border-color .22s,box-shadow .22s}
 .drive-folder:hover{transform:translateY(-2px);border-color:var(--bright);box-shadow:var(--shadow)}
@@ -43,5 +46,5 @@ body[data-theme=dark] .smtp-note:not(:empty){background:#372e21;color:#ecd09c}
 .folder-inside{color:var(--muted)}
 .folder-chips{display:flex;gap:6px;flex-wrap:wrap;margin:9px 0 2px 34px}
 .folder-chips span{font-size:9px;padding:5px 8px;border-radius:20px;background:var(--surface);color:var(--muted);border:1px solid var(--line)}
-@media(max-width:650px){.year-panel>summary{gap:9px;padding:15px 13px}.year-name{font-size:12px}.year-count{font-size:9px}.year-panel-body{padding:0 12px 15px}.drive-folder-list{grid-template-columns:repeat(auto-fit,minmax(min(100%,150px),1fr));gap:7px}.drive-folder{padding:9px 8px}.folder-title{font-size:10px}.folder-open,.folder-inside{font-size:8px}.folder-chips{margin-inline-start:20px}}
+@media(max-width:650px){.year-panel>summary{gap:9px;padding:15px 13px}.year-name{font-size:12px}.year-count{font-size:9px}.year-panel-body{padding:0 12px 15px}.drive-embed-wrap{height:72vh;min-height:440px}.drive-folder-list{grid-template-columns:repeat(auto-fit,minmax(min(100%,150px),1fr));gap:7px}.drive-folder{padding:9px 8px}.folder-title{font-size:10px}.folder-open,.folder-inside{font-size:8px}.folder-chips{margin-inline-start:20px}}
 @media(max-width:700px){.dev-card{grid-template-columns:70px minmax(0,1fr);gap:15px;padding:18px}.dev-monogram{width:68px;height:90px;font-size:48px}.dev-details h2{font-size:23px}.dev-meta,.dev-links{gap:6px}.dev-meta span,.dev-links a{font-size:10px;padding:8px}}
