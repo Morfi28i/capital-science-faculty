@@ -67,7 +67,30 @@
       "url": "https://drive.google.com/drive/folders/1hvZIcXA4Xc45X_YXJXnK9V0q5CC6Ye1W",
       "kind": "drive",
       "file": true,
-      "note": "مجلد Google Drive لمواد العام الدراسي 2024/2025."
+      "note": "الترتيب في Drive: الفصل الأول، الفصل الثاني، ومجلد الجامعة.",
+      "folders": [
+        { "title": "الفصل الأول", "titleEn": "First semester", "url": "https://drive.google.com/drive/folders/1BKGn7o-1iOdFEj9VSHQsgg5yNl50cGOk", "folders": [
+          { "title": "ملخصات", "titleEn": "Summaries" },
+          { "title": "ملفات الدكاترة", "titleEn": "Lecturers' files" },
+          { "title": "امتحانات وأسئلة", "titleEn": "Exams & questions" },
+          { "title": "المواد", "titleEn": "Materials", "url": "https://drive.google.com/drive/folders/1i36gFQnDBhquKhQ0lZRXJAnfwH9SOKnT", "folders": [
+            { "title": "الجبر", "titleEn": "Algebra", "url": "https://drive.google.com/drive/folders/1kgxYHhr8gu0Or9dCn5t0rBaF_Tz71RK8", "items": ["فيديوهات", "Algebra Section", "ملفات المحاضرات والكتاب"] },
+            { "title": "التفاضل والتكامل", "titleEn": "Calculus" },
+            { "title": "قسم CS", "titleEn": "CS Section" },
+            { "title": "الكيمياء العامة", "titleEn": "General Chemistry" },
+            { "title": "الفيزياء العامة", "titleEn": "General Physics" },
+            { "title": "مقدمة في علوم الحاسب", "titleEn": "Introduction to CS" },
+            { "title": "الكيمياء العملي", "titleEn": "Practical Chemistry" },
+            { "title": "الفيزياء العملي", "titleEn": "Practical Physics" },
+            { "title": "عملي مبادئ علم الحيوان", "titleEn": "Practical Principles of Zoology" },
+            { "title": "مبادئ علم الحيوان", "titleEn": "Principles of Zoology" },
+            { "title": "ثقافة بيئية · اختياري", "titleEn": "Environmental Culture · elective" },
+            { "title": "مهارات التواصل · اختياري", "titleEn": "Communication Skills · elective" }
+          ] }
+        ] },
+        { "title": "الفصل الثاني", "titleEn": "Second semester" },
+        { "title": "الجامعة", "titleEn": "University" }
+      ]
     },
     {
       "id": "materials-2025-26",
@@ -77,7 +100,19 @@
       "url": "https://drive.google.com/drive/folders/1_xmVYVlPbaf_iJqcYlGJnPR-ROMUY-FD",
       "kind": "drive",
       "file": true,
-      "note": "مجلد Google Drive لمواد العام الدراسي 2025/2026."
+      "note": "الترتيب في Drive: الفصل الأول، الفصل الثاني، ومجلد الجامعة.",
+      "folders": [
+        { "title": "الفصل الأول", "titleEn": "First semester", "url": "https://drive.google.com/drive/folders/1qsI1oDg77vIef470yab-pNodXBVLefIC", "folders": [
+          { "title": "Algebra", "titleEn": "Algebra" }, { "title": "Calculus", "titleEn": "Calculus" },
+          { "title": "Chemistry · Dr. Sahr", "titleEn": "Chemistry · Dr. Sahr" }, { "title": "CS", "titleEn": "Computer Science" },
+          { "title": "Inorganic Chemistry", "titleEn": "Inorganic Chemistry" }, { "title": "Physics", "titleEn": "Physics" },
+          { "title": "Practical Chemistry", "titleEn": "Practical Chemistry" }, { "title": "Practical Physics 1", "titleEn": "Practical Physics 1" },
+          { "title": "Section Calc", "titleEn": "Calculus section" }, { "title": "Section CS", "titleEn": "CS section" },
+          { "title": "Tutorial Physics", "titleEn": "Physics tutorial" }
+        ] },
+        { "title": "الفصل الثاني", "titleEn": "Second semester" },
+        { "title": "عن الجامعة", "titleEn": "About University" }
+      ]
     },
     {
       "id": "materials-2026-27",
@@ -87,7 +122,13 @@
       "url": "https://drive.google.com/drive/folders/10egV3LBAs9fEo3HjghyjnsQBuzcdnvgX",
       "kind": "drive",
       "file": true,
-      "note": "مجلد Google Drive لمواد العام الدراسي 2026/2027."
+      "note": "Drive مقسم مباشرةً إلى مجلدات المواد.",
+      "folders": [
+        { "title": "الكيمياء", "titleEn": "Chemistry" }, { "title": "أمان معملي", "titleEn": "Laboratory safety" },
+        { "title": "علوم الحاسب", "titleEn": "Computer Science" }, { "title": "اللغة الإنجليزية", "titleEn": "English" },
+        { "title": "رياضيات · جبر", "titleEn": "Mathematics · Algebra" }, { "title": "رياضيات · تفاضل وتكامل", "titleEn": "Mathematics · Calculus" },
+        { "title": "الفيزياء", "titleEn": "Physics" }, { "title": "علم الحيوان", "titleEn": "Zoology" }
+      ]
     }
   ],
   "advising": [
