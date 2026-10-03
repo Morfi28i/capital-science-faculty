@@ -16,11 +16,12 @@ The server itself does not load `.env` files. For local development, load them i
 - `/` — landing page
 - `/subjects` — subject and section group directory
 - `/lectures` — lecture files; initially empty
-- `/advising` — official cohort groups, adviser links, contacts, and faculty pages
+- `/advising` — academic adviser links
+- `/official` — cohort groups, student group links, contacts, and faculty pages
 - `/developer` — developer information
 - `/admin` — password-protected content dashboard
 
-The admin dashboard provides create, read, update, and delete for subject groups, lecture links, and advising/official groups. Lecture items are added as links (for example, a hosted PDF URL); the server does not provide binary file uploads.
+The admin dashboard provides create, read, update, and delete for subject groups, lecture links, academic advising links, and official groups. Lecture items are added as links (for example, a hosted PDF URL); the server does not provide binary file uploads.
 
 ## Registration and email
 
@@ -30,4 +31,4 @@ The registration UI explains data submission before consent. Run this behind HTT
 
 ## Content data
 
-`data/site.json` is the editable seed database. Updates made from the admin dashboard are written back to this file. `data/registrations.jsonl` is created at runtime. The seven cohort application contacts and the supplied WhatsApp/Facebook destinations are included in the seed data. The source lists two main cohort groups and explicitly says to join only one; the site preserves this warning.
+`data/site.json` is the editable seed database. It keeps separate `advising` and `official` collections. Updates made from the admin dashboard are written back to this file. On hosts with ephemeral filesystems, such as free Render instances, dashboard changes can be lost on restart, sleep, or redeploy. `data/registrations.jsonl` is created at runtime. The seven cohort application contacts and the supplied WhatsApp/Facebook destinations are included in the seed data. The source lists two main cohort groups and explicitly says to join only one; the site preserves this warning.

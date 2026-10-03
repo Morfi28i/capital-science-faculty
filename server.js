@@ -16,7 +16,7 @@ const saveDB=async d=>writeFile(dbPath,JSON.stringify(d,null,2));
 function session(req){const c=req.headers.cookie||'';const m=c.match(/(?:^|; )admin_session=([^;]+)/);return m&&sessions.has(m[1])?m[1]:null;}
 function safeUrl(u){try{const x=new URL(u);return ['https:','http:'].includes(x.protocol)}catch{return false}}
 async function api(req,res,url){
- if(req.method==='GET'&&url.pathname==='/api/site')return json(res,200,await readDB());
+ if(req.method==='GET'&&url.pathname==='/api/site'){const db=await readDB();return json(res,200,{...db,emailNotificationsEnabled:Boolean(process.env.SMTP_HOST&&process.env.SMTP_USER&&process.env.SMTP_PASS)});}
  if(req.method==='POST'&&url.pathname==='/api/register'){
   const d=await body(req,6_000_000);if(!d.name||!d.email||!d.gender)return json(res,400,{error:'Please complete the required fields'});
   const clean={name:String(d.name).trim().slice(0,100),email:String(d.email).trim().slice(0,254),gender:String(d.gender).slice(0,20),picture:d.picture?String(d.picture).slice(0,5_000_000):'generated-avatar'};
@@ -48,7 +48,7 @@ async function api(req,res,url){
   if(req.method==='POST'&&url.pathname==='/api/admin/logout'){const t=session(req);if(t)sessions.delete(t);res.setHeader('Set-Cookie','admin_session=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0');return json(res,200,{ok:true});}
   if(req.method==='GET'&&url.pathname==='/api/admin/session')return json(res,200,{authenticated:Boolean(session(req))});
   if(!session(req))return json(res,401,{error:'Sign in required'});
-  const match=url.pathname.match(/^\/api\/admin\/(subjects|lectures|advising)(?:\/([^/]+))?$/);
+  const match=url.pathname.match(/^\/api\/admin\/(subjects|lectures|advising|official)(?:\/([^/]+))?$/);
   if(match){const [,key,id]=match,db=await readDB();if(req.method==='GET')return json(res,200,db[key]);
    if(req.method==='POST'||req.method==='PUT'){const item=await body(req);if(!item.title||!item.url||!safeUrl(item.url))return json(res,400,{error:'A title and valid http(s) URL are required'});const obj={...item,id:id||crypto.randomUUID(),title:String(item.title).slice(0,180),url:String(item.url).slice(0,2000)};if(id){const i=db[key].findIndex(x=>x.id===id);if(i<0)return json(res,404,{error:'Not found'});db[key][i]=obj}else db[key].unshift(obj);await saveDB(db);return json(res,200,obj)}
    if(req.method==='DELETE'&&id){db[key]=db[key].filter(x=>x.id!==id);await saveDB(db);return json(res,200,{ok:true})}
@@ -57,6 +57,6 @@ async function api(req,res,url){
  return json(res,404,{error:'Not found'});
 }
 const server=http.createServer(async(req,res)=>{try{const url=new URL(req.url,'http://localhost');if(url.pathname.startsWith('/api/'))return await api(req,res,url);
- const rel=decodeURIComponent(url.pathname==='/admin' || url.pathname==='/admin/'?'/admin.html':url.pathname==='/'?'/index.html':url.pathname);const file=path.resolve(root,'public',`.${rel}`);if(!file.startsWith(path.join(root,'public')+path.sep)||!existsSync(file)){res.writeHead(404);return res.end('Not found')};res.writeHead(200,{'Content-Type':mime[path.extname(file)]||'application/octet-stream'});res.end(await readFile(file));
+ const route=url.pathname;const rel=route==='/admin'||route==='/admin/'?'/admin.html':['/','/subjects','/lectures','/advising','/official','/developer'].includes(route)?'/index.html':decodeURIComponent(route);const file=path.resolve(root,'public',`.${rel}`);if(!file.startsWith(path.join(root,'public')+path.sep)||!existsSync(file)){res.writeHead(404);return res.end('Not found')};res.writeHead(200,{'Content-Type':mime[path.extname(file)]||'application/octet-stream'});res.end(await readFile(file));
  }catch(e){json(res,e.message==='Request too large'?413:500,{error:e.message==='Request too large'?'Request too large':'Server error'})}});
 server.listen(Number(process.env.PORT||3000),()=>console.log(`Capital Science Faculty is running on http://localhost:${process.env.PORT||3000}`));
