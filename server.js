@@ -60,7 +60,23 @@ function session(req){const c=req.headers.cookie||'';const m=c.match(/(?:^|; )ad
 function safeUrl(u){try{const x=new URL(u);return ['https:','http:'].includes(x.protocol)}catch{return false}}
 async function api(req,res,url){
  if(req.method==='GET'&&url.pathname==='/api/firebase-config')return json(res,200,{enabled:firebaseConfigured(),firebase:firebaseConfigured()?firebaseWebConfig():null});
- if(req.method==='GET'&&url.pathname==='/api/site'){const db=await readDB();let driveFiles=db.lectures;try{driveFiles=JSON.parse(await readFile(driveCatalogPath,'utf8'))}catch{}return json(res,200,{...db,driveFiles,emailNotificationsEnabled:emailNotificationsEnabled(),firebaseAuthEnabled:firebaseConfigured()});}
+ if(req.method==='GET'&&url.pathname==='/api/site'){
+  const db=await readDB();let driveFiles=[];
+  try{driveFiles=JSON.parse(await readFile(driveCatalogPath,'utf8'))}catch{driveFiles=db.lectures||[]}
+  const managedRoots=(db.lectures||[]).filter(item=>Array.isArray(item.folders));
+  const managedByCategory=new Map(managedRoots.map(item=>[String(item.category||'').trim().toLocaleLowerCase(),item]));
+  const mergedRoots=new Set();
+  driveFiles=driveFiles.map(item=>{
+   if(item.type!=='folder'||!['المجلد الرئيسي','Year root'].includes(item.note))return item;
+   const managed=managedRoots.find(entry=>entry.url===item.url)||managedByCategory.get(String(item.categoryAr||item.category||'').trim().toLocaleLowerCase());
+   if(!managed)return item;
+   mergedRoots.add(managed.id);
+   return {...item,title:managed.title||item.title,titleAr:managed.title||item.titleAr,titleEn:managed.titleEn||item.titleEn,url:managed.url||item.url,categoryAr:managed.category||item.categoryAr};
+  });
+  const extraLectures=(db.lectures||[]).filter(item=>!Array.isArray(item.folders)&&!mergedRoots.has(item.id));
+  driveFiles.push(...extraLectures.map(item=>({...item,id:item.id||item.url,type:'file',file:true,categoryEn:item.categoryEn||item.category||''})));
+  return json(res,200,{...db,driveFiles,emailNotificationsEnabled:emailNotificationsEnabled(),firebaseAuthEnabled:firebaseConfigured()});
+ }
  if(url.pathname.startsWith('/api/firebase/')){
   if(!firebaseConfigured())return json(res,503,{error:'Firebase is not configured. Add the Firebase web config and Admin service-account secret in Render.'});
   try{
@@ -86,7 +102,7 @@ async function api(req,res,url){
   if(req.method==='POST'&&url.pathname==='/api/admin/login'){
    const d=await body(req);if(!process.env.ADMIN_PASSWORD)return json(res,503,{error:'Admin password is not configured. Set ADMIN_PASSWORD before starting the server.'});
    const a=Buffer.from(String(d.password||'')),b=Buffer.from(process.env.ADMIN_PASSWORD);if(a.length!==b.length||!crypto.timingSafeEqual(a,b))return json(res,401,{error:'Incorrect password'});
-   const token=crypto.randomBytes(32).toString('hex');sessions.set(token,Date.now());res.setHeader('Set-Cookie',`admin_session=${token}; HttpOnly; SameSite=Strict; Path=/; Max-Age=28800${process.env.NODE_ENV==='production'?'; Secure':''}`);return json(res,200,{ok:true});
+   const token=crypto.randomBytes(32).toString('hex');sessions.set(token,Date.now());res.setHeader('Set-Cookie',`admin_session=${token}; HttpOnly; SameSite=Strict; Path=/${process.env.NODE_ENV==='production'?'; Secure':''}`);return json(res,200,{ok:true});
   }
   if(req.method==='POST'&&url.pathname==='/api/admin/logout'){const t=session(req);if(t)sessions.delete(t);res.setHeader('Set-Cookie','admin_session=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0');return json(res,200,{ok:true});}
   if(req.method==='GET'&&url.pathname==='/api/admin/session')return json(res,200,{authenticated:Boolean(session(req))});
@@ -116,6 +132,7 @@ async function api(req,res,url){
  return json(res,404,{error:'Not found'});
 }
 const server=http.createServer(async(req,res)=>{try{const url=new URL(req.url,'http://localhost');if(url.pathname.startsWith('/api/'))return await api(req,res,url);
- const route=url.pathname;const rel=route==='/admin'||route==='/admin/'?'/admin.html':['/','/subjects','/lectures','/advising','/official','/developer','/profile'].includes(route)?'/index.html':decodeURIComponent(route);const file=path.resolve(root,'public',`.${rel}`);if(!file.startsWith(path.join(root,'public')+path.sep)||!existsSync(file)){res.writeHead(404);return res.end('Not found')};res.writeHead(200,{'Content-Type':mime[path.extname(file)]||'application/octet-stream'});res.end(await readFile(file));
+ const route=url.pathname;if(route==='/admin'||route==='/admin/'){const oldSession=session(req);if(oldSession)sessions.delete(oldSession);res.setHeader('Set-Cookie',`admin_session=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0${process.env.NODE_ENV==='production'?'; Secure':''}`);res.setHeader('Cache-Control','no-store');}
+ const rel=route==='/admin'||route==='/admin/'?'/admin.html':['/','/subjects','/lectures','/advising','/official','/developer','/profile'].includes(route)?'/index.html':decodeURIComponent(route);const file=path.resolve(root,'public',`.${rel}`);if(!file.startsWith(path.join(root,'public')+path.sep)||!existsSync(file)){res.writeHead(404);return res.end('Not found')};res.writeHead(200,{'Content-Type':mime[path.extname(file)]||'application/octet-stream'});res.end(await readFile(file));
  }catch(e){json(res,e.message==='Request too large'?413:500,{error:e.message==='Request too large'?'Request too large':'Server error'})}});
 server.listen(Number(process.env.PORT||3000),()=>console.log(`Capital Science Faculty is running on http://localhost:${process.env.PORT||3000}`));
