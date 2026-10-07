@@ -1,6 +1,6 @@
 import http from 'node:http';
 import {readFile,writeFile,appendFile,mkdir} from 'node:fs/promises';
-import {existsSync} from 'node:fs';
+import {existsSync,readFileSync} from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import {cert, getApps, initializeApp} from 'firebase-admin/app';
@@ -38,11 +38,12 @@ async function saveDB(d){
 }
 const emailNotificationsEnabled=()=>Boolean(process.env.RESEND_API_KEY);
 const firebaseWebConfig=()=>({apiKey:process.env.FIREBASE_API_KEY,authDomain:process.env.FIREBASE_AUTH_DOMAIN,projectId:process.env.FIREBASE_PROJECT_ID,appId:process.env.FIREBASE_APP_ID,messagingSenderId:process.env.FIREBASE_MESSAGING_SENDER_ID});
-const firebaseConfigured=()=>Object.values(firebaseWebConfig()).every(Boolean)&&Boolean(process.env.FIREBASE_SERVICE_ACCOUNT_JSON);
+const firebaseServiceAccountFile=()=>process.env.FIREBASE_SERVICE_ACCOUNT_FILE||'/etc/secrets/firebase-service-account.json';
+const firebaseConfigured=()=>Object.values(firebaseWebConfig()).every(Boolean)&&(Boolean(process.env.FIREBASE_SERVICE_ACCOUNT_JSON)||existsSync(firebaseServiceAccountFile()));
 function firebase(){
  if(!firebaseConfigured())throw new Error('Firebase is not fully configured.');
  let app=getApps()[0];
- if(!app){let serviceAccount;try{serviceAccount=JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_JSON)}catch{throw new Error('FIREBASE_SERVICE_ACCOUNT_JSON must contain valid JSON.')}app=initializeApp({credential:cert(serviceAccount),projectId:process.env.FIREBASE_PROJECT_ID});}
+ if(!app){let serviceAccount;try{serviceAccount=process.env.FIREBASE_SERVICE_ACCOUNT_JSON?JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_JSON):JSON.parse(readFileSync(firebaseServiceAccountFile(),'utf8'))}catch{throw new Error('Firebase Admin service-account secret must contain valid JSON.')}app=initializeApp({credential:cert(serviceAccount),projectId:process.env.FIREBASE_PROJECT_ID});}
  return {auth:getAuth(app),db:getFirestore(app)};
 }
 async function verifiedFirebaseUser(req){
