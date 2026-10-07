@@ -3,11 +3,23 @@ services:
     name: capital-science-faculty
     runtime: node
     plan: free
-    buildCommand: npm install
+    buildCommand: pnpm install --frozen-lockfile --ignore-scripts
     startCommand: npm start
     healthCheckPath: /api/site
     envVars:
       - key: NODE_ENV
         value: production
       - key: ADMIN_PASSWORD
+        sync: false
+      - key: FIREBASE_API_KEY
+        sync: false
+      - key: FIREBASE_AUTH_DOMAIN
+        sync: false
+      - key: FIREBASE_PROJECT_ID
+        sync: false
+      - key: FIREBASE_APP_ID
+        sync: false
+      - key: FIREBASE_MESSAGING_SENDER_ID
+        sync: false
+      - key: FIREBASE_SERVICE_ACCOUNT_JSON
         sync: false

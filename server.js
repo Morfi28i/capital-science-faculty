@@ -3,6 +3,9 @@ import {readFile,writeFile,appendFile,mkdir} from 'node:fs/promises';
 import {existsSync} from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
+import {cert, getApps, initializeApp} from 'firebase-admin/app';
+import {getAuth} from 'firebase-admin/auth';
+import {FieldValue, getFirestore} from 'firebase-admin/firestore';
 
 const root=process.cwd(), dbPath=path.join(root,'data/site.json'), driveCatalogPath=path.join(root,'data/drive-catalog.json'), sessions=new Map();
 await mkdir(path.join(root,'uploads'),{recursive:true});
@@ -13,9 +16,23 @@ async function body(req,limit=2_000_000){let b=[];let n=0;for await(const c of r
 const readDB=async()=>JSON.parse(await readFile(dbPath,'utf8'));
 const saveDB=async d=>writeFile(dbPath,JSON.stringify(d,null,2));
 const emailNotificationsEnabled=()=>Boolean(process.env.RESEND_API_KEY);
+const firebaseWebConfig=()=>({apiKey:process.env.FIREBASE_API_KEY,authDomain:process.env.FIREBASE_AUTH_DOMAIN,projectId:process.env.FIREBASE_PROJECT_ID,appId:process.env.FIREBASE_APP_ID,messagingSenderId:process.env.FIREBASE_MESSAGING_SENDER_ID});
+const firebaseConfigured=()=>Object.values(firebaseWebConfig()).every(Boolean)&&Boolean(process.env.FIREBASE_SERVICE_ACCOUNT_JSON);
+function firebase(){
+ if(!firebaseConfigured())throw new Error('Firebase is not fully configured.');
+ let app=getApps()[0];
+ if(!app){let serviceAccount;try{serviceAccount=JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_JSON)}catch{throw new Error('FIREBASE_SERVICE_ACCOUNT_JSON must contain valid JSON.')}app=initializeApp({credential:cert(serviceAccount),projectId:process.env.FIREBASE_PROJECT_ID});}
+ return {auth:getAuth(app),db:getFirestore(app)};
+}
+async function verifiedFirebaseUser(req){
+ const token=String(req.headers.authorization||'').replace(/^Bearer\s+/i,'');if(!token)throw Object.assign(new Error('Sign in to continue.'),{status:401});
+ const {auth}=firebase();return auth.verifyIdToken(token,true);
+}
 const escapeHtml=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 async function sendRegistrationEmail(profile,isUpdate=false,photoAttachment=null){
- const picture=escapeHtml(profile.picture);
+ const isDataPicture=String(profile.picture||'').startsWith('data:image/');
+ const picture=isDataPicture?'':escapeHtml(String(profile.picture||'').startsWith('/avatars/')?new URL(profile.picture,process.env.PUBLIC_URL||'https://capital-science-faculty.onrender.com').toString():profile.picture);
+ const pictureDescription=isDataPicture?'Attached to this email':(profile.picture||'Not supplied');
  const response=await fetch('https://api.resend.com/emails',{
   method:'POST',
   headers:{Authorization:`Bearer ${process.env.RESEND_API_KEY}`,'Content-Type':'application/json'},
@@ -23,8 +40,8 @@ async function sendRegistrationEmail(profile,isUpdate=false,photoAttachment=null
    from:process.env.RESEND_FROM||'onboarding@resend.dev',
    to:['essamsidek123@gmail.com'],
    subject:isUpdate?'Capital Science Faculty profile updated':'New Capital Science Faculty registration',
-   text:`${isUpdate?'Profile update':'New registration'}\nName: ${profile.name}\nEmail: ${profile.email}\nGender: ${profile.gender}\nPicture: ${profile.picture}`,
-   html:`<div style="font-family:Arial,sans-serif;max-width:560px;margin:auto;padding:24px;color:#24362c"><h2>${isUpdate?'Student profile updated':'New student registration'}</h2><p><b>Name:</b> ${escapeHtml(profile.name)}</p><p><b>Email:</b> ${escapeHtml(profile.email)}</p><p><b>Gender:</b> ${escapeHtml(profile.gender)}</p><p><b>Profile picture:</b></p><a href="${picture}"><img src="${picture}" alt="Student profile portrait" width="144" height="144" style="object-fit:cover;border-radius:50%;background:#edf2e9"></a></div>`,
+   text:`${isUpdate?'Profile update':'New registration'}\nName: ${profile.name}\n${profile.email?'Email: '+profile.email:'Phone: '+(profile.phone||'Not supplied')}\nGender: ${profile.gender}\nPicture: ${pictureDescription}`,
+   html:`<div style="font-family:Arial,sans-serif;max-width:560px;margin:auto;padding:24px;color:#24362c"><h2>${isUpdate?'Student profile updated':'New student registration'}</h2><p><b>Name:</b> ${escapeHtml(profile.name)}</p><p><b>${profile.email?'Email':'Phone'}:</b> ${escapeHtml(profile.email||profile.phone||'Not supplied')}</p><p><b>Gender:</b> ${escapeHtml(profile.gender)}</p><p><b>Profile picture:</b> ${isDataPicture?'Attached to this email':picture?`<a href="${picture}">View portrait</a>`:'Not supplied'}</p></div>`,
    ...(photoAttachment?{attachments:[photoAttachment]}:{})
   }),
   signal:AbortSignal.timeout(8000)
@@ -35,33 +52,35 @@ async function sendRegistrationEmail(profile,isUpdate=false,photoAttachment=null
  }
  return response.json();
 }
+async function sendManagedEmail(to,subject,message){
+ const response=await fetch('https://api.resend.com/emails',{method:'POST',headers:{Authorization:`Bearer ${process.env.RESEND_API_KEY}`,'Content-Type':'application/json'},body:JSON.stringify({from:process.env.RESEND_FROM||'onboarding@resend.dev',to:[to],subject:subject.slice(0,180),text:message.slice(0,10000),html:`<div style="font-family:Arial,sans-serif;white-space:pre-wrap">${escapeHtml(message.slice(0,10000))}</div>`}),signal:AbortSignal.timeout(10000)});
+ if(!response.ok)throw new Error(`Email provider returned HTTP ${response.status}`);return response.json();
+}
 function session(req){const c=req.headers.cookie||'';const m=c.match(/(?:^|; )admin_session=([^;]+)/);return m&&sessions.has(m[1])?m[1]:null;}
 function safeUrl(u){try{const x=new URL(u);return ['https:','http:'].includes(x.protocol)}catch{return false}}
 async function api(req,res,url){
- if(req.method==='GET'&&url.pathname==='/api/site'){const db=await readDB();let driveFiles=db.lectures;try{driveFiles=JSON.parse(await readFile(driveCatalogPath,'utf8'))}catch{}return json(res,200,{...db,driveFiles,emailNotificationsEnabled:emailNotificationsEnabled()});}
+ if(req.method==='GET'&&url.pathname==='/api/firebase-config')return json(res,200,{enabled:firebaseConfigured(),firebase:firebaseConfigured()?firebaseWebConfig():null});
+ if(req.method==='GET'&&url.pathname==='/api/site'){const db=await readDB();let driveFiles=db.lectures;try{driveFiles=JSON.parse(await readFile(driveCatalogPath,'utf8'))}catch{}return json(res,200,{...db,driveFiles,emailNotificationsEnabled:emailNotificationsEnabled(),firebaseAuthEnabled:firebaseConfigured()});}
+ if(url.pathname.startsWith('/api/firebase/')){
+  if(!firebaseConfigured())return json(res,503,{error:'Firebase is not configured. Add the Firebase web config and Admin service-account secret in Render.'});
+  try{
+   const decoded=await verifiedFirebaseUser(req),{db}=firebase(),ref=db.collection('users').doc(decoded.uid);
+   if(req.method==='GET'&&url.pathname==='/api/firebase/profile'){const snap=await ref.get();return json(res,200,{profile:snap.exists?snap.data():null});}
+   if(req.method==='GET'&&url.pathname==='/api/firebase/messages'){const snap=await ref.collection('messages').orderBy('createdAt','desc').limit(100).get();return json(res,200,{messages:snap.docs.map(x=>({id:x.id,...x.data()}))});}
+   const readMessage=url.pathname.match(/^\/api\/firebase\/messages\/([A-Za-z0-9_-]+)\/read$/);if(req.method==='POST'&&readMessage){const message=ref.collection('messages').doc(readMessage[1]);if(!(await message.get()).exists)return json(res,404,{error:'Message not found.'});await message.update({readAt:FieldValue.serverTimestamp()});return json(res,200,{ok:true});}
+   if((req.method==='POST'&&['/api/firebase/register','/api/firebase/profile'].includes(url.pathname))||(req.method==='PUT'&&url.pathname==='/api/firebase/profile')){
+    if(!decoded.email_verified&&!decoded.phone_number)return json(res,403,{error:'Verify your email or phone before saving a profile.'});
+    const d=await body(req,5_000_000);if(!String(d.name||'').trim()||!['male','female','other'].includes(d.gender))return json(res,400,{error:'Please complete your name and gender.'});
+    const picture=String(d.picture||'').slice(0,700_000);if(picture&&!(/^\/avatars\/art-(0[1-9]|10)\.svg$/.test(picture)||/^data:image\/(png|jpeg|webp);base64,/.test(picture)||/^https:\/\//.test(picture)))return json(res,400,{error:'Unsupported profile image.'});
+    const before=await ref.get(),profile={id:decoded.uid,name:String(d.name).trim().slice(0,100),gender:d.gender,email:decoded.email||null,phone:decoded.phone_number||null,picture,providers:decoded.firebase?.sign_in_provider?[decoded.firebase.sign_in_provider]:[],createdAt:before.exists?before.get('createdAt'):FieldValue.serverTimestamp(),updatedAt:FieldValue.serverTimestamp()};
+    await ref.set(profile,{merge:true});let emailSent=false;
+    if(!before.exists&&emailNotificationsEnabled()){try{let photoAttachment=null;const match=profile.picture.match(/^data:image\/(png|jpeg|webp);base64,([A-Za-z0-9+/=]+)$/);if(match){const ext=match[1]==='jpeg'?'jpg':match[1];photoAttachment={filename:`student-profile.${ext}`,content:match[2]}}await sendRegistrationEmail(profile,false,photoAttachment);emailSent=true}catch(error){console.error('Registration email delivery failed:',error.message)}}
+    return json(res,before.exists?200:201,{ok:true,emailSent,profile:{...profile,createdAt:undefined,updatedAt:undefined}});
+   }
+  }catch(error){return json(res,error.status||401,{error:error.status?error.message:'Firebase authentication failed.'});}
+ }
  if(req.method==='POST'&&['/api/register','/api/profile/update'].includes(url.pathname)){
-  const isUpdate=url.pathname==='/api/profile/update';
-  const d=await body(req,6_000_000);if(!d.name||!d.email||!d.gender)return json(res,400,{error:'Please complete the required fields'});
-  const clean={name:String(d.name).trim().slice(0,100),email:String(d.email).trim().slice(0,254),gender:String(d.gender).slice(0,20),picture:d.picture?String(d.picture).slice(0,5_000_000):'generated-avatar'};
-  if(!/^[^\s@]+@gmail\.com$/i.test(clean.email))return json(res,400,{error:'Please enter a valid Gmail address'});
-  const publicBase=process.env.PUBLIC_URL||'https://capital-science-faculty.onrender.com';let pictureLink='No photo supplied',photoAttachment=null;
-  if(/^\/avatars\/art-(0[1-9]|10)\.svg$/.test(clean.picture)){
-   pictureLink=new URL(clean.picture,publicBase).toString();
-  }else if(clean.picture.startsWith('data:image/')){
-   const m=clean.picture.match(/^data:image\/(png|jpeg|webp);base64,([A-Za-z0-9+/=]+)$/);if(!m)return json(res,400,{error:'Photo must be PNG, JPEG, or WebP'});
-   const ext=m[1]==='jpeg'?'jpg':m[1],filename=`${crypto.randomBytes(18).toString('hex')}.${ext}`;await writeFile(path.join(root,'public','uploads',filename),Buffer.from(m[2],'base64'));photoAttachment={filename:`student-profile.${ext}`,content:m[2]};
-   pictureLink=new URL(`/uploads/${filename}`,publicBase).toString();
-  }else if(clean.picture.startsWith(`${publicBase}/uploads/`)||clean.picture.startsWith(`${publicBase}/avatars/`)){
-   pictureLink=clean.picture;
-  }
-  const saved={name:clean.name,email:clean.email,gender:clean.gender,picture:pictureLink,createdAt:new Date().toISOString()};
-  await appendFile(path.join(root,'data',isUpdate?'profile-updates.jsonl':'registrations.jsonl'),JSON.stringify(saved)+'\n');
-  let emailSent=false;
-  if(emailNotificationsEnabled()){
-   try{await sendRegistrationEmail({...saved,picture:pictureLink},isUpdate,photoAttachment);emailSent=true}
-   catch(error){console.error('Registration email delivery failed:',error.message)}
-  }
-  return json(res,isUpdate?200:201,{ok:true,emailConfigured:emailNotificationsEnabled(),emailSent,profile:{name:saved.name,email:saved.email,gender:saved.gender,picture:saved.picture}});
+  return json(res,503,{error:'Verified registration is available only through Firebase Auth.'});
  }
  if(url.pathname.startsWith('/api/admin')){
   if(req.method==='POST'&&url.pathname==='/api/admin/login'){
@@ -72,6 +91,22 @@ async function api(req,res,url){
   if(req.method==='POST'&&url.pathname==='/api/admin/logout'){const t=session(req);if(t)sessions.delete(t);res.setHeader('Set-Cookie','admin_session=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0');return json(res,200,{ok:true});}
   if(req.method==='GET'&&url.pathname==='/api/admin/session')return json(res,200,{authenticated:Boolean(session(req))});
   if(!session(req))return json(res,401,{error:'Sign in required'});
+  if(req.method==='GET'&&url.pathname==='/api/admin/users'){
+   if(!firebaseConfigured())return json(res,503,{error:'Firebase must be configured before accounts can be managed.'});
+   const query=(url.searchParams.get('q')||'').trim().toLocaleLowerCase(),{auth,db}=firebase(),result=await auth.listUsers(1000),profiles=await db.collection('users').get();
+   const byId=new Map(profiles.docs.map(x=>[x.id,x.data()]));const users=result.users.map(u=>{const p=byId.get(u.uid)||{};return {id:u.uid,name:p.name||u.displayName||'',email:u.email||'',phone:u.phone_number||'',gender:p.gender||'',picture:p.picture||'',createdAt:u.metadata.creationTime||''}}).filter(u=>!query||[u.id,u.name,u.email,u.phone].some(v=>String(v).toLocaleLowerCase().includes(query))).slice(0,500);
+   return json(res,200,{users,nextPageToken:result.pageToken||null});
+  }
+  if(req.method==='POST'&&url.pathname==='/api/admin/email'){
+   if(!emailNotificationsEnabled())return json(res,503,{error:'Resend email is not configured.'});if(!firebaseConfigured())return json(res,503,{error:'Firebase must be configured before targeting accounts.'});
+   const d=await body(req),subject=String(d.subject||'').trim(),message=String(d.message||'').trim();if(!subject||!message)return json(res,400,{error:'Subject and message are required.'});
+   const {db}=firebase();let targets=[];
+   if(d.mode==='all')targets=(await db.collection('users').limit(500).get()).docs.map(x=>({id:x.id,...x.data()}));
+   else {const target=String(d.target||'').trim();if(!target)return json(res,400,{error:'Enter a user ID, verified email, or phone number.'});let snapshot;if(target.includes('@'))snapshot=await db.collection('users').where('email','==',target.toLowerCase()).limit(1).get();else if(target.startsWith('+'))snapshot=await db.collection('users').where('phone','==',target).limit(1).get();else {const doc=await db.collection('users').doc(target).get();snapshot={docs:doc.exists?[doc]:[]}}targets=snapshot.docs.map(x=>({id:x.id,...x.data()}))}
+   if(!targets.length)return json(res,404,{error:'No matching account was found.'});let emailSent=0,emailFailed=0,inAppDelivered=0;
+   for(const target of targets){try{await db.collection('users').doc(target.id).collection('messages').add({subject,message,from:'Morfi',createdAt:FieldValue.serverTimestamp(),readAt:null});inAppDelivered++}catch{continue}const address=String(target.email||'').trim().toLowerCase();if(/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(address)){try{await sendManagedEmail(address,subject,message);emailSent++}catch{emailFailed++}}}
+   return json(res,200,{ok:true,matched:targets.length,inAppDelivered,emailSent,emailFailed,limit:d.mode==='all'?500:1});
+  }
   const match=url.pathname.match(/^\/api\/admin\/(subjects|lectures|advising|official)(?:\/([^/]+))?$/);
   if(match){const [,key,id]=match,db=await readDB();if(req.method==='GET')return json(res,200,db[key]);
    if(req.method==='POST'||req.method==='PUT'){const item=await body(req);if(!item.title||!item.url||!safeUrl(item.url))return json(res,400,{error:'A title and valid http(s) URL are required'});const obj={...item,id:id||crypto.randomUUID(),title:String(item.title).slice(0,180),url:String(item.url).slice(0,2000)};if(id){const i=db[key].findIndex(x=>x.id===id);if(i<0)return json(res,404,{error:'Not found'});db[key][i]=obj}else db[key].unshift(obj);await saveDB(db);return json(res,200,obj)}
