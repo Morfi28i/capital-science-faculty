@@ -13,8 +13,29 @@ await mkdir(path.join(root,'public','uploads'),{recursive:true});
 const mime={'.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.js':'text/javascript; charset=utf-8','.json':'application/json; charset=utf-8','.svg':'image/svg+xml','.png':'image/png','.jpg':'image/jpeg','.webp':'image/webp','.pdf':'application/pdf'};
 const json=(res,code,obj)=>{res.writeHead(code,{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store'});res.end(JSON.stringify(obj));};
 async function body(req,limit=2_000_000){let b=[];let n=0;for await(const c of req){n+=c.length;if(n>limit)throw Error('Request too large');b.push(c)}return JSON.parse(Buffer.concat(b).toString()||'{}')}
-const readDB=async()=>JSON.parse(await readFile(dbPath,'utf8'));
-const saveDB=async d=>writeFile(dbPath,JSON.stringify(d,null,2));
+const readLocalDB=async()=>JSON.parse(await readFile(dbPath,'utf8'));
+const siteContentRef=()=>firebase().db.collection('site').doc('content');
+async function readDB(){
+ if(!firebaseConfigured())return readLocalDB();
+ const ref=siteContentRef(),snapshot=await ref.get();
+ if(snapshot.exists)return snapshot.data();
+ // Seed Firestore once from the checked-in catalog. Transactions prevent two
+ // cold starts from overwriting an edit made during the first request.
+ const initial=await readLocalDB();
+ return firebase().db.runTransaction(async tx=>{
+  const current=await tx.get(ref);
+  if(current.exists)return current.data();
+  tx.set(ref,initial);
+  return initial;
+ });
+}
+async function saveDB(d){
+ if(firebaseConfigured()){
+  await siteContentRef().set(d);
+  return;
+ }
+ await writeFile(dbPath,JSON.stringify(d,null,2));
+}
 const emailNotificationsEnabled=()=>Boolean(process.env.RESEND_API_KEY);
 const firebaseWebConfig=()=>({apiKey:process.env.FIREBASE_API_KEY,authDomain:process.env.FIREBASE_AUTH_DOMAIN,projectId:process.env.FIREBASE_PROJECT_ID,appId:process.env.FIREBASE_APP_ID,messagingSenderId:process.env.FIREBASE_MESSAGING_SENDER_ID});
 const firebaseConfigured=()=>Object.values(firebaseWebConfig()).every(Boolean)&&Boolean(process.env.FIREBASE_SERVICE_ACCOUNT_JSON);
@@ -75,7 +96,7 @@ async function api(req,res,url){
   });
   const extraLectures=(db.lectures||[]).filter(item=>!Array.isArray(item.folders)&&!mergedRoots.has(item.id));
   driveFiles.push(...extraLectures.map(item=>({...item,id:item.id||item.url,type:'file',file:true,categoryEn:item.categoryEn||item.category||''})));
-  return json(res,200,{...db,driveFiles,emailNotificationsEnabled:emailNotificationsEnabled(),firebaseAuthEnabled:firebaseConfigured()});
+  return json(res,200,{...db,driveFiles,emailNotificationsEnabled:emailNotificationsEnabled(),firebaseAuthEnabled:firebaseConfigured(),contentStoragePersistent:firebaseConfigured()});
  }
  if(url.pathname.startsWith('/api/firebase/')){
   if(!firebaseConfigured())return json(res,503,{error:'Firebase is not configured. Add the Firebase web config and Admin service-account secret in Render.'});
