@@ -8,6 +8,11 @@ Object.assign(dict.en,{profile:'My profile',profileIntro:'Update your details an
 let lang=localStorage.getItem('cs-lang')||'ar',theme=localStorage.getItem('cs-theme')||'light',db={subjects:[],lectures:[],advising:[],official:[],contacts:[]},emailConfigured=false,firebaseEnabled=false;const t=k=>dict[lang][k]||k;
 document.addEventListener('click',e=>{const target=e.target.closest('.button,.quick-card,.group-card,.icon-btn,.filter,.card-link');if(!target)return;const r=target.getBoundingClientRect(),dot=document.createElement('i');dot.className='ripple';dot.style.left=`${e.clientX-r.left}px`;dot.style.top=`${e.clientY-r.top}px`;target.append(dot);setTimeout(()=>dot.remove(),650)});
 const paths=['/','/subjects','/lectures','/advising','/official','/developer','/profile'];
+async function refreshSiteData(){try{const response=await fetch(`/api/site?fresh=${Date.now()}`,{cache:'no-store'});if(!response.ok)return;db=await response.json();emailConfigured=db.emailNotificationsEnabled===true;firebaseEnabled=db.firebaseAuthEnabled===true;render()}catch{}}
+const siteUpdates=typeof BroadcastChannel==='function'?new BroadcastChannel('capital-science-updates'):null;
+siteUpdates?.addEventListener('message',event=>{if(event.data?.type==='content-updated')refreshSiteData()});
+window.addEventListener('storage',event=>{if(event.key==='cs-site-updated')refreshSiteData()});
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')refreshSiteData()});
 function navigate(p){if(!paths.includes(p))p='/';history.pushState({},'',p);render();window.scrollTo({top:0,behavior:'smooth'})}window.addEventListener('popstate',render);
 function link(p,label,cl=''){return `<a class="${cl}" href="${p}" data-route="${p}">${label}</a>`}
 function icon(name){return ({arrow:'↗',moon:'◐',sun:'☼',search:'⌕',group:'✳',file:'▤',cap:'⌂',person:'◉',spark:'✳'})[name]||'✳'}
