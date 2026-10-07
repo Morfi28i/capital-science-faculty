@@ -3,11 +3,11 @@ import {readFile,writeFile,appendFile,mkdir} from 'node:fs/promises';
 import {existsSync,readFileSync} from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
-import {cert, getApps, initializeApp} from 'firebase-admin/app';
+import {applicationDefault, cert, getApps, initializeApp} from 'firebase-admin/app';
 import {getAuth} from 'firebase-admin/auth';
 import {FieldValue, getFirestore} from 'firebase-admin/firestore';
 
-const root=process.cwd(), dbPath=path.join(root,'data/site.json'), driveCatalogPath=path.join(root,'data/drive-catalog.json'), sessions=new Map();
+const root=process.cwd(), dbPath=path.join(root,'data/site.json'), driveCatalogPath=path.join(root,'data/drive-catalog.json');
 await mkdir(path.join(root,'uploads'),{recursive:true});
 await mkdir(path.join(root,'public','uploads'),{recursive:true});
 const mime={'.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.js':'text/javascript; charset=utf-8','.json':'application/json; charset=utf-8','.svg':'image/svg+xml','.png':'image/png','.jpg':'image/jpeg','.webp':'image/webp','.pdf':'application/pdf'};
@@ -37,13 +37,22 @@ async function saveDB(d){
  await writeFile(dbPath,JSON.stringify(d,null,2));
 }
 const emailNotificationsEnabled=()=>Boolean(process.env.RESEND_API_KEY);
-const firebaseWebConfig=()=>({apiKey:process.env.FIREBASE_API_KEY,authDomain:process.env.FIREBASE_AUTH_DOMAIN,projectId:process.env.FIREBASE_PROJECT_ID,appId:process.env.FIREBASE_APP_ID,messagingSenderId:process.env.FIREBASE_MESSAGING_SENDER_ID});
+function firebaseWebConfig(){
+ let generated={};try{generated=JSON.parse(readFileSync(path.join(root,'public','firebase-config.json'),'utf8'))}catch{}
+ let appHosting={};try{appHosting=JSON.parse(process.env.FIREBASE_WEBAPP_CONFIG||'{}')}catch{}
+ const project={...generated,...appHosting};
+ return {apiKey:project.apiKey||process.env.FIREBASE_API_KEY,authDomain:project.authDomain||process.env.FIREBASE_AUTH_DOMAIN,projectId:project.projectId||process.env.FIREBASE_PROJECT_ID,appId:project.appId||process.env.FIREBASE_APP_ID,messagingSenderId:project.messagingSenderId||process.env.FIREBASE_MESSAGING_SENDER_ID};
+}
 const firebaseServiceAccountFile=()=>process.env.FIREBASE_SERVICE_ACCOUNT_FILE||'/etc/secrets/firebase-service-account.json';
-const firebaseConfigured=()=>Object.values(firebaseWebConfig()).every(Boolean)&&(Boolean(process.env.FIREBASE_SERVICE_ACCOUNT_JSON)||existsSync(firebaseServiceAccountFile()));
+const firebaseCredentialsAvailable=()=>Boolean(process.env.FIREBASE_SERVICE_ACCOUNT_JSON)||existsSync(firebaseServiceAccountFile())||Boolean(process.env.FIREBASE_CONFIG)||Boolean(process.env.K_SERVICE);
+const firebaseConfigured=()=>Object.values(firebaseWebConfig()).every(Boolean)&&firebaseCredentialsAvailable();
 function firebase(){
  if(!firebaseConfigured())throw new Error('Firebase is not fully configured.');
  let app=getApps()[0];
- if(!app){let serviceAccount;try{serviceAccount=process.env.FIREBASE_SERVICE_ACCOUNT_JSON?JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_JSON):JSON.parse(readFileSync(firebaseServiceAccountFile(),'utf8'))}catch{throw new Error('Firebase Admin service-account secret must contain valid JSON.')}app=initializeApp({credential:cert(serviceAccount),projectId:process.env.FIREBASE_PROJECT_ID});}
+ if(!app){let projectId=process.env.FIREBASE_PROJECT_ID||'';try{projectId=projectId||JSON.parse(process.env.FIREBASE_CONFIG||'{}').projectId||''}catch{}
+  if(process.env.FIREBASE_SERVICE_ACCOUNT_JSON||existsSync(firebaseServiceAccountFile())){let serviceAccount;try{serviceAccount=process.env.FIREBASE_SERVICE_ACCOUNT_JSON?JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_JSON):JSON.parse(readFileSync(firebaseServiceAccountFile(),'utf8'))}catch{throw new Error('Firebase Admin service-account secret must contain valid JSON.')}app=initializeApp({credential:cert(serviceAccount),projectId:projectId||serviceAccount.project_id});}
+  else app=initializeApp({credential:applicationDefault(),...(projectId?{projectId}:{})});
+ }
  return {auth:getAuth(app),db:getFirestore(app)};
 }
 async function verifiedFirebaseUser(req){
@@ -78,7 +87,8 @@ async function sendManagedEmail(to,subject,message){
  const response=await fetch('https://api.resend.com/emails',{method:'POST',headers:{Authorization:`Bearer ${process.env.RESEND_API_KEY}`,'Content-Type':'application/json'},body:JSON.stringify({from:process.env.RESEND_FROM||'onboarding@resend.dev',to:[to],subject:subject.slice(0,180),text:message.slice(0,10000),html:`<div style="font-family:Arial,sans-serif;white-space:pre-wrap">${escapeHtml(message.slice(0,10000))}</div>`}),signal:AbortSignal.timeout(10000)});
  if(!response.ok)throw new Error(`Email provider returned HTTP ${response.status}`);return response.json();
 }
-function session(req){const c=req.headers.cookie||'';const m=c.match(/(?:^|; )admin_session=([^;]+)/);return m&&sessions.has(m[1])?m[1]:null;}
+function signAdminToken(token){return crypto.createHmac('sha256',process.env.ADMIN_PASSWORD||'').update(token).digest('hex')}
+function session(req){const c=req.headers.cookie||'';const m=c.match(/(?:^|; )admin_session=([^;]+)/);if(!m||!process.env.ADMIN_PASSWORD)return null;const [token,signature]=m[1].split('.');if(!token||!signature)return null;const expected=signAdminToken(token);const a=Buffer.from(signature),b=Buffer.from(expected);return a.length===b.length&&crypto.timingSafeEqual(a,b)?token:null;}
 function safeUrl(u){try{const x=new URL(u);return ['https:','http:'].includes(x.protocol)}catch{return false}}
 async function api(req,res,url){
  if(req.method==='GET'&&url.pathname==='/api/firebase-config')return json(res,200,{enabled:firebaseConfigured(),firebase:firebaseConfigured()?firebaseWebConfig():null});
@@ -100,7 +110,7 @@ async function api(req,res,url){
   return json(res,200,{...db,driveFiles,emailNotificationsEnabled:emailNotificationsEnabled(),firebaseAuthEnabled:firebaseConfigured(),contentStoragePersistent:firebaseConfigured()});
  }
  if(url.pathname.startsWith('/api/firebase/')){
-  if(!firebaseConfigured())return json(res,503,{error:'Firebase is not configured. Add the Firebase web config and Admin service-account secret in Render.'});
+  if(!firebaseConfigured())return json(res,503,{error:'Firebase is not configured. Connect the Firebase web app and Admin SDK credentials.'});
   try{
    const decoded=await verifiedFirebaseUser(req),{db}=firebase(),ref=db.collection('users').doc(decoded.uid);
    if(req.method==='GET'&&url.pathname==='/api/firebase/profile'){const snap=await ref.get();return json(res,200,{profile:snap.exists?snap.data():null});}
@@ -124,9 +134,9 @@ async function api(req,res,url){
   if(req.method==='POST'&&url.pathname==='/api/admin/login'){
    const d=await body(req);if(!process.env.ADMIN_PASSWORD)return json(res,503,{error:'Admin password is not configured. Set ADMIN_PASSWORD before starting the server.'});
    const a=Buffer.from(String(d.password||'')),b=Buffer.from(process.env.ADMIN_PASSWORD);if(a.length!==b.length||!crypto.timingSafeEqual(a,b))return json(res,401,{error:'Incorrect password'});
-   const token=crypto.randomBytes(32).toString('hex');sessions.set(token,Date.now());res.setHeader('Set-Cookie',`admin_session=${token}; HttpOnly; SameSite=Strict; Path=/${process.env.NODE_ENV==='production'?'; Secure':''}`);return json(res,200,{ok:true});
+   const token=crypto.randomBytes(32).toString('hex'),signed=`${token}.${signAdminToken(token)}`;res.setHeader('Set-Cookie',`admin_session=${signed}; HttpOnly; SameSite=Strict; Path=/${process.env.NODE_ENV==='production'||process.env.K_SERVICE?'; Secure':''}`);return json(res,200,{ok:true});
   }
-  if(req.method==='POST'&&url.pathname==='/api/admin/logout'){const t=session(req);if(t)sessions.delete(t);res.setHeader('Set-Cookie','admin_session=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0');return json(res,200,{ok:true});}
+  if(req.method==='POST'&&url.pathname==='/api/admin/logout'){res.setHeader('Set-Cookie','admin_session=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0');return json(res,200,{ok:true});}
   if(req.method==='GET'&&url.pathname==='/api/admin/session')return json(res,200,{authenticated:Boolean(session(req))});
   if(!session(req))return json(res,401,{error:'Sign in required'});
   if(req.method==='GET'&&url.pathname==='/api/admin/users'){
@@ -154,7 +164,7 @@ async function api(req,res,url){
  return json(res,404,{error:'Not found'});
 }
 const server=http.createServer(async(req,res)=>{try{const url=new URL(req.url,'http://localhost');if(url.pathname.startsWith('/api/'))return await api(req,res,url);
- const route=url.pathname;if(route==='/admin'||route==='/admin/'){const oldSession=session(req);if(oldSession)sessions.delete(oldSession);res.setHeader('Set-Cookie',`admin_session=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0${process.env.NODE_ENV==='production'?'; Secure':''}`);res.setHeader('Cache-Control','no-store');}
+ const route=url.pathname;if(route==='/admin'||route==='/admin/'){res.setHeader('Set-Cookie',`admin_session=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0${process.env.NODE_ENV==='production'||process.env.K_SERVICE?'; Secure':''}`);res.setHeader('Cache-Control','no-store');}
  const rel=route==='/admin'||route==='/admin/'?'/admin.html':['/','/subjects','/lectures','/advising','/official','/developer','/profile'].includes(route)?'/index.html':decodeURIComponent(route);const file=path.resolve(root,'public',`.${rel}`);if(!file.startsWith(path.join(root,'public')+path.sep)||!existsSync(file)){res.writeHead(404);return res.end('Not found')};res.writeHead(200,{'Content-Type':mime[path.extname(file)]||'application/octet-stream'});res.end(await readFile(file));
  }catch(e){json(res,e.message==='Request too large'?413:500,{error:e.message==='Request too large'?'Request too large':'Server error'})}});
 server.listen(Number(process.env.PORT||3000),()=>console.log(`Capital Science Faculty is running on http://localhost:${process.env.PORT||3000}`));

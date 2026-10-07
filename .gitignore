@@ -6,4 +6,5 @@ data/registrations.jsonl
 uploads/*
 public/uploads/*
 !public/uploads/.gitkeep
+public/firebase-config.json
 .DS_Store

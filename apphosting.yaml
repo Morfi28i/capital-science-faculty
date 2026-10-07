@@ -1,0 +1,25 @@
+runConfig:
+  minInstances: 0
+  maxInstances: 5
+  concurrency: 80
+  cpu: 1
+  memoryMiB: 512
+
+env:
+  - variable: FIREBASE_PROJECT_ID
+    value: capital-science-faculty
+    availability:
+      - BUILD
+      - RUNTIME
+  - variable: ADMIN_PASSWORD
+    secret: capital-science-admin-password
+    availability:
+      - RUNTIME
+  - variable: RESEND_API_KEY
+    secret: capital-science-resend-api-key
+    availability:
+      - RUNTIME
+  - variable: RESEND_FROM
+    value: Capital Science <onboarding@resend.dev>
+    availability:
+      - RUNTIME
