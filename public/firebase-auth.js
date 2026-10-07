@@ -39,10 +39,16 @@ export async function checkEmailExists(email) {
 
 export async function sendEmailSignInLink(email) {
   const { auth, authSdk } = await services();
-  await authSdk.sendSignInLinkToEmail(auth, email, {
-    url: `${window.location.origin}/profile`,
-    handleCodeInApp: true,
-  });
+  try {
+    await authSdk.sendSignInLinkToEmail(auth, email, {
+      url: `${window.location.origin}/profile`,
+      handleCodeInApp: true,
+    });
+  } catch (error) {
+    if (error.code === 'auth/operation-not-allowed') throw new Error('Enable Email Link sign-in in Firebase Authentication.');
+    if (error.code === 'auth/unauthorized-continue-uri' || error.code === 'auth/unauthorized-domain') throw new Error('Add capital-science-faculty.onrender.com to Firebase Auth authorized domains.');
+    throw error;
+  }
   sessionStorage.setItem('cs-pending-email-link', email);
 }
 
