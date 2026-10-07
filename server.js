@@ -8,6 +8,7 @@ import {getAuth} from 'firebase-admin/auth';
 import {FieldValue, getFirestore} from 'firebase-admin/firestore';
 
 const root=process.cwd(), dbPath=path.join(root,'data/site.json'), driveCatalogPath=path.join(root,'data/drive-catalog.json');
+const emailChallenges=new Map(),emailSendRate=new Map(),contactCheckRate=new Map();
 await mkdir(path.join(root,'uploads'),{recursive:true});
 await mkdir(path.join(root,'public','uploads'),{recursive:true});
 const mime={'.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.js':'text/javascript; charset=utf-8','.json':'application/json; charset=utf-8','.svg':'image/svg+xml','.png':'image/png','.jpg':'image/jpeg','.webp':'image/webp','.pdf':'application/pdf'};
@@ -37,6 +38,12 @@ async function saveDB(d){
  await writeFile(dbPath,JSON.stringify(d,null,2));
 }
 const emailNotificationsEnabled=()=>Boolean(process.env.RESEND_API_KEY);
+const emailCodeHash=(email,code)=>crypto.createHash('sha256').update(`${email}:${code}:${process.env.ADMIN_PASSWORD||process.env.FIREBASE_PROJECT_ID||'capital-science-faculty'}`).digest('hex');
+async function sendEmailVerificationCode(email,code){
+ if(!process.env.RESEND_API_KEY)throw Object.assign(new Error('Email verification is temporarily unavailable.'),{status:503});
+ const response=await fetch('https://api.resend.com/emails',{method:'POST',headers:{Authorization:`Bearer ${process.env.RESEND_API_KEY}`,'Content-Type':'application/json'},body:JSON.stringify({from:process.env.RESEND_FROM||'onboarding@resend.dev',to:[email],subject:'Capital Science Faculty verification code',text:`Your Capital Science Faculty verification code is ${code}. It expires in 10 minutes.`,html:`<div style="font-family:Arial,sans-serif;max-width:520px;margin:auto;padding:24px;color:#24362c"><h2>Verify your email</h2><p>Enter this code to continue creating your account:</p><p style="font-size:30px;letter-spacing:8px;font-weight:bold">${code}</p><p>This code expires in 10 minutes. If you did not request it, ignore this email.</p></div>`}),signal:AbortSignal.timeout(10000)});
+ if(!response.ok)throw Object.assign(new Error('The email provider could not deliver the verification code.'),{status:502});
+}
 function firebaseWebConfig(){
  let generated={};try{generated=JSON.parse(readFileSync(path.join(root,'public','firebase-config.json'),'utf8'))}catch{}
  let appHosting={};try{appHosting=JSON.parse(process.env.FIREBASE_WEBAPP_CONFIG||'{}')}catch{}
@@ -60,7 +67,7 @@ async function verifiedFirebaseUser(req){
  const {auth}=firebase();return auth.verifyIdToken(token,true);
 }
 const escapeHtml=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-async function sendRegistrationEmail(profile,isUpdate=false,photoAttachment=null){
+async function sendRegistrationEmail(profile,isUpdate=false,photoAttachment=null,changedFields=[]){
  const isDataPicture=String(profile.picture||'').startsWith('data:image/');
  const picture=isDataPicture?'':escapeHtml(String(profile.picture||'').startsWith('/avatars/')?new URL(profile.picture,process.env.PUBLIC_URL||'https://capital-science-faculty.onrender.com').toString():profile.picture);
  const pictureDescription=isDataPicture?'Attached to this email':(profile.picture||'Not supplied');
@@ -71,8 +78,8 @@ async function sendRegistrationEmail(profile,isUpdate=false,photoAttachment=null
    from:process.env.RESEND_FROM||'onboarding@resend.dev',
    to:['essamsidek123@gmail.com'],
    subject:isUpdate?'Capital Science Faculty profile updated':'New Capital Science Faculty registration',
-   text:`${isUpdate?'Profile update':'New registration'}\nName: ${profile.name}\n${profile.email?'Email: '+profile.email:'Phone: '+(profile.phone||'Not supplied')}\nGender: ${profile.gender}\nPicture: ${pictureDescription}`,
-   html:`<div style="font-family:Arial,sans-serif;max-width:560px;margin:auto;padding:24px;color:#24362c"><h2>${isUpdate?'Student profile updated':'New student registration'}</h2><p><b>Name:</b> ${escapeHtml(profile.name)}</p><p><b>${profile.email?'Email':'Phone'}:</b> ${escapeHtml(profile.email||profile.phone||'Not supplied')}</p><p><b>Gender:</b> ${escapeHtml(profile.gender)}</p><p><b>Profile picture:</b> ${isDataPicture?'Attached to this email':picture?`<a href="${picture}">View portrait</a>`:'Not supplied'}</p></div>`,
+   text:`${isUpdate?'Profile update':'New registration'}\nAccount ID: ${profile.id}\nFirst name: ${profile.firstName||''}\nFather's name: ${profile.fatherName||''}\nFamily name: ${profile.lastName||''}\nFull name: ${profile.name}\nEmail: ${profile.email||'Not supplied'}\nPhone: ${profile.phone||'Not supplied'}\nGender: ${profile.gender}\nPicture: ${pictureDescription}${isUpdate?`\nChanged values: ${changedFields.join(', ')||'None'}`:''}`,
+   html:`<div style="font-family:Arial,sans-serif;max-width:560px;margin:auto;padding:24px;color:#24362c"><h2>${isUpdate?'Student profile updated':'New student registration'}</h2>${isUpdate?`<p><b>Changed values:</b> ${escapeHtml(changedFields.join(', ')||'None')}</p>`:''}<p><b>Account ID:</b> ${escapeHtml(profile.id)}</p><p><b>First name:</b> ${escapeHtml(profile.firstName||'')}</p><p><b>Father’s name:</b> ${escapeHtml(profile.fatherName||'')}</p><p><b>Family name:</b> ${escapeHtml(profile.lastName||'')}</p><p><b>Full name:</b> ${escapeHtml(profile.name)}</p><p><b>Email:</b> ${escapeHtml(profile.email||'Not supplied')}</p><p><b>Phone:</b> ${escapeHtml(profile.phone||'Not supplied')}</p><p><b>Gender:</b> ${escapeHtml(profile.gender)}</p><p><b>Profile picture:</b> ${isDataPicture?'Attached to this email':picture?`<a href="${picture}">View portrait</a>`:'Not supplied'}</p></div>`,
    ...(photoAttachment?{attachments:[photoAttachment]}:{})
   }),
   signal:AbortSignal.timeout(8000)
@@ -92,6 +99,37 @@ function session(req){const c=req.headers.cookie||'';const m=c.match(/(?:^|; )ad
 function safeUrl(u){try{const x=new URL(u);return ['https:','http:'].includes(x.protocol)}catch{return false}}
 async function api(req,res,url){
  if(req.method==='GET'&&url.pathname==='/api/firebase-config')return json(res,200,{enabled:firebaseConfigured(),firebase:firebaseConfigured()?firebaseWebConfig():null});
+ if(req.method==='POST'&&url.pathname==='/api/auth/email-code'){
+  try{
+   const d=await body(req,12000),email=String(d.email||'').trim().toLowerCase(),action=String(d.action||''),ip=String(req.headers['x-forwarded-for']||req.socket.remoteAddress||'').split(',')[0].trim();
+   if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))return json(res,400,{error:'Enter a valid email address.'});
+   const key=`${ip}:${email}`,entry=emailChallenges.get(email);
+   if(action==='send'){
+    if(!firebaseConfigured())return json(res,503,{error:'Account verification is unavailable.'});
+    const last=emailSendRate.get(key)||0;if(Date.now()-last<60000)return json(res,429,{error:'Wait one minute before requesting another code.'});
+    try{await firebase().auth.getUserByEmail(email);return json(res,409,{error:'This email is already linked to an account. Sign in instead.'})}catch(error){if(error.code!=='auth/user-not-found')throw error}
+    const code=String(crypto.randomInt(0,1000000)).padStart(6,'0');await sendEmailVerificationCode(email,code);emailSendRate.set(key,Date.now());emailChallenges.set(email,{hash:emailCodeHash(email,code),expiresAt:Date.now()+10*60_000,attempts:0,verified:false});return json(res,200,{ok:true});
+   }
+   if(action==='verify'){
+    if(!entry||entry.expiresAt<Date.now())return json(res,400,{error:'The code expired. Request a new one.'});
+    if(entry.attempts>=5)return json(res,429,{error:'Too many attempts. Request a new code.'});
+    const supplied=Buffer.from(emailCodeHash(email,String(d.code||'')),'hex'),expected=Buffer.from(entry.hash,'hex');entry.attempts++;
+    if(supplied.length!==expected.length||!crypto.timingSafeEqual(supplied,expected))return json(res,400,{error:'Incorrect code. Check it and try again.'});
+    entry.verified=true;entry.expiresAt=Date.now()+10*60_000;return json(res,200,{ok:true,verified:true});
+   }
+   return json(res,400,{error:'Unsupported verification action.'});
+  }catch(error){return json(res,error.status||500,{error:error.status?error.message:'Could not process email verification.'})}
+ }
+ if(req.method==='POST'&&url.pathname==='/api/auth/check-contact'){
+  try{
+   if(!firebaseConfigured())return json(res,503,{error:'Contact verification is unavailable.'});
+   const decoded=await verifiedFirebaseUser(req),d=await body(req,12000),email=String(d.email||'').trim().toLowerCase(),phone=String(d.phone||'').trim(),ip=String(req.headers['x-forwarded-for']||req.socket.remoteAddress||'').split(',')[0].trim(),now=Date.now(),times=(contactCheckRate.get(ip)||[]).filter(time=>now-time<60*60_000);
+   if(times.length>=20)return json(res,429,{error:'Too many checks. Please wait before trying again.'});times.push(now);contactCheckRate.set(ip,times);
+   if(email){if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))return json(res,400,{error:'Enter a valid email address.'});try{const found=await firebase().auth.getUserByEmail(email);if(found.uid!==decoded.uid)return json(res,409,{error:'This email is already linked to another account.'});return json(res,200,{ok:true,available:true})}catch(error){if(error.code==='auth/user-not-found')return json(res,200,{ok:true,available:true});throw error}}
+   if(!/^\+[1-9]\d{7,14}$/.test(phone))return json(res,400,{error:'Enter a valid international phone number.'});
+   try{const found=await firebase().auth.getUserByPhoneNumber(phone);if(found.uid!==decoded.uid)return json(res,409,{error:'This phone number is already linked to another account.'});return json(res,200,{ok:true,available:true})}catch(error){if(error.code==='auth/user-not-found')return json(res,200,{ok:true,available:true});throw error}
+  }catch(error){return json(res,error.status||401,{error:error.status?error.message:'Could not check this contact value.'})}
+ }
  if(req.method==='GET'&&url.pathname==='/api/site'){
   const db=await readDB();let driveFiles=[];
   try{driveFiles=JSON.parse(await readFile(driveCatalogPath,'utf8'))}catch{driveFiles=db.lectures||[]}
@@ -113,6 +151,11 @@ async function api(req,res,url){
   if(!firebaseConfigured())return json(res,503,{error:'Firebase is not configured. Connect the Firebase web app and Admin SDK credentials.'});
   try{
    const decoded=await verifiedFirebaseUser(req),{db}=firebase(),ref=db.collection('users').doc(decoded.uid);
+   if(req.method==='POST'&&url.pathname==='/api/firebase/verify-email'){
+    const d=await body(req,12000),email=String(decoded.email||'').toLowerCase(),entry=emailChallenges.get(email),supplied=Buffer.from(emailCodeHash(email,String(d.code||'')),'hex'),expected=Buffer.from(entry?.hash||'','hex');
+    if(!decoded.email||entry?.verified!==true||entry.expiresAt<Date.now()||supplied.length!==expected.length||!crypto.timingSafeEqual(supplied,expected))return json(res,403,{error:'Complete email verification with the valid code first.'});
+    const updated=await firebase().auth.updateUser(decoded.uid,{emailVerified:true});emailChallenges.delete(email);return json(res,200,{ok:true,emailVerified:updated.emailVerified});
+   }
    if(req.method==='GET'&&url.pathname==='/api/firebase/profile'){const snap=await ref.get();return json(res,200,{profile:snap.exists?snap.data():null});}
    if(req.method==='GET'&&url.pathname==='/api/firebase/messages'){const snap=await ref.collection('messages').orderBy('createdAt','desc').limit(100).get();return json(res,200,{messages:snap.docs.map(x=>({id:x.id,...x.data()}))});}
    const readMessage=url.pathname.match(/^\/api\/firebase\/messages\/([A-Za-z0-9_-]+)\/read$/);if(req.method==='POST'&&readMessage){const message=ref.collection('messages').doc(readMessage[1]);if(!(await message.get()).exists)return json(res,404,{error:'Message not found.'});await message.update({readAt:FieldValue.serverTimestamp()});return json(res,200,{ok:true});}
@@ -120,9 +163,10 @@ async function api(req,res,url){
     if(!decoded.email_verified&&!decoded.phone_number)return json(res,403,{error:'Verify your email or phone before saving a profile.'});
     const d=await body(req,5_000_000);if(!String(d.name||'').trim()||!['male','female','other'].includes(d.gender))return json(res,400,{error:'Please complete your name and gender.'});
     const picture=String(d.picture||'').slice(0,700_000);if(picture&&!(/^\/avatars\/art-(0[1-9]|10)\.svg$/.test(picture)||/^data:image\/(png|jpeg|webp);base64,/.test(picture)||/^https:\/\//.test(picture)))return json(res,400,{error:'Unsupported profile image.'});
-    const before=await ref.get(),profile={id:decoded.uid,name:String(d.name).trim().slice(0,100),gender:d.gender,email:decoded.email||null,phone:decoded.phone_number||null,picture,providers:decoded.firebase?.sign_in_provider?[decoded.firebase.sign_in_provider]:[],createdAt:before.exists?before.get('createdAt'):FieldValue.serverTimestamp(),updatedAt:FieldValue.serverTimestamp()};
+    const before=await ref.get(),profile={id:decoded.uid,name:String(d.name).trim().slice(0,160),firstName:String(d.firstName||'').trim().slice(0,60),fatherName:String(d.fatherName||'').trim().slice(0,60),lastName:String(d.lastName||'').trim().slice(0,60),gender:d.gender,email:decoded.email||null,phone:decoded.phone_number||null,picture,providers:decoded.firebase?.sign_in_provider?[decoded.firebase.sign_in_provider]:[],createdAt:before.exists?before.get('createdAt'):FieldValue.serverTimestamp(),updatedAt:FieldValue.serverTimestamp()};
+    const changedFields=before.exists?['name','firstName','fatherName','lastName','gender','email','phone','picture'].filter(key=>String(before.get(key)||'')!==String(profile[key]||'')):[];
     await ref.set(profile,{merge:true});let emailSent=false;
-    if(!before.exists&&emailNotificationsEnabled()){try{let photoAttachment=null;const match=profile.picture.match(/^data:image\/(png|jpeg|webp);base64,([A-Za-z0-9+/=]+)$/);if(match){const ext=match[1]==='jpeg'?'jpg':match[1];photoAttachment={filename:`student-profile.${ext}`,content:match[2]}}await sendRegistrationEmail(profile,false,photoAttachment);emailSent=true}catch(error){console.error('Registration email delivery failed:',error.message)}}
+    if((!before.exists||changedFields.length)&&emailNotificationsEnabled()){try{let photoAttachment=null;const match=profile.picture.match(/^data:image\/(png|jpeg|webp);base64,([A-Za-z0-9+/=]+)$/);if(match){const ext=match[1]==='jpeg'?'jpg':match[1];photoAttachment={filename:`student-profile.${ext}`,content:match[2]}}await sendRegistrationEmail(profile,before.exists,photoAttachment,changedFields);emailSent=true}catch(error){console.error('Profile notification email failed:',error.message)}}
     return json(res,before.exists?200:201,{ok:true,emailSent,profile:{...profile,createdAt:undefined,updatedAt:undefined}});
    }
   }catch(error){return json(res,error.status||401,{error:error.status?error.message:'Firebase authentication failed.'});}

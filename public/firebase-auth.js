@@ -19,10 +19,99 @@ async function services() {
 
 export async function createEmailAccount(email, password) {
   const { auth, authSdk } = await services();
-  const result = await authSdk.createUserWithEmailAndPassword(auth, email, password);
-  await authSdk.sendEmailVerification(result.user);
-  await authSdk.signOut(auth);
-  return result.user;
+  return (await authSdk.createUserWithEmailAndPassword(auth, email, password)).user;
+}
+
+export async function inspectEmail(email) {
+  const { auth, authSdk } = await services();
+  return authSdk.fetchSignInMethodsForEmail(auth, email);
+}
+
+export async function requestEmailCode(email) {
+  const response = await fetch('/api/auth/email-code', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action: 'send', email }),
+  });
+  const result = await response.json();
+  if (!response.ok) throw new Error(result.error || 'Could not send the verification code.');
+  return result;
+}
+
+export async function verifyEmailCode(email, code) {
+  const response = await fetch('/api/auth/email-code', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action: 'verify', email, code }),
+  });
+  const result = await response.json();
+  if (!response.ok) throw new Error(result.error || 'That verification code is not valid.');
+  return result;
+}
+
+export async function completeEmailVerification(code) {
+  const { auth } = await services();
+  const user = auth.currentUser;
+  if (!user) throw new Error('Sign in before completing email verification.');
+  const response = await fetch('/api/firebase/verify-email', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${await user.getIdToken(true)}` },
+    body: JSON.stringify({ code }),
+  });
+  const result = await response.json();
+  if (!response.ok) throw new Error(result.error || 'Email verification could not be completed.');
+  await user.reload();
+  await user.getIdToken(true);
+  return user;
+}
+
+export async function requestEmailChange(newEmail) {
+  const { auth, authSdk } = await services();
+  if (!auth.currentUser) throw new Error('Sign in before changing your email.');
+  await authSdk.verifyBeforeUpdateEmail(auth.currentUser, newEmail);
+}
+
+export async function checkContactAvailability(contact) {
+  const { auth } = await services();
+  const user = auth.currentUser;
+  if (!user) throw new Error('Sign in before checking a contact value.');
+  const response = await fetch('/api/auth/check-contact', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${await user.getIdToken(true)}` },
+    body: JSON.stringify(contact),
+  });
+  const result = await response.json();
+  if (!response.ok) {
+    const error = new Error(result.error || 'Could not check that contact value.');
+    error.status = response.status;
+    throw error;
+  }
+  return result;
+}
+
+export async function refreshCurrentUser() {
+  const { auth } = await services();
+  if (!auth.currentUser) throw new Error('Sign in before refreshing your profile.');
+  await auth.currentUser.reload();
+  await auth.currentUser.getIdToken(true);
+  return auth.currentUser;
+}
+
+export async function startPhoneUpdate(phone, recaptchaContainer) {
+  const { auth, authSdk } = await services();
+  if (!auth.currentUser) throw new Error('Sign in before changing your phone.');
+  const verifier = new authSdk.RecaptchaVerifier(auth, recaptchaContainer, { size: 'normal' });
+  await verifier.render();
+  const provider = new authSdk.PhoneAuthProvider(auth);
+  const verificationId = await provider.verifyPhoneNumber(phone, verifier);
+  return { verificationId, verifier };
+}
+
+export async function finishPhoneUpdate(verificationId, code) {
+  const { auth, authSdk } = await services();
+  if (!auth.currentUser) throw new Error('Sign in before changing your phone.');
+  const credential = authSdk.PhoneAuthProvider.credential(verificationId, code);
+  await authSdk.updatePhoneNumber(auth.currentUser, credential);
+  await auth.currentUser.getIdToken(true);
+  return auth.currentUser;
 }
 
 export async function signInEmail(email, password) {
@@ -70,7 +159,7 @@ export async function persistProfile(profile) {
   });
   const result = await response.json();
   if (!response.ok) throw new Error(result.error || 'Profile could not be saved.');
-  return result.profile;
+  return { ...result.profile, notificationSent: result.emailSent === true };
 }
 
 export async function loadProfile() {
