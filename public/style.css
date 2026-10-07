@@ -65,3 +65,4 @@ body[data-theme=dark] .smtp-note:not(:empty){background:#372e21;color:#ecd09c}
 .account-id{display:block;max-width:min(420px,100%);overflow-wrap:anywhere;color:var(--muted);font-size:11px;margin-top:7px}
 
 .phone-privacy-note{grid-column:1/-1;margin:0;color:var(--muted);font-size:11px;line-height:1.6}
+.storage-status{padding:12px 15px;margin:0 0 14px;border:1px solid var(--line);border-radius:5px;background:var(--pale);color:var(--muted);font-size:12px;line-height:1.7}.storage-status[data-persistent="false"]{border-color:#d8aa75;background:#fff8ed;color:#86551d}.storage-status[data-persistent="true"]{border-color:#9bb9a2;color:var(--green)}
