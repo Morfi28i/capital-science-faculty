@@ -9,7 +9,7 @@ pnpm install --frozen-lockfile --ignore-scripts
 ADMIN_PASSWORD='use-a-long-unique-secret' npm start
 ```
 
-Open `http://localhost:3000`. Optional registration notification emails use `RESEND_API_KEY` and `RESEND_FROM`; see `.env.example`. Never commit real secrets.
+Open `http://localhost:3000`. Firebase Email Link sends verification links. Optional owner notifications use `RESEND_API_KEY` and `RESEND_FROM`; see `.env.example`. Never commit real secrets.
 
 ## Routes
 
@@ -21,4 +21,4 @@ Render remains the active public deployment. Firebase App Hosting configuration 
 
 To use App Hosting, enable the Firebase **Blaze** billing plan, connect this GitHub repository and its `main` branch under Firebase App Hosting, and choose `europe-west4` for the backend. Add the secrets `capital-science-admin-password` and `capital-science-resend-api-key` in Google Secret Manager before the first rollout; App Hosting needs access to both secrets. Then deploy and test the `*.hosted.app` URL. App Hosting requires a billing account; it has included usage limits, but usage beyond them can be billed. Firebase's own documentation recommends a Cloud Run spend cap and budget alerts. Keep Render running until the Firebase URL, account flow, and admin CRUD have been verified; only then switch the public domain.
 
-Configure Firebase Auth providers and authorize the live domain before enabling Google or SMS; SMS verification can incur charges. Version 2 intentionally clears old local-only profile cookies once but leaves Firebase accounts and Firestore profiles intact. Registration and profile notices require Resend sender setup. Never commit service-account keys, Resend keys, or student data. See [PROJECT_GUIDE.md](PROJECT_GUIDE.md) for full setup and limitations.
+Enable Email/Password and Email Link in Firebase Auth, and authorize the Render domain. Google and SMS require provider setup; SMS verification can incur charges. Version 2 intentionally clears old local-only profile cookies once but leaves Firebase accounts and Firestore profiles intact. Owner notices require Resend; reliable sending to arbitrary recipients requires a verified sender domain. Never commit service-account keys, Resend keys, or student data. See [PROJECT_GUIDE.md](PROJECT_GUIDE.md) for full setup and limitations.

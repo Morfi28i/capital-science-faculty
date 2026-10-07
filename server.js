@@ -8,7 +8,7 @@ import {getAuth} from 'firebase-admin/auth';
 import {FieldValue, getFirestore} from 'firebase-admin/firestore';
 
 const root=process.cwd(), dbPath=path.join(root,'data/site.json'), driveCatalogPath=path.join(root,'data/drive-catalog.json');
-const emailChallenges=new Map(),emailSendRate=new Map(),contactCheckRate=new Map();
+const emailCheckRate=new Map(),contactCheckRate=new Map();
 await mkdir(path.join(root,'uploads'),{recursive:true});
 await mkdir(path.join(root,'public','uploads'),{recursive:true});
 const mime={'.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.js':'text/javascript; charset=utf-8','.json':'application/json; charset=utf-8','.svg':'image/svg+xml','.png':'image/png','.jpg':'image/jpeg','.webp':'image/webp','.pdf':'application/pdf'};
@@ -38,12 +38,6 @@ async function saveDB(d){
  await writeFile(dbPath,JSON.stringify(d,null,2));
 }
 const emailNotificationsEnabled=()=>Boolean(process.env.RESEND_API_KEY);
-const emailCodeHash=(email,code)=>crypto.createHash('sha256').update(`${email}:${code}:${process.env.ADMIN_PASSWORD||process.env.FIREBASE_PROJECT_ID||'capital-science-faculty'}`).digest('hex');
-async function sendEmailVerificationCode(email,code){
- if(!process.env.RESEND_API_KEY)throw Object.assign(new Error('Email verification is temporarily unavailable.'),{status:503});
- const response=await fetch('https://api.resend.com/emails',{method:'POST',headers:{Authorization:`Bearer ${process.env.RESEND_API_KEY}`,'Content-Type':'application/json'},body:JSON.stringify({from:process.env.RESEND_FROM||'onboarding@resend.dev',to:[email],subject:'Capital Science Faculty verification code',text:`Your Capital Science Faculty verification code is ${code}. It expires in 10 minutes.`,html:`<div style="font-family:Arial,sans-serif;max-width:520px;margin:auto;padding:24px;color:#24362c"><h2>Verify your email</h2><p>Enter this code to continue creating your account:</p><p style="font-size:30px;letter-spacing:8px;font-weight:bold">${code}</p><p>This code expires in 10 minutes. If you did not request it, ignore this email.</p></div>`}),signal:AbortSignal.timeout(10000)});
- if(!response.ok)throw Object.assign(new Error('The email provider could not deliver the verification code.'),{status:502});
-}
 function firebaseWebConfig(){
  let generated={};try{generated=JSON.parse(readFileSync(path.join(root,'public','firebase-config.json'),'utf8'))}catch{}
  let appHosting={};try{appHosting=JSON.parse(process.env.FIREBASE_WEBAPP_CONFIG||'{}')}catch{}
@@ -99,26 +93,14 @@ function session(req){const c=req.headers.cookie||'';const m=c.match(/(?:^|; )ad
 function safeUrl(u){try{const x=new URL(u);return ['https:','http:'].includes(x.protocol)}catch{return false}}
 async function api(req,res,url){
  if(req.method==='GET'&&url.pathname==='/api/firebase-config')return json(res,200,{enabled:firebaseConfigured(),firebase:firebaseConfigured()?firebaseWebConfig():null});
- if(req.method==='POST'&&url.pathname==='/api/auth/email-code'){
+ if(req.method==='POST'&&url.pathname==='/api/auth/check-email'){
   try{
-   const d=await body(req,12000),email=String(d.email||'').trim().toLowerCase(),action=String(d.action||''),ip=String(req.headers['x-forwarded-for']||req.socket.remoteAddress||'').split(',')[0].trim();
+   if(!firebaseConfigured())return json(res,503,{error:'Email verification is unavailable.'});
+   const d=await body(req,12000),email=String(d.email||'').trim().toLowerCase(),ip=String(req.headers['x-forwarded-for']||req.socket.remoteAddress||'').split(',')[0].trim(),now=Date.now(),checks=(emailCheckRate.get(ip)||[]).filter(time=>now-time<60*60_000);
    if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))return json(res,400,{error:'Enter a valid email address.'});
-   const key=`${ip}:${email}`,entry=emailChallenges.get(email);
-   if(action==='send'){
-    if(!firebaseConfigured())return json(res,503,{error:'Account verification is unavailable.'});
-    const last=emailSendRate.get(key)||0;if(Date.now()-last<60000)return json(res,429,{error:'Wait one minute before requesting another code.'});
-    try{await firebase().auth.getUserByEmail(email);return json(res,409,{error:'This email is already linked to an account. Sign in instead.'})}catch(error){if(error.code!=='auth/user-not-found')throw error}
-    const code=String(crypto.randomInt(0,1000000)).padStart(6,'0');await sendEmailVerificationCode(email,code);emailSendRate.set(key,Date.now());emailChallenges.set(email,{hash:emailCodeHash(email,code),expiresAt:Date.now()+10*60_000,attempts:0,verified:false});return json(res,200,{ok:true});
-   }
-   if(action==='verify'){
-    if(!entry||entry.expiresAt<Date.now())return json(res,400,{error:'The code expired. Request a new one.'});
-    if(entry.attempts>=5)return json(res,429,{error:'Too many attempts. Request a new code.'});
-    const supplied=Buffer.from(emailCodeHash(email,String(d.code||'')),'hex'),expected=Buffer.from(entry.hash,'hex');entry.attempts++;
-    if(supplied.length!==expected.length||!crypto.timingSafeEqual(supplied,expected))return json(res,400,{error:'Incorrect code. Check it and try again.'});
-    entry.verified=true;entry.expiresAt=Date.now()+10*60_000;return json(res,200,{ok:true,verified:true});
-   }
-   return json(res,400,{error:'Unsupported verification action.'});
-  }catch(error){return json(res,error.status||500,{error:error.status?error.message:'Could not process email verification.'})}
+   if(checks.length>=15)return json(res,429,{error:'Too many checks. Please wait before trying again.'});checks.push(now);emailCheckRate.set(ip,checks);
+   try{await firebase().auth.getUserByEmail(email);return json(res,200,{exists:true})}catch(error){if(error.code==='auth/user-not-found')return json(res,200,{exists:false});throw error}
+  }catch(error){return json(res,error.status||500,{error:error.status?error.message:'Could not check this email address.'})}
  }
  if(req.method==='POST'&&url.pathname==='/api/auth/check-contact'){
   try{
@@ -151,11 +133,6 @@ async function api(req,res,url){
   if(!firebaseConfigured())return json(res,503,{error:'Firebase is not configured. Connect the Firebase web app and Admin SDK credentials.'});
   try{
    const decoded=await verifiedFirebaseUser(req),{db}=firebase(),ref=db.collection('users').doc(decoded.uid);
-   if(req.method==='POST'&&url.pathname==='/api/firebase/verify-email'){
-    const d=await body(req,12000),email=String(decoded.email||'').toLowerCase(),entry=emailChallenges.get(email),supplied=Buffer.from(emailCodeHash(email,String(d.code||'')),'hex'),expected=Buffer.from(entry?.hash||'','hex');
-    if(!decoded.email||entry?.verified!==true||entry.expiresAt<Date.now()||supplied.length!==expected.length||!crypto.timingSafeEqual(supplied,expected))return json(res,403,{error:'Complete email verification with the valid code first.'});
-    const updated=await firebase().auth.updateUser(decoded.uid,{emailVerified:true});emailChallenges.delete(email);return json(res,200,{ok:true,emailVerified:updated.emailVerified});
-   }
    if(req.method==='GET'&&url.pathname==='/api/firebase/profile'){const snap=await ref.get();return json(res,200,{profile:snap.exists?snap.data():null});}
    if(req.method==='GET'&&url.pathname==='/api/firebase/messages'){const snap=await ref.collection('messages').orderBy('createdAt','desc').limit(100).get();return json(res,200,{messages:snap.docs.map(x=>({id:x.id,...x.data()}))});}
    const readMessage=url.pathname.match(/^\/api\/firebase\/messages\/([A-Za-z0-9_-]+)\/read$/);if(req.method==='POST'&&readMessage){const message=ref.collection('messages').doc(readMessage[1]);if(!(await message.get()).exists)return json(res,404,{error:'Message not found.'});await message.update({readAt:FieldValue.serverTimestamp()});return json(res,200,{ok:true});}

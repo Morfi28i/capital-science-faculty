@@ -27,40 +27,46 @@ export async function inspectEmail(email) {
   return authSdk.fetchSignInMethodsForEmail(auth, email);
 }
 
-export async function requestEmailCode(email) {
-  const response = await fetch('/api/auth/email-code', {
+export async function checkEmailExists(email) {
+  const response = await fetch('/api/auth/check-email', {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ action: 'send', email }),
+    body: JSON.stringify({ email }),
   });
   const result = await response.json();
-  if (!response.ok) throw new Error(result.error || 'Could not send the verification code.');
-  return result;
+  if (!response.ok) throw new Error(result.error || 'Could not check this email address.');
+  return result.exists === true;
 }
 
-export async function verifyEmailCode(email, code) {
-  const response = await fetch('/api/auth/email-code', {
-    method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ action: 'verify', email, code }),
+export async function sendEmailSignInLink(email) {
+  const { auth, authSdk } = await services();
+  await authSdk.sendSignInLinkToEmail(auth, email, {
+    url: `${window.location.origin}/profile`,
+    handleCodeInApp: true,
   });
-  const result = await response.json();
-  if (!response.ok) throw new Error(result.error || 'That verification code is not valid.');
-  return result;
+  sessionStorage.setItem('cs-pending-email-link', email);
 }
 
-export async function completeEmailVerification(code) {
-  const { auth } = await services();
-  const user = auth.currentUser;
-  if (!user) throw new Error('Sign in before completing email verification.');
-  const response = await fetch('/api/firebase/verify-email', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${await user.getIdToken(true)}` },
-    body: JSON.stringify({ code }),
-  });
-  const result = await response.json();
-  if (!response.ok) throw new Error(result.error || 'Email verification could not be completed.');
-  await user.reload();
-  await user.getIdToken(true);
-  return user;
+export async function isEmailSignInLink(url = window.location.href) {
+  const { auth, authSdk } = await services();
+  return authSdk.isSignInWithEmailLink(auth, url);
+}
+
+export async function completeEmailSignInLink(email, url = window.location.href) {
+  const { auth, authSdk } = await services();
+  const result = await authSdk.signInWithEmailLink(auth, email, url);
+  sessionStorage.removeItem('cs-pending-email-link');
+  await result.user.reload();
+  return result.user;
+}
+
+export async function setEmailPassword(email, password) {
+  const { auth, authSdk } = await services();
+  if (!auth.currentUser) throw new Error('Sign in before setting a password.');
+  const passwordLinked = auth.currentUser.providerData.some(provider => provider.providerId === 'password');
+  if (passwordLinked) await authSdk.updatePassword(auth.currentUser, password);
+  else await authSdk.linkWithCredential(auth.currentUser, authSdk.EmailAuthProvider.credential(email, password));
+  await auth.currentUser.getIdToken(true);
+  return auth.currentUser;
 }
 
 export async function requestEmailChange(newEmail) {
