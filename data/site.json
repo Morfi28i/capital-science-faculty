@@ -37,7 +37,7 @@
       "title": "Physics B",
       "titleAr": "فيزياء B",
       "category": "سكاشن",
-      "url": "https://chat.whatsapp.com/Kc0obu9Qyw53qgcA74xcmF",
+      "url": "https://chat.whatsapp.com/DJrsdgJ4Rop51hGZFxuF4a",
       "kind": "whatsapp"
     },
     {
@@ -53,9 +53,17 @@
       "title": "Lab equipment & coat",
       "titleAr": "أدوات المعمل والبالطو",
       "category": "موارد",
-      "url": "https://chat.whatsapp.com/Bxfdg5f1mXfFN3dgOlR9C5?s=cl&mlu=0&ilr=4",
+      "url": "https://chat.whatsapp.com/Bxfdg5f1mXfFN3dgOlR9C5?s=cl&p=a&mlu=0&ilr=4",
       "kind": "whatsapp",
       "note": "مجموعة للاستفسار عن أدوات المعمل والبالطو."
+    },
+    {
+      "id": "algebra-b",
+      "title": "Algebra lecture · Group B",
+      "titleAr": "محاضرة الجبر · جروب B",
+      "category": "سكاشن",
+      "url": "https://chat.whatsapp.com/IEAJzJlEL3fAx2W0BtulrA",
+      "kind": "whatsapp"
     }
   ],
   "lectures": [
@@ -69,49 +77,170 @@
       "file": true,
       "note": "الترتيب في Drive: الفصل الأول، الفصل الثاني، ومجلد الجامعة.",
       "folders": [
-        { "title": "الفصل الأول", "titleEn": "First semester", "url": "https://drive.google.com/drive/folders/1BKGn7o-1iOdFEj9VSHQsgg5yNl50cGOk", "folders": [
-          { "title": "ملخصات", "titleEn": "Summaries" },
-          { "title": "ملفات الدكاترة", "titleEn": "Lecturers' files" },
-          { "title": "امتحانات وأسئلة", "titleEn": "Exams & questions" },
-          { "title": "المواد", "titleEn": "Materials", "url": "https://drive.google.com/drive/folders/1i36gFQnDBhquKhQ0lZRXJAnfwH9SOKnT", "folders": [
-            { "title": "الجبر", "titleEn": "Algebra", "url": "https://drive.google.com/drive/folders/1kgxYHhr8gu0Or9dCn5t0rBaF_Tz71RK8", "items": ["فيديوهات", "Algebra Section", "ملفات المحاضرات والكتاب"] },
-            { "title": "التفاضل والتكامل", "titleEn": "Calculus" },
-            { "title": "قسم CS", "titleEn": "CS Section" },
-            { "title": "الكيمياء العامة", "titleEn": "General Chemistry" },
-            { "title": "الفيزياء العامة", "titleEn": "General Physics" },
-            { "title": "مقدمة في علوم الحاسب", "titleEn": "Introduction to CS" },
-            { "title": "الكيمياء العملي", "titleEn": "Practical Chemistry" },
-            { "title": "الفيزياء العملي", "titleEn": "Practical Physics" },
-            { "title": "عملي مبادئ علم الحيوان", "titleEn": "Practical Principles of Zoology" },
-            { "title": "مبادئ علم الحيوان", "titleEn": "Principles of Zoology" },
-            { "title": "ثقافة بيئية · اختياري", "titleEn": "Environmental Culture · elective" },
-            { "title": "مهارات التواصل · اختياري", "titleEn": "Communication Skills · elective" }
-          ] }
-        ] },
-        { "title": "الفصل الثاني", "titleEn": "Second semester" },
-        { "title": "الجامعة", "titleEn": "University" }
+        {
+          "title": "الفصل الأول",
+          "titleEn": "First semester",
+          "url": "https://drive.google.com/drive/folders/1BKGn7o-1iOdFEj9VSHQsgg5yNl50cGOk",
+          "folders": [
+            {
+              "title": "ملخصات",
+              "titleEn": "Summaries"
+            },
+            {
+              "title": "ملفات الدكاترة",
+              "titleEn": "Lecturers' files"
+            },
+            {
+              "title": "امتحانات وأسئلة",
+              "titleEn": "Exams & questions"
+            },
+            {
+              "title": "المواد",
+              "titleEn": "Materials",
+              "url": "https://drive.google.com/drive/folders/1i36gFQnDBhquKhQ0lZRXJAnfwH9SOKnT",
+              "folders": [
+                {
+                  "title": "الجبر",
+                  "titleEn": "Algebra",
+                  "url": "https://drive.google.com/drive/folders/1kgxYHhr8gu0Or9dCn5t0rBaF_Tz71RK8",
+                  "items": [
+                    "فيديوهات",
+                    "Algebra Section",
+                    "ملفات المحاضرات والكتاب"
+                  ]
+                },
+                {
+                  "title": "التفاضل والتكامل",
+                  "titleEn": "Calculus"
+                },
+                {
+                  "title": "قسم CS",
+                  "titleEn": "CS Section"
+                },
+                {
+                  "title": "الكيمياء العامة",
+                  "titleEn": "General Chemistry"
+                },
+                {
+                  "title": "الفيزياء العامة",
+                  "titleEn": "General Physics"
+                },
+                {
+                  "title": "مقدمة في علوم الحاسب",
+                  "titleEn": "Introduction to CS"
+                },
+                {
+                  "title": "الكيمياء العملي",
+                  "titleEn": "Practical Chemistry"
+                },
+                {
+                  "title": "الفيزياء العملي",
+                  "titleEn": "Practical Physics"
+                },
+                {
+                  "title": "عملي مبادئ علم الحيوان",
+                  "titleEn": "Practical Principles of Zoology"
+                },
+                {
+                  "title": "مبادئ علم الحيوان",
+                  "titleEn": "Principles of Zoology"
+                },
+                {
+                  "title": "ثقافة بيئية · اختياري",
+                  "titleEn": "Environmental Culture · elective"
+                },
+                {
+                  "title": "مهارات التواصل · اختياري",
+                  "titleEn": "Communication Skills · elective"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "title": "الفصل الثاني",
+          "titleEn": "Second semester"
+        },
+        {
+          "title": "الجامعة",
+          "titleEn": "University"
+        }
       ]
     },
     {
       "id": "materials-2025-26",
-      "title": "ماتيريال 2025/2026",
-      "titleEn": "Study materials · 2025/26",
+      "title": "ماتيريال 2025/2026 · Group B 2026",
+      "titleEn": "Study materials · Group B 2026",
       "category": "دفعة 2025/2026",
-      "url": "https://drive.google.com/drive/folders/1_xmVYVlPbaf_iJqcYlGJnPR-ROMUY-FD",
+      "url": "https://drive.google.com/drive/folders/1WhpUU4jCUmcOwdapwVRDK5UIK5b7xuU4",
       "kind": "drive",
       "file": true,
-      "note": "الترتيب في Drive: الفصل الأول، الفصل الثاني، ومجلد الجامعة.",
+      "note": "المجلد الجديد المرسل لدفعة 25/26. تم توثيق الفصلين الدراسيين؛ محتوى المقررات التفصيلي يحتاج استخراج روابط Drive لكل مقرر.",
       "folders": [
-        { "title": "الفصل الأول", "titleEn": "First semester", "url": "https://drive.google.com/drive/folders/1qsI1oDg77vIef470yab-pNodXBVLefIC", "folders": [
-          { "title": "Algebra", "titleEn": "Algebra" }, { "title": "Calculus", "titleEn": "Calculus" },
-          { "title": "Chemistry · Dr. Sahr", "titleEn": "Chemistry · Dr. Sahr" }, { "title": "CS", "titleEn": "Computer Science" },
-          { "title": "Inorganic Chemistry", "titleEn": "Inorganic Chemistry" }, { "title": "Physics", "titleEn": "Physics" },
-          { "title": "Practical Chemistry", "titleEn": "Practical Chemistry" }, { "title": "Practical Physics 1", "titleEn": "Practical Physics 1" },
-          { "title": "Section Calc", "titleEn": "Calculus section" }, { "title": "Section CS", "titleEn": "CS section" },
-          { "title": "Tutorial Physics", "titleEn": "Physics tutorial" }
-        ] },
-        { "title": "الفصل الثاني", "titleEn": "Second semester" },
-        { "title": "عن الجامعة", "titleEn": "About University" }
+        {
+          "title": "الفصل الأول",
+          "titleEn": "First semester",
+          "url": "https://drive.google.com/drive/folders/14Smihcd2LAzqTmcC7OgSc7xyKrXVUlh0",
+          "folders": [
+            {
+              "title": "مقرر تاريخ وفلسفة العلوم",
+              "titleEn": "History & Philosophy of Science",
+              "url": "https://drive.google.com/drive/folders/1vTUMd5NlHoMWX9UK5nbU55Zpi8JoT5FN"
+            },
+            {
+              "title": "Algebra",
+              "titleEn": "Algebra",
+              "url": "https://drive.google.com/drive/folders/1lbm-v6QAWfHynntvaHv_csjqA7J1VRJB"
+            },
+            {
+              "title": "Calculus I",
+              "titleEn": "Calculus I",
+              "url": "https://drive.google.com/drive/folders/1JZczLwYB5ccJ5WMJ2CWxYiNiIbqgPAqQ"
+            },
+            {
+              "title": "CS",
+              "titleEn": "Computer Science",
+              "url": "https://drive.google.com/drive/folders/1fK50nKiaIcKiV1bmY7rbCNptWY9--n1b"
+            },
+            {
+              "title": "General Chemistry",
+              "titleEn": "General Chemistry",
+              "url": "https://drive.google.com/drive/folders/1Pog_N0feGFEf6jXfSEYVAVEb_PtB09sQ"
+            },
+            {
+              "title": "Principles of Zoology",
+              "titleEn": "Principles of Zoology",
+              "url": "https://drive.google.com/drive/folders/1PdD-1Fqk7kvCB3uaBAG62E0xFstCmlD2"
+            }
+          ]
+        },
+        {
+          "title": "الفصل الثاني",
+          "titleEn": "Second semester",
+          "url": "https://drive.google.com/drive/folders/1fZIaJ9brBUZvyzj30OrtOASx9hwMiFuV",
+          "folders": [
+            {
+              "title": "الأمان المعملي",
+              "titleEn": "Laboratory Safety",
+              "url": "https://drive.google.com/drive/folders/1MSB7MG2LzNpi7KfImVVZO8RdX3b2h4tt"
+            },
+            {
+              "title": "مراجعة معمل الكيمياء · د. مها إسماعيل",
+              "titleEn": "Chemistry Lab Review · Dr. Maha Ismail",
+              "url": "https://drive.google.com/drive/folders/1Y0LEA8H6D09QaWE_pqyvB3LJV-_WhAlS"
+            },
+            {
+              "title": "Mechanics",
+              "titleEn": "Mechanics",
+              "url": "https://drive.google.com/drive/folders/1vK-y1TxY1wlhUjNiDryV54HrML8vfdto"
+            },
+            {
+              "title": "Practical Chemistry II",
+              "titleEn": "Practical Chemistry II",
+              "url": "https://drive.google.com/drive/folders/1e_1Uccp_1RWpklFgtRF3CUASRI4KW37o"
+            }
+          ]
+        }
       ]
     },
     {
@@ -124,10 +253,38 @@
       "file": true,
       "note": "Drive مقسم مباشرةً إلى مجلدات المواد.",
       "folders": [
-        { "title": "الكيمياء", "titleEn": "Chemistry" }, { "title": "أمان معملي", "titleEn": "Laboratory safety" },
-        { "title": "علوم الحاسب", "titleEn": "Computer Science" }, { "title": "اللغة الإنجليزية", "titleEn": "English" },
-        { "title": "رياضيات · جبر", "titleEn": "Mathematics · Algebra" }, { "title": "رياضيات · تفاضل وتكامل", "titleEn": "Mathematics · Calculus" },
-        { "title": "الفيزياء", "titleEn": "Physics" }, { "title": "علم الحيوان", "titleEn": "Zoology" }
+        {
+          "title": "الكيمياء",
+          "titleEn": "Chemistry"
+        },
+        {
+          "title": "أمان معملي",
+          "titleEn": "Laboratory safety"
+        },
+        {
+          "title": "علوم الحاسب",
+          "titleEn": "Computer Science"
+        },
+        {
+          "title": "اللغة الإنجليزية",
+          "titleEn": "English"
+        },
+        {
+          "title": "رياضيات · جبر",
+          "titleEn": "Mathematics · Algebra"
+        },
+        {
+          "title": "رياضيات · تفاضل وتكامل",
+          "titleEn": "Mathematics · Calculus"
+        },
+        {
+          "title": "الفيزياء",
+          "titleEn": "Physics"
+        },
+        {
+          "title": "علم الحيوان",
+          "titleEn": "Zoology"
+        }
       ]
     }
   ],
@@ -293,7 +450,7 @@
       "title": "صفحة دفعة 2026/2030",
       "titleEn": "Class of 2026/2030 page",
       "category": "صفحات رسمية",
-      "url": "https://www.facebook.com/share/g/1K2ZWanhu3",
+      "url": "https://www.facebook.com/share/g/1K2ZWanhu3/?mibextid=wwXIfr",
       "kind": "facebook"
     },
     {
@@ -301,7 +458,7 @@
       "title": "صفحات الكلية",
       "titleEn": "Faculty pages",
       "category": "صفحات رسمية",
-      "url": "https://www.facebook.com/share/p/19P47fUtwU/",
+      "url": "https://www.facebook.com/share/p/19P47fUtwU/?",
       "kind": "facebook"
     }
   ]
