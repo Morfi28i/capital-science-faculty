@@ -1,4 +1,5 @@
 let appPromise;
+const phoneVerifiers = new WeakMap();
 
 async function services() {
   if (!appPromise) appPromise = (async () => {
@@ -110,8 +111,8 @@ export async function refreshCurrentUser() {
 export async function startPhoneUpdate(phone, recaptchaContainer) {
   const { auth, authSdk } = await services();
   if (!auth.currentUser) throw new Error('Sign in before changing your phone.');
-  const verifier = new authSdk.RecaptchaVerifier(auth, recaptchaContainer, { size: 'normal' });
-  await verifier.render();
+  const verifier = createPhoneVerifier(auth, authSdk, recaptchaContainer);
+  
   const provider = new authSdk.PhoneAuthProvider(auth);
   const verificationId = await provider.verifyPhoneNumber(phone, verifier);
   return { verificationId, verifier };
@@ -148,8 +149,8 @@ export async function signInGoogle() {
 
 export async function startPhoneSignIn(phone, recaptchaContainer) {
   const { auth, authSdk } = await services();
-  const verifier = new authSdk.RecaptchaVerifier(auth, recaptchaContainer, { size: 'normal' });
-  await verifier.render();
+  const verifier = createPhoneVerifier(auth, authSdk, recaptchaContainer);
+  
   const confirmation = await authSdk.signInWithPhoneNumber(auth, phone, verifier);
   return { confirmation, verifier };
 }
