@@ -1,5 +1,5 @@
 let appPromise;
-const phoneVerifiers = new WeakMap();
+const phoneVerifiers = new WeakMap();function createPhoneVerifier(auth,authSdk,container){const element=typeof container==="string"?document.getElementById(container):container;if(!(element instanceof HTMLElement)||!element.isConnected)throw new Error("Phone verification is not ready. Reopen the phone sign-in step and try again.");const previous=phoneVerifiers.get(element);if(previous){try{previous.clear()}catch{}}element.replaceChildren();const verifier=new authSdk.RecaptchaVerifier(auth,element,{size:"normal"});phoneVerifiers.set(element,verifier);return verifier}
 
 async function services() {
   if (!appPromise) appPromise = (async () => {
@@ -69,6 +69,7 @@ export async function completeEmailSignInLink(email, url = window.location.href)
 export async function setEmailPassword(email, password) {
   const { auth, authSdk } = await services();
   if (!auth.currentUser) throw new Error('Sign in before setting a password.');
+  
   const passwordLinked = auth.currentUser.providerData.some(provider => provider.providerId === 'password');
   if (passwordLinked) await authSdk.updatePassword(auth.currentUser, password);
   else await authSdk.linkWithCredential(auth.currentUser, authSdk.EmailAuthProvider.credential(email, password));
