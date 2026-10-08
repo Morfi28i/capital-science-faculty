@@ -223,3 +223,7 @@ export async function currentFirebaseUser() {
     const off = authSdk.onAuthStateChanged(auth, user => { off(); resolve(user); });
   });
 }
+export async function sendPasswordReset(email) {
+  const { auth, authSdk } = await services();
+  await authSdk.sendPasswordResetEmail(auth, email);
+}
