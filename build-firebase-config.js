@@ -1,4 +1,4 @@
-import {mkdir, writeFile} from 'node:fs/promises';
+import { mkdir, writeFile } from 'node:fs/promises';
 
 let config = {};
 try {
@@ -16,7 +16,7 @@ config = {
 };
 
 if (Object.values(config).every(Boolean)) {
-  await mkdir('public', {recursive: true});
+  await mkdir('public', { recursive: true });
   await writeFile('public/firebase-config.json', JSON.stringify(config));
 } else {
   console.warn('Firebase web config was not supplied; verified account features will stay disabled.');

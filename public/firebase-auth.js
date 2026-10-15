@@ -2,19 +2,20 @@ let appPromise;
 const phoneVerifiers = new WeakMap();
 
 async function services() {
-  if (!appPromise) appPromise = (async () => {
-    const response = await fetch('/api/firebase-config', { cache: 'no-store' });
-    const config = await response.json();
-    if (!response.ok || !config.enabled) throw new Error('Firebase is not configured on the server yet.');
-    const [appSdk, authSdk] = await Promise.all([
-      import('https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js'),
-      import('https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js'),
-    ]);
-    const app = appSdk.initializeApp(config.firebase);
-    const auth = authSdk.getAuth(app);
-    await authSdk.setPersistence(auth, authSdk.browserLocalPersistence);
-    return { auth, authSdk };
-  })();
+  if (!appPromise)
+    appPromise = (async () => {
+      const response = await fetch('/api/firebase-config', { cache: 'no-store' });
+      const config = await response.json();
+      if (!response.ok || !config.enabled) throw new Error('Firebase is not configured on the server yet.');
+      const [appSdk, authSdk] = await Promise.all([
+        import('https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js'),
+        import('https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js'),
+      ]);
+      const app = appSdk.initializeApp(config.firebase);
+      const auth = authSdk.getAuth(app);
+      await authSdk.setPersistence(auth, authSdk.browserLocalPersistence);
+      return { auth, authSdk };
+    })();
   return appPromise;
 }
 
@@ -30,7 +31,8 @@ export async function inspectEmail(email) {
 
 export async function checkEmailExists(email) {
   const response = await fetch('/api/auth/check-email', {
-    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email }),
   });
   const result = await response.json();
@@ -46,8 +48,10 @@ export async function sendEmailSignInLink(email) {
       handleCodeInApp: true,
     });
   } catch (error) {
-    if (error.code === 'auth/operation-not-allowed') throw new Error('Enable Email Link sign-in in Firebase Authentication.');
-    if (error.code === 'auth/unauthorized-continue-uri' || error.code === 'auth/unauthorized-domain') throw new Error('Add capital-science-faculty.onrender.com to Firebase Auth authorized domains.');
+    if (error.code === 'auth/operation-not-allowed')
+      throw new Error('Enable Email Link sign-in in Firebase Authentication.');
+    if (error.code === 'auth/unauthorized-continue-uri' || error.code === 'auth/unauthorized-domain')
+      throw new Error('Add capital-science-faculty.onrender.com to Firebase Auth authorized domains.');
     throw error;
   }
   sessionStorage.setItem('cs-pending-email-link', email);
@@ -69,9 +73,10 @@ export async function completeEmailSignInLink(email, url = window.location.href)
 export async function setEmailPassword(email, password) {
   const { auth, authSdk } = await services();
   if (!auth.currentUser) throw new Error('Sign in before setting a password.');
-  const passwordLinked = auth.currentUser.providerData.some(provider => provider.providerId === 'password');
+  const passwordLinked = auth.currentUser.providerData.some((provider) => provider.providerId === 'password');
   if (passwordLinked) await authSdk.updatePassword(auth.currentUser, password);
-  else await authSdk.linkWithCredential(auth.currentUser, authSdk.EmailAuthProvider.credential(email, password));
+  else
+    await authSdk.linkWithCredential(auth.currentUser, authSdk.EmailAuthProvider.credential(email, password));
   await auth.currentUser.getIdToken(true);
   return auth.currentUser;
 }
@@ -140,7 +145,11 @@ export async function signInEmail(email, password) {
   const { auth, authSdk } = await services();
   const result = await authSdk.signInWithEmailAndPassword(auth, email, password);
   if (!result.user.emailVerified) {
-    try { await authSdk.sendEmailVerification(result.user); } finally { await authSdk.signOut(auth); }
+    try {
+      await authSdk.sendEmailVerification(result.user);
+    } finally {
+      await authSdk.signOut(auth);
+    }
     const error = new Error('Email verification is required. A new verification link was sent.');
     error.code = 'auth/email-not-verified';
     throw error;
@@ -184,7 +193,9 @@ async function createPhoneVerifier(auth, authSdk, container) {
 
 function clearPhoneVerifier(container, verifier) {
   const element = typeof container === 'string' ? document.getElementById(container) : container;
-  try { verifier.clear(); } catch {}
+  try {
+    verifier.clear();
+  } catch {}
   if (element instanceof HTMLElement) {
     if (phoneVerifiers.get(element) === verifier) phoneVerifiers.delete(element);
     element.replaceChildren();
@@ -254,7 +265,10 @@ export async function signOutFirebase() {
 
 export async function currentFirebaseUser() {
   const { auth, authSdk } = await services();
-  return new Promise(resolve => {
-    const off = authSdk.onAuthStateChanged(auth, user => { off(); resolve(user); });
+  return new Promise((resolve) => {
+    const off = authSdk.onAuthStateChanged(auth, (user) => {
+      off();
+      resolve(user);
+    });
   });
 }

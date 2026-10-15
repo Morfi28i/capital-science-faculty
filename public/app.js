@@ -1,126 +1,1638 @@
-const app=document.querySelector('#app');
-const dict={ar:{home:'الرئيسية',subjects:'جروبات المواد',lectures:'ملفات المحاضرات',advising:'الإرشاد الأكاديمي',official:'الجروبات الرسمية',developer:'عن المطور',banner:'الموقع مازال تحت التطوير ولإضافة أفكار أخرى تزيد النفع للجميع تواصل مع المطور Morfi',heroTag:'مساحة طلابية · دفعة 2026/2030',heroTitle:'كل ما تحتاجه\nفي مكان واحد.',heroCopy:'مجتمع كلية العلوم، منظّم وواضح. اعثر على مجموعاتك ومواردك الأكاديمية، وابقَ على تواصل مع دفعتك.',explore:'اكتشف المساحة',made:'صُنع بعناية لطلاب كلية العلوم',groups:'مجموعات نشطة',paths:'مسارات سهلة',community:'مجتمع واحد',open:'افتح المجموعة',search:'ابحث في المجموعات…',all:'الكل',empty:'لا توجد عناصر هنا حتى الآن.',emptyFiles:'لم تتم إضافة ملفات محاضرات بعد. تابعنا قريبًا.',download:'فتح الملف',advisory:'اختر مجموعة المرشد الأكاديمي المسجل لك فقط. ستجد اسم مرشدك في التسجيل الأكاديمي أو جدولك الدراسي.',cohortwarn:'اختر جروبًا رسميًا واحدًا فقط. المجموعات مخصصة لطلاب دفعة 2026/2030.',contacts:'مسؤولو قبول طلبات الانضمام',officialPages:'صفحات رسمية',contactMorfi:'تواصل مع Morfi',devTitle:'تعرّف على المطور',devName:'عصام',devCopy:'أنا عصام، أعمل باسم Morfi وبراند Morphine. موشن ديزاينر ومونتير فريلانسر من مصر، بخبرة تقارب سنتين في الموشن جرافيك التجاري والإعلانات وشغل العملاء.',brandLabel:'البراند',role:'موشن ديزاينر ومونتير فريلانسر',specialty:'موشن جرافيك تجاري · إعلانات وشغل عملاء',experience:'خبرة حوالي سنتين',locationLabel:'الموقع',location:'مصر',tools:'الأدوات',portfolio:'البورتفوليو',whatsapp:'واتساب',instagram:'إنستجرام',email:'جيميل',emailValue:'sdyqs0437@gmail.com',about:'أستخدم After Effects وPremiere Pro وPhotoshop وCanva لصناعة موشن جرافيك ومونتاج تجاري يخدم أهداف العملاء.',smtpNotice:'تنبيه: إشعارات التسجيل بالبريد غير مفعّلة حاليًا؛ يلزم إعداد خدمة البريد لإرسالها.',welcome:'أهلًا بك',intro:'مساحة تجمع مجموعات كلية العلوم ومواردها في مكان واحد.',register:'أنشئ ملفك الطلابي',name:'الاسم',gender:'الجنس',choose:'اختر',male:'ذكر',female:'أنثى',other:'أفضل عدم الإجابة',gmail:'بريد Gmail',picture:'صورتك (اختياري)',continue:'متابعة',skip:'المتابعة كزائر',privacy:'أنشئ حسابًا موثقًا بالبريد أو Google أو الهاتف. ملفك وصورتك يُحفظان في حسابك بعد التحقق.',required:'أكمل الأسماء المطلوبة واختر الجنس.',language:'English',theme:'تبديل المظهر',notice:'تم حفظ ملفك على هذا الجهاز.',admin:'لوحة الإدارة',phone:'اتصال',latest:'مساحة دفعتك، بلمحة واحدة',officialLabel:'روابط وإرشاد موثوقان',filesTitle:'ملفات المحاضرات',subjectsTitle:'جروبات المواد',advisingTitle:'الإرشاد الأكاديمي',officialTitle:'الجروبات الرسمية',pageMissing:'الصفحة غير موجودة'},en:{home:'Home',subjects:'Subject groups',lectures:'Lecture files',advising:'Academic advising',official:'Official groups',developer:'Developer',banner:'This site is still in development. Share ideas that can help everyone with Morfi.',heroTag:'Student space · Class of 2026/2030',heroTitle:'Everything you need,\nin one place.',heroCopy:'A clearer home for the Faculty of Science community. Find your groups and study resources, and stay close to your cohort.',explore:'Explore the space',made:'Thoughtfully made for Faculty of Science students',groups:'Active communities',paths:'Simple pathways',community:'One community',open:'Open group',search:'Search groups…',all:'All',empty:'Nothing here yet.',emptyFiles:'Lecture files have not been added yet. Check back soon.',download:'Open file',advisory:'Join only the academic adviser assigned to you. You can find their name in your academic registration or class schedule.',cohortwarn:'Choose just one official group. These groups are for students in the class of 2026/2030.',contacts:'Group application coordinators',officialPages:'Official pages',contactMorfi:'Contact Morfi',devTitle:'Meet the developer',devName:'Essam',devCopy:'I’m Essam, working as Morfi under the Morphine brand. I’m a freelance motion designer and video editor based in Egypt, with around two years of experience in commercial motion graphics, advertising, and client work.',brandLabel:'Brand',role:'Freelance motion designer & video editor',specialty:'Commercial motion graphics · Ads & client work',experience:'Around two years of experience',locationLabel:'Location',location:'Egypt',tools:'Tools',portfolio:'Portfolio',whatsapp:'WhatsApp',instagram:'Instagram',email:'Gmail',emailValue:'sdyqs0437@gmail.com',about:'I use After Effects, Premiere Pro, Photoshop, and Canva to create commercial motion design and edits that serve client goals.',smtpNotice:'Registration email alerts are currently off. An email provider API key is required to send them.',welcome:'Welcome',intro:'A home for Faculty of Science groups and study resources.',register:'Create your student profile',name:'Name',gender:'Gender',choose:'Select',male:'Male',female:'Female',other:'Prefer not to say',gmail:'Gmail address',picture:'Your photo (optional)',continue:'Continue',skip:'Continue as guest',privacy:'Create a verified account with email, Google, or phone. Your profile and portrait are saved after verification.',required:'Please enter your name, gender and a valid Gmail address.',language:'العربية',theme:'Toggle appearance',notice:'Your profile is saved on this device.',admin:'Admin dashboard',phone:'Call',latest:'Your cohort, at a glance',officialLabel:'Official links and guidance',filesTitle:'Lecture files',subjectsTitle:'Subject groups',advisingTitle:'Academic advising',officialTitle:'Official groups',pageMissing:'Page not found'}};
-dict.ar.firebaseNotice='تسجيل الحسابات متوقف مؤقتًا حتى ربط مشروع Firebase والتحقق من إعداداته. يمكنك متابعة الموقع كزائر.';dict.en.firebaseNotice='Account registration is paused until the Firebase project is connected. You can continue as a guest.';dict.ar.indexedItems='ملف ومجلد من Drive';dict.ar.flatLibrary='اضغط على المجلد للدخول إلى محتوياته، ثم واصل حتى تصل إلى الملفات.';dict.ar.searchFiles='ابحث باسم الملف أو المادة أو مسارها…';dict.ar.loadMore='عرض المزيد من الملفات';dict.ar.browseDrive='فتح المجلد';dict.en.indexedItems='Drive files and folders';dict.en.flatLibrary='Open a folder to browse its contents, then continue until you reach the files.';dict.en.searchFiles='Search by file, course, or folder path…';dict.en.loadMore='Load more files';dict.en.browseDrive='Open folder';
-Object.assign(dict.ar,{profile:'ملفي الشخصي',profileIntro:'حدّث بياناتك وصورتك في مساحة الكلية.',editProfile:'تعديل الملف',saveProfile:'حفظ التغييرات',logout:'تسجيل الخروج',signedOut:'أنت تتصفح كزائر',createProfile:'إنشاء ملف طلابي',chooseAvatar:'اختر رسمة شخصية',uploadPhoto:'أو ارفع صورتك',avatarNames:['نسمة','ندى','سُهيل','ليان','غصن','قمر','ياسمين','رائد','سَنا','نور'],profileSaved:'تم تحديث ملفك وإرسال إشعار بالبريد.',profileSavedNoEmail:'تم تحديث ملفك، لكن تعذر إرسال إشعار البريد.',loggedOut:'تم تسجيل الخروج من هذا الجهاز.',emailPrivate:'بريدك الشخصي لا يظهر للزوار.',imageTooLarge:'حجم الصورة يجب أن يكون أقل من 3.5 ميجابايت.',invalidProfile:'راجع الاسم والنوع وبريد Gmail.',updateError:'تعذر حفظ التغييرات. حاول مرة أخرى.',registeredEmail:'سيُرسل تحديث ملفك وصورتك إلى إدارة الموقع.',profileLocalOnly:'حسابك الموثق محفوظ في Firebase ويمكنك الدخول إليه من أجهزتك.',legacyProfile:'هذا ملف قديم محفوظ على هذا الجهاز فقط. سجّل دخولك لتوصيله بحساب موثّق مع الاحتفاظ ببياناتك.',avatarAlt:'رسمة شخصية',profilePhoto:'الصورة الشخصية'});
-Object.assign(dict.ar,{authPassword:'كلمة المرور',googleSignIn:'المتابعة باستخدام Google',haveAccount:'لدي حساب بالفعل',createAccount:'إنشاء حساب جديد',phoneIntl:'رقم الهاتف بصيغة دولية',sendCode:'إرسال رمز SMS',smsCode:'رمز SMS',confirmPhone:'تأكيد الهاتف',phonePrivacy:'سيُرسل رقمك إلى Google/Firebase للتحقق ومنع إساءة الاستخدام. إرسال رسائل SMS مدفوع حسب المنطقة.',verifyThenLogin:'افحص بريدك واضغط رابط التحقق، ثم سجّل الدخول هنا.',signingIn:'جارٍ تسجيل الدخول…'});
-Object.assign(dict.en,{authPassword:'Password',googleSignIn:'Continue with Google',haveAccount:'I already have an account',createAccount:'Create a new account',phoneIntl:'Phone number (international format)',sendCode:'Send SMS code',smsCode:'SMS code',confirmPhone:'Confirm phone',phonePrivacy:'Your number is sent to Google/Firebase for verification and abuse prevention. SMS is billed by destination.',verifyThenLogin:'Check your email and open the verification link, then sign in here.',signingIn:'Signing in…'});
-Object.assign(dict.en,{profile:'My profile',profileIntro:'Update your details and portrait for the faculty space.',editProfile:'Edit profile',saveProfile:'Save changes',logout:'Log out',signedOut:'You are browsing as a guest',createProfile:'Create student profile',chooseAvatar:'Choose an illustrated portrait',uploadPhoto:'Or upload your photo',avatarNames:['Breeze','Nada','Suhail','Layan','Olive','Moon','Jasmine','Raed','Sana','Noor'],profileSaved:'Your profile was updated and an email notice was sent.',profileSavedNoEmail:'Your profile was updated, but the email notice could not be sent.',loggedOut:'You have logged out on this device.',emailPrivate:'Your email is not shown to other visitors.',imageTooLarge:'Choose an image smaller than 3.5 MB.',invalidProfile:'Check the name, gender, and Gmail address.',updateError:'Could not save your changes. Please try again.',registeredEmail:'Your updated profile and portrait will be emailed to the site administrator.',profileLocalOnly:'Your verified account syncs securely through Firebase.',legacyProfile:'This older profile is saved only on this device. Sign in to link it to a verified account without losing your profile.',avatarAlt:'Illustrated portrait',profilePhoto:'Profile photo'});
-let lang=localStorage.getItem('cs-lang')||'ar',theme=localStorage.getItem('cs-theme')||'light',db={subjects:[],lectures:[],advising:[],official:[],contacts:[]},emailConfigured=false,firebaseEnabled=false;const t=k=>dict[lang][k]||k;
-document.addEventListener('click',e=>{const target=e.target.closest('.button,.quick-card,.group-card,.icon-btn,.filter,.card-link');if(!target)return;const r=target.getBoundingClientRect(),dot=document.createElement('i');dot.className='ripple';dot.style.left=`${e.clientX-r.left}px`;dot.style.top=`${e.clientY-r.top}px`;target.append(dot);setTimeout(()=>dot.remove(),650)});
-const paths=['/','/subjects','/lectures','/advising','/official','/developer','/profile'];
-async function refreshSiteData(){try{const response=await fetch(`/api/site?fresh=${Date.now()}`,{cache:'no-store'});if(!response.ok)return;db=await response.json();emailConfigured=db.emailNotificationsEnabled===true;firebaseEnabled=db.firebaseAuthEnabled===true;render()}catch{}}
-const siteUpdates=typeof BroadcastChannel==='function'?new BroadcastChannel('capital-science-updates'):null;
-siteUpdates?.addEventListener('message',event=>{if(event.data?.type==='content-updated')refreshSiteData()});
-window.addEventListener('storage',event=>{if(event.key==='cs-site-updated')refreshSiteData()});
-document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')refreshSiteData()});
-function navigate(p){if(!paths.includes(p))p='/';history.pushState({},'',p);render();window.scrollTo({top:0,behavior:'smooth'})}window.addEventListener('popstate',render);
-function link(p,label,cl=''){return `<a class="${cl}" href="${p}" data-route="${p}">${label}</a>`}
-function icon(name){return ({arrow:'↗',moon:'◐',sun:'☼',search:'⌕',group:'✳',file:'▤',cap:'⌂',person:'◉',spark:'✳'})[name]||'✳'}
-const avatars=Array.from({length:10},(_,i)=>({id:`art-${String(i+1).padStart(2,'0')}`,src:`/avatars/art-${String(i+1).padStart(2,'0')}.svg`,name:dict.ar.avatarNames[i]}));
-const defaultAvatar={male:'art-04',female:'art-02',other:'art-05'};
-const avatarForGender=gender=>avatars.find(a=>a.id===defaultAvatar[gender])?.src||avatars[4].src;
-function getProfile(){try{const p=JSON.parse(localStorage.getItem('cs-profile')||'null');return localStorage.getItem('cs-registered')==='1'&&p?.name&&(p?.email||p?.phone)&&p?.gender?p:null}catch{return null}}
-function profileCookieValue(p){return {registered:true,id:String(p.id||'')}}
-function saveProfile(p){localStorage.setItem('cs-profile',JSON.stringify(p));localStorage.setItem('cs-registered','1');const cookie=encodeURIComponent(JSON.stringify(profileCookieValue(p)));document.cookie=`cs_profile=${cookie}; path=/; max-age=31536000; samesite=lax${location.protocol==='https:'?'; secure':''}`;verifyProfilePersistence()}
-function clearProfile(){localStorage.removeItem('cs-profile');localStorage.removeItem('cs-registered');document.cookie='cs_profile=; path=/; max-age=0; samesite=lax';sessionStorage.setItem('cs-guest','1');verifyProfilePersistence()}
-async function resetOldProfileSession(){const version='2';if(localStorage.getItem('cs-onboarding-version')===version)return;localStorage.removeItem('cs-profile');localStorage.removeItem('cs-registered');sessionStorage.removeItem('cs-guest');document.cookie='cs_profile=; path=/; max-age=0; samesite=lax';localStorage.setItem('cs-onboarding-version',version);try{const auth=await import('/firebase-auth.js');await auth.signOutFirebase()}catch{}}
-function avatarGallery(selected=''){return `<fieldset class="avatar-picker"><legend>${t('chooseAvatar')}</legend><div class="avatar-grid">${avatars.map((a,i)=>`<label class="avatar-option"><input type="radio" name="avatar-choice" value="${a.src}" ${selected===a.src?'checked':''}><img src="${a.src}" alt="${t('avatarAlt')} ${i+1}" loading="lazy"><span>${esc(lang==='ar'?a.name:dict.en.avatarNames[i])}</span></label>`).join('')}</div></fieldset>`}
-function header(){const profile=getProfile(),avatar=profile?.picture?`<img src="${attr(profile.picture)}" alt="${t('profilePhoto')}">`:profile?.name?esc(profile.name.slice(0,1).toLocaleUpperCase()):icon('person');return `<header class="topbar"><a class="brand" href="/" data-route="/"><span class="brand-mark">C<span>·</span></span><span>CAPITAL <b>SCIENCE</b><small>STUDENT COMMONS</small></span></a><nav class="nav">${link('/',t('home'))}${link('/subjects',t('subjects'))}${link('/lectures',t('lectures'))}${link('/advising',t('advising'))}${link('/official',t('official'))}${link('/developer',t('developer'))}</nav><div class="tools"><button class="icon-btn" id="lang" aria-label="${t('language')}">${t('language')}</button><button class="icon-btn theme" id="theme" aria-label="${t('theme')}">${theme==='light'?icon('moon'):icon('sun')}</button><a class="avatar-mini" href="/profile" data-route="/profile" aria-label="${t('profile')}" title="${t('profile')}">${avatar}</a><button class="mobile-menu" id="mobile-menu">☰</button></div></header>`}
-function banner(){return `<a class="dev-banner" href="/developer" data-route="/developer"><span class="banner-dot"></span><span>${t('banner')}</span><span class="banner-arrow">↗</span></a>`}
-function footer(){return `<footer class="footer"><div class="foot-main"><a class="brand" href="/" data-route="/"><span class="brand-mark">C<span>·</span></span><span>CAPITAL <b>SCIENCE</b><small>STUDENT COMMONS</small></span></a><p>${t('made')}</p></div><div class="foot-links">${link('/subjects',t('subjects'))}${link('/advising',t('advising'))}${link('/official',t('official'))}${link('/developer','Morfi ↗')}</div><div class="foot-bottom"><span>© 2026 Capital Science · Student made</span><a href="/admin">${t('admin')}</a></div></footer>`}
-function categoryTitle(item){return lang==='ar'?(item.categoryAr||item.category||t('all')):(item.categoryEn||item.category||t('all'))}
-function cardNote(item){if(!item.note)return '';if(item.note==='المجلد الرئيسي'||item.note==='Year root')return lang==='ar'?'المجلد الرئيسي':'Year root';return `${lang==='ar'?'داخل: ':'In: '}${item.note}`}
-function card(item,i){const title=lang==='ar'?(item.title||item.titleAr||item.titleEn):(item.titleEn||item.title||item.titleAr),isFolder=item.type==='folder',note=cardNote(item);return `<article class="group-card reveal" data-category="${attr(item.category||'')}" style="--delay:${Math.min(i%6,5)*55}ms"><div class="card-top"><span class="card-icon">${item.kind==='facebook'?'f':isFolder?'▱':'▤'}</span><span class="card-category">${esc(categoryTitle(item))}</span></div><h3>${esc(title)}</h3>${note?`<p>${esc(note)}</p>`:''}<a class="card-link" href="${attr(item.url)}" target="_blank" rel="noopener">${item.file?t('download'):isFolder?t('browseDrive'):t('open')} <span>↗</span></a></article>`}
-function esc(s=''){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}function attr(s=''){return esc(s)}
-function home(){return `<main class="home"><section class="hero"><div class="hero-copy"><div class="eyebrow"><span></span>${t('heroTag')}</div><h1>${t('heroTitle').replace('\n','<br>')}</h1><p>${t('heroCopy')}</p><a class="button primary" href="/subjects" data-route="/subjects">${t('explore')} <span>↗</span></a><div class="hero-note"><div class="note-avatars"><span>م</span><span>S</span><span>ع</span><b>+</b></div><span>${t('made')}</span></div></div><div class="hero-art"><div class="orbit orbit-one"></div><div class="orbit orbit-two"></div><div class="art-center"><div class="art-arch"><span> C </span></div><div class="art-leaf leaf-a">✳</div><div class="art-leaf leaf-b">✦</div></div><div class="float-card float-one"><span class="float-icon">✳</span><span><b>${db.subjects.length}+ ${t('groups')}</b><small>${t('latest')}</small></span></div><div class="float-card float-two"><span class="float-icon green">↗</span><span><b>${t('officialLabel')}</b><small>2026 — 2030</small></span></div><div class="art-caption">01 — 04 <i></i> STAY CURIOUS</div></div></section><section class="home-bottom"><div class="bottom-heading"><span class="section-index">01 / THE SPACE</span><h2>${t('latest')}</h2></div><div class="quick-grid">${[['✳','/subjects','subjects','groups'],['▤','/lectures','lectures','filesTitle'],['⌂','/advising','advising','advisory'],['↗','/official','official','officialLabel']].map(([ic,p,k,sub])=>`<a class="quick-card" href="${p}" data-route="${p}"><span class="quick-icon">${ic}</span><span class="quick-name">${t(k)}<small>${t(sub)}</small></span><span class="quick-arrow">↗</span></a>`).join('')}</div></section></main>`}
-function collection(key,title,desc='',files=false){const items=db[key]||[],categories=[...new Set(items.map(x=>x.category).filter(Boolean))],sectionNumber=key==='subjects'?'02':key==='lectures'?'03':key==='advising'?'04':'05';if(key==='lectures')return lectureLibrary(title,desc);return `<main class="page"><div class="page-heading"><span class="section-index">${sectionNumber} / ${key.toUpperCase()}</span><h1>${title}</h1><p>${desc}</p></div>${key==='advising'?`<div class="notice"><span>✳</span><p>${t('advisory')}</p></div>`:''}${key==='official'?`<div class="notice warning"><span>!</span><p>${t('cohortwarn')}</p></div>`:''}${items.length?`<div class="filter-row"><div class="filters"><button class="filter active" data-filter="all">${t('all')}</button>${categories.map(c=>`<button class="filter" data-filter="${attr(c)}">${esc(c)}</button>`).join('')}</div><label class="search"><span>${icon('search')}</span><input id="search" placeholder="${t('search')}"></label></div><div class="card-grid" id="cards">${items.map(card).join('')}</div>`:`<div class="empty-state"><span>${files?'▤':'✳'}</span><h2>${files?t('emptyFiles'):t('empty')}</h2><p>${files?'':t('made')}</p></div>`}${key==='official'&&db.contacts?.length?`<section class="contacts"><span class="section-index">STUDENT SUPPORT</span><h2>${t('contacts')}</h2><div class="contact-row">${db.contacts.map(c=>`<a href="tel:${attr(c.phone)}" class="contact-chip"><span>${esc(c.name)}</span><small>${esc(c.phone)}</small></a>`).join('')}</div></section>`:''}</main>`}
-function lectureLibrary(title,desc){const items=db.driveFiles||db.lectures||[],categories=[...new Set(items.map(x=>x.category).filter(Boolean))];return `<main class="page lecture-library"><div class="page-heading"><span class="section-index">03 / LECTURE FILES</span><h1>${title}</h1><p>${desc}</p><p class="drive-path-note">${items.length.toLocaleString(lang==='ar'?'ar-EG':'en-US')} ${t('indexedItems')} · ${t('flatLibrary')}</p></div>${items.length?`<div class="filter-row"><div class="filters"><button class="filter active" data-filter="all">${t('all')}</button>${categories.map(c=>{const sample=items.find(x=>x.category===c);return `<button class="filter" data-filter="${attr(c)}">${esc(categoryTitle(sample||{category:c}))}</button>`}).join('')}</div><label class="search"><span>${icon('search')}</span><input id="search" placeholder="${t('searchFiles')}"></label></div><div id="drive-tree" class="drive-tree"></div>`:`<div class="empty-state"><span>▤</span><h2>${t('emptyFiles')}</h2></div>`}</main>`}
-function developer(){return `<main class="page developer-page"><div class="page-heading"><span class="section-index">06 / THE MAKER</span><h1>${t('devTitle')}</h1><p>${t('devCopy')}</p></div><div class="dev-card"><div class="dev-monogram">M<span>·</span></div><div class="dev-details"><span class="section-index">${t('role')}</span><h2>${t('devName')} · Morfi</h2><div class="dev-meta"><span><b>${t('brandLabel')}:</b> Morphine</span><span><b>${t('locationLabel')}:</b> ${t('location')}</span><span>${t('experience')}</span></div><p>${t('specialty')}</p><p class="dev-tools"><b>${t('tools')}:</b> After Effects · Premiere Pro · Photoshop · Canva</p><div class="dev-links"><a href="https://morfi28i.github.io/portfolio/" target="_blank" rel="noopener">${t('portfolio')} ↗</a><a href="https://wa.me/201009088676" target="_blank" rel="noopener">${t('whatsapp')} ↗</a><a href="https://instagram.com/Morfi.28i" target="_blank" rel="noopener">${t('instagram')} ↗</a><a href="mailto:sdyqs0437@gmail.com">${t('email')}: ${t('emailValue')}</a></div><p>${t('about')}</p></div><div class="dev-lines">✳</div></div><div class="dev-quote"><span>“</span><p>${t('banner')}</p></div></main>`}
-function profilePage(){const p=getProfile();if(!p)return `<main class="page profile-page"><div class="page-heading"><span class="section-index">07 / STUDENT PROFILE</span><h1>${t('profile')}</h1><p>${t('signedOut')}</p></div><section class="profile-signed-out"><span class="profile-empty-icon">◉</span><h2>${t('signedOut')}</h2><p>${firebaseEnabled?t('privacy'):t('firebaseNotice')}</p><button class="button primary" id="create-profile" ${firebaseEnabled?'':'disabled'}>${t('createProfile')} <span>↗</span></button></section></main>`;const profileNames=[p.firstName||'',p.fatherName||'',p.lastName||''];if(!profileNames.some(Boolean)){const parts=String(p.name||'').trim().split(/\s+/);profileNames[0]=parts.shift()||'';profileNames[2]=parts.pop()||'';profileNames[1]=parts.join(' ')}const currentAvatar=avatars.find(a=>p.picture===a.src||String(p.picture||'').endsWith(a.src))?.src||avatarForGender(p.gender),currentPicture=/\/uploads\//.test(p.picture||'')||/^data:image\/(png|jpeg|webp);base64,/.test(p.picture||'')?p.picture:currentAvatar;return `<main class="page profile-page"><div class="page-heading"><span class="section-index">07 / STUDENT PROFILE</span><h1>${t('profile')}</h1><p>${t('profileIntro')}</p></div><section class="profile-card"><div class="profile-card-head"><img class="profile-photo" src="${attr(currentPicture)}" alt="${t('profilePhoto')}"><div><span class="section-index">${t('editProfile')}</span><h2>${esc(p.name)}</h2><p>${t('emailPrivate')}</p><small class="account-id">${p.id?`ID · ${esc(p.id)}`:t('legacyProfile')}</small></div><button class="button ghost" id="logout">${t('logout')} ↗</button></div><form id="profile-form" class="profile-form"><input type="hidden" name="picture" id="profile-picture" value="${attr(currentPicture)}"><div class="profile-fields"><label>${lang==='ar'?'الاسم الأول':'First name'}<input name="firstName" value="${attr(profileNames[0])}" required maxlength="50" autocomplete="given-name"></label><label>${lang==='ar'?'اسم الوالد':'Father’s name'}<input name="fatherName" value="${attr(profileNames[1])}" required maxlength="50" autocomplete="additional-name"></label><label>${lang==='ar'?'اسم العائلة':'Family name'}<input name="lastName" value="${attr(profileNames[2])}" required maxlength="50" autocomplete="family-name"></label><label>${t('gender')}<select name="gender" required><option value="male" ${p.gender==='male'?'selected':''}>${t('male')}</option><option value="female" ${p.gender==='female'?'selected':''}>${t('female')}</option><option value="other" ${p.gender==='other'?'selected':''}>${t('other')}</option></select></label><label class="profile-email">${p.email?t('gmail'):(lang==='ar'?'رقم الهاتف الموثق':'Verified phone')}<input name="email" type="${p.email?'email':'text'}" value="${attr(p.email||p.phone||'')}" readonly ${p.email?'required':'disabled'}></label></div><p class="profile-private-note">${p.id?t('profileLocalOnly'):t('legacyProfile')} ${p.id?t('registeredEmail'):''}</p>${p.id?`<section class="contact-change-card"><h3>${lang==='ar'?'تغيير البريد أو الهاتف':'Change email or phone'}</h3><p>${lang==='ar'?'لا يعتمد أي تغيير قبل تأكيد ملكية وسيلة التواصل الجديدة.':'A new contact method is not saved until you verify it.'}</p><div class="contact-change-row"><label>${lang==='ar'?'البريد الجديد':'New email'}<input id="new-contact-email" type="email" inputmode="email" autocomplete="email" placeholder="name@example.com"></label><button class="button ghost" id="send-email-change" type="button" hidden disabled>${lang==='ar'?'إرسال رابط التحقق':'Send verification link'}</button></div><p id="email-change-status" class="contact-status" aria-live="polite"></p><button class="button ghost" id="refresh-email-change" type="button">${lang==='ar'?'تحققت من الرابط · تحديث الملف':'I verified the link · Refresh profile'}</button><div class="contact-change-row phone-change-row"><label>${lang==='ar'?'مفتاح الدولة':'Country code'}<select id="new-phone-country"><option value="+20" selected>مصر (+20)</option><option value="+966">السعودية (+966)</option><option value="+971">الإمارات (+971)</option><option value="+965">الكويت (+965)</option><option value="+974">قطر (+974)</option><option value="+962">الأردن (+962)</option><option value="+1">United States (+1)</option><option value="+44">United Kingdom (+44)</option></select></label><label>${lang==='ar'?'رقم الهاتف الجديد':'New phone number'}<input id="new-contact-phone" type="tel" inputmode="tel" autocomplete="tel-national" placeholder="01012345678"></label><button class="button ghost" id="send-phone-change" type="button" hidden disabled>${lang==='ar'?'إرسال كود SMS':'Send SMS code'}</button></div><div id="firebase-phone-update-recaptcha"></div><div id="phone-change-code-area" hidden><label>${lang==='ar'?'كود SMS':'SMS code'}<input id="phone-change-code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="000000"></label><button class="button ghost" id="confirm-phone-change" type="button">${lang==='ar'?'تأكيد الرقم':'Verify phone'}</button></div><p id="phone-change-status" class="contact-status" aria-live="polite"></p></section>`:''}${avatarGallery(currentAvatar)}<label class="upload-photo">${t('uploadPhoto')}<input type="file" id="profile-upload" accept="image/png,image/jpeg,image/webp"></label><p id="profile-error" class="form-error" aria-live="polite"></p><div class="profile-actions"><button class="button primary" type="submit" ${firebaseEnabled&&p.id?'':'disabled'}>${t('saveProfile')} <span>↗</span></button></div></form></section>${p.id?`<section class="profile-card mailbox-card"><div class="profile-card-head"><div><span class="section-index">PRIVATE · INBOX</span><h2>${lang==='ar'?'صندوق البريد':'Inbox'}</h2><p>${lang==='ar'?'رسائلك الخاصة من إدارة الموقع':'Private messages from site administration'}</p></div><button class="button ghost" id="refresh-mailbox">${lang==='ar'?'تحديث':'Refresh'} ↻</button></div><div id="mailbox-list" aria-live="polite"><p class="mailbox-loading">${lang==='ar'?'جارٍ تحميل الرسائل…':'Loading messages…'}</p></div></section>`:`<section class="profile-card mailbox-card"><h2>${lang==='ar'?'صندوق البريد':'Inbox'}</h2><p>${t('legacyProfile')}</p><button class="button primary" id="link-existing-account">${lang==='ar'?'تسجيل الدخول وربط الملف':'Sign in and link profile'} ↗</button></section>`}</main>`}
-function wireAvatarPicker(root){const hidden=root.querySelector('[name="picture"]'),upload=root.querySelector('input[type="file"]'),preview=root.querySelector('.profile-photo,.avatar-preview');root.querySelectorAll('[name="avatar-choice"]').forEach(r=>r.addEventListener('change',()=>{if(r.checked){root.dataset.avatarManual='true';hidden.value=r.value;if(upload)upload.value='';if(preview)preview.src=r.value}}));upload?.addEventListener('change',async()=>{const file=upload.files?.[0];if(!file)return;if(file.size>3_500_000){upload.value='';const error=root.querySelector('.form-error');if(error)error.textContent=t('imageTooLarge');return}root.dataset.avatarManual='true';hidden.value=await fileAsDataUrl(file);root.querySelectorAll('[name="avatar-choice"]').forEach(r=>r.checked=false);if(preview)preview.src=hidden.value})}
-function fileAsDataUrl(file){return new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>{const image=new Image();image.onload=()=>{const scale=Math.min(1,1000/Math.max(image.naturalWidth,image.naturalHeight)),canvas=document.createElement('canvas');canvas.width=Math.round(image.naturalWidth*scale);canvas.height=Math.round(image.naturalHeight*scale);canvas.getContext('2d').drawImage(image,0,0,canvas.width,canvas.height);let quality=.82,data=canvas.toDataURL('image/jpeg',quality);while(data.length>650000&&quality>.35){quality-=.1;data=canvas.toDataURL('image/jpeg',quality)}if(data.length>650000)return reject(Error('Choose a smaller image.'));resolve(data)};image.onerror=reject;image.src=reader.result};reader.onerror=reject;reader.readAsDataURL(file)})}
-async function loadMailbox(){const list=document.querySelector('#mailbox-list');if(!list)return;list.innerHTML=`<p class="mailbox-loading">${lang==='ar'?'جارٍ تحميل الرسائل…':'Loading messages…'}</p>`;try{const auth=await import('/firebase-auth.js'),messages=await auth.loadMessages();if(!document.querySelector('#mailbox-list'))return;list.innerHTML=messages.length?messages.map(m=>{const stamp=m.createdAt?.seconds?new Date(m.createdAt.seconds*1000).toLocaleString(lang==='ar'?'ar-EG':'en-US'):'';return `<article class="mailbox-message ${m.readAt?'':'unread'}"><div class="mailbox-message-head"><strong>${esc(m.subject|| (lang==='ar'?'رسالة من الإدارة':'Message from administration'))}</strong><time>${esc(stamp)}</time></div><p>${esc(m.message||'')}</p><small>${esc(m.from||'Morfi')}</small>${m.readAt?'':`<button class="button ghost mailbox-read" data-message-id="${attr(m.id)}">${lang==='ar'?'تحديد كمقروءة':'Mark as read'}</button>`}</article>`}).join(''):`<p class="mailbox-loading">${lang==='ar'?'لا توجد رسائل حتى الآن.':'No messages yet.'}</p>`;list.querySelectorAll('.mailbox-read').forEach(button=>button.addEventListener('click',async()=>{button.disabled=true;try{await auth.markMessageRead(button.dataset.messageId);loadMailbox()}catch{button.disabled=false;showToast(lang==='ar'?'تعذر تحديث الرسالة.':'Could not update message.')}}))}catch(error){list.innerHTML=`<p class="mailbox-loading">${esc(error.message||'Could not load messages.')}</p>`}}
-function wireProfile(){
- const form=document.querySelector('#profile-form'),legacy=getProfile(),L=(ar,en)=>lang==='ar'?ar:en;
- document.querySelector('#create-profile')?.addEventListener('click',()=>onboarding(true));document.querySelector('#link-existing-account')?.addEventListener('click',()=>onboarding(true,legacy));
- document.querySelector('#logout')?.addEventListener('click',async()=>{try{const auth=await import('/firebase-auth.js');await auth.signOutFirebase()}catch{}clearProfile();sessionStorage.removeItem('cs-pending-email-change');render();showToast(t('loggedOut'))});if(!form)return;
- loadMailbox();document.querySelector('#refresh-mailbox')?.addEventListener('click',loadMailbox);wireAvatarPicker(form);
- const profile=()=>getProfile()||{},emailInput=document.querySelector('#new-contact-email'),emailButton=document.querySelector('#send-email-change'),emailStatus=document.querySelector('#email-change-status');
- const phoneInput=document.querySelector('#new-contact-phone'),phoneCountry=document.querySelector('#new-phone-country'),phoneButton=document.querySelector('#send-phone-change'),phoneStatus=document.querySelector('#phone-change-status');let phoneVerification=null,pendingEmailChange=sessionStorage.getItem('cs-pending-email-change')||'';
- const normalizedPhone=()=>{let digits=String(phoneInput?.value||'').replace(/\D/g,''),code=phoneCountry?.value||'+20';if(digits.startsWith('00'+code.slice(1)))digits=digits.slice(code.length+1);else if(digits.startsWith(code.slice(1)))digits=digits.slice(code.length-1);if(code==='+20'){if(digits.startsWith('0'))digits=digits.slice(1);return /^1[0125]\d{8}$/.test(digits)?'+20'+digits:''}if(digits.startsWith('0'))digits=digits.slice(1);return /^\d{7,14}$/.test(digits)?code+digits:''};
- const checkEmail=()=>{if(!emailInput||!emailButton)return;const value=emailInput.value.trim().toLowerCase(),valid=/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)&&value!==String(profile().email||'').toLowerCase();emailButton.hidden=!valid;emailButton.disabled=!valid;if(emailStatus&&!value)emailStatus.textContent=''};
- emailInput?.addEventListener('input',checkEmail);emailButton?.addEventListener('click',async()=>{const value=emailInput.value.trim().toLowerCase();emailButton.disabled=true;emailStatus.textContent='';try{const auth=await import('/firebase-auth.js');await auth.checkContactAvailability({email:value});await auth.requestEmailChange(value);pendingEmailChange=value;sessionStorage.setItem('cs-pending-email-change',value);emailStatus.textContent=L('أرسلنا رابط التأكيد إلى البريد الجديد. لن يتغير بريد الحساب قبل فتح الرابط.','A verification link was sent to the new email. Your account will keep the current email until the link is opened.')}catch(error){const message=error.status===409||/already|in use|exists/i.test(error.message)?L('البريد الإلكتروني مسجل بالفعل لحساب آخر.','That email is already registered to another account.'):error.message;emailStatus.textContent=message;emailButton.disabled=false}});
- document.querySelector('#refresh-email-change')?.addEventListener('click',async event=>{const button=event.currentTarget;button.disabled=true;try{const auth=await import('/firebase-auth.js'),user=await auth.refreshCurrentUser();if(!pendingEmailChange||user.email?.toLowerCase()!==pendingEmailChange)throw Error(L('افتح رابط تأكيد البريد الجديد أولًا ثم ارجع هنا.','Open the new email verification link first, then return here.'));const p=profile(),saved=await auth.persistProfile({name:p.name,firstName:p.firstName||'',fatherName:p.fatherName||'',lastName:p.lastName||'',gender:p.gender,picture:p.picture});saveProfile({...saved,email:user.email||'',phone:user.phoneNumber||''});pendingEmailChange='';sessionStorage.removeItem('cs-pending-email-change');showToast(saved.notificationSent?L('تم تأكيد البريد وإرسال تحديث الملف إلى الإدارة.','Email verified and the profile update was emailed to the administrator.'):L('تم تأكيد البريد، لكن تعذر إرسال إشعار الإدارة.','Email verified, but the administrator email notice could not be sent.'));render()}catch(error){emailStatus.textContent=error.message||L('لم نعثر على تأكيد للبريد الجديد.','The new email has not been verified yet.')}finally{button.disabled=false}});
- const updatePhoneButton=()=>{if(!phoneButton)return;const valid=!!normalizedPhone()&&normalizedPhone()!==profile().phone;phoneButton.hidden=!valid;phoneButton.disabled=!valid};phoneInput?.addEventListener('input',updatePhoneButton);phoneCountry?.addEventListener('change',updatePhoneButton);
- phoneButton?.addEventListener('click',async()=>{const phone=normalizedPhone();if(!phone)return;phoneButton.disabled=true;phoneStatus.textContent='';try{const auth=await import('/firebase-auth.js');await auth.checkContactAvailability({phone});phoneVerification=await auth.startPhoneUpdate(phone,document.querySelector('#firebase-phone-update-recaptcha'));document.querySelector('#phone-change-code-area').hidden=false;phoneInput.readOnly=true;phoneCountry.disabled=true;phoneStatus.textContent=L('أرسلنا كود SMS. أدخله لتأكيد الرقم.','An SMS code was sent. Enter it to verify the number.')}catch(error){phoneStatus.textContent=error.status===409||/already|in use|exists/i.test(error.message)?L('رقم الهاتف مسجل بالفعل لحساب آخر.','That phone number is already linked to another account.'):error.message;phoneButton.disabled=false}});
- document.querySelector('#confirm-phone-change')?.addEventListener('click',async event=>{const button=event.currentTarget,code=document.querySelector('#phone-change-code').value.trim();button.disabled=true;try{if(!phoneVerification)throw Error(L('اطلب كود التحقق أولًا.','Request the code first.'));const auth=await import('/firebase-auth.js'),user=await auth.finishPhoneUpdate(phoneVerification.verificationId,code),p=profile(),saved=await auth.persistProfile({name:p.name,firstName:p.firstName||'',fatherName:p.fatherName||'',lastName:p.lastName||'',gender:p.gender,picture:p.picture});saveProfile({...saved,email:user.email||'',phone:user.phoneNumber||''});showToast(saved.notificationSent?L('تم تأكيد الهاتف وإرسال التحديث للإدارة.','Phone verified and the profile update was emailed.'):L('تم تأكيد الهاتف، لكن تعذر إرسال إشعار الإدارة.','Phone verified, but the administrator email notice could not be sent.'));render()}catch(error){phoneStatus.textContent=/already|in use|exists/i.test(error.message)?L('رقم الهاتف مسجل بالفعل لحساب آخر.','That phone number is already linked to another account.'):error.message;button.disabled=false}});
- form.addEventListener('submit',async e=>{e.preventDefault();const error=form.querySelector('.form-error'),button=form.querySelector('[type="submit"]'),fd=new FormData(form),old=profile(),firstName=String(fd.get('firstName')||'').trim(),fatherName=String(fd.get('fatherName')||'').trim(),lastName=String(fd.get('lastName')||'').trim(),payload={name:[firstName,fatherName,lastName].filter(Boolean).join(' '),firstName,fatherName,lastName,gender:String(fd.get('gender')||''),picture:String(fd.get('picture')||'')};if(!firstName||!fatherName||!lastName||!['male','female','other'].includes(payload.gender)){error.textContent=t('invalidProfile');return}error.textContent='';button.disabled=true;button.classList.add('is-loading');try{const auth=await import('/firebase-auth.js'),saved=await auth.persistProfile(payload),user=await auth.refreshCurrentUser();saveProfile({...saved,email:user.email||saved.email||'',phone:user.phoneNumber||saved.phone||''});render();showToast(saved.notificationSent?L('تم حفظ البيانات وإرسال التحديث للإدارة.','Profile saved and update emailed to the administrator.'):L('تم حفظ الملف لكن تعذر إرسال إشعار البريد.','Profile saved, but the email notice could not be sent.'))}catch(err){error.textContent=err.message||t('updateError');button.disabled=false;button.classList.remove('is-loading')}})
+const app = document.querySelector('#app');
+const dict = {
+  ar: {
+    home: 'الرئيسية',
+    subjects: 'جروبات المواد',
+    lectures: 'ملفات المحاضرات',
+    advising: 'الإرشاد الأكاديمي',
+    official: 'الجروبات الرسمية',
+    developer: 'عن المطور',
+    banner: 'الموقع مازال تحت التطوير ولإضافة أفكار أخرى تزيد النفع للجميع تواصل مع المطور Morfi',
+    heroTag: 'مساحة طلابية · دفعة 2026/2030',
+    heroTitle: 'كل ما تحتاجه\nفي مكان واحد.',
+    heroCopy:
+      'مجتمع كلية العلوم، منظّم وواضح. اعثر على مجموعاتك ومواردك الأكاديمية، وابقَ على تواصل مع دفعتك.',
+    explore: 'اكتشف المساحة',
+    made: 'صُنع بعناية لطلاب كلية العلوم',
+    groups: 'مجموعات نشطة',
+    paths: 'مسارات سهلة',
+    community: 'مجتمع واحد',
+    open: 'افتح المجموعة',
+    search: 'ابحث في المجموعات…',
+    all: 'الكل',
+    empty: 'لا توجد عناصر هنا حتى الآن.',
+    emptyFiles: 'لم تتم إضافة ملفات محاضرات بعد. تابعنا قريبًا.',
+    download: 'فتح الملف',
+    advisory:
+      'اختر مجموعة المرشد الأكاديمي المسجل لك فقط. ستجد اسم مرشدك في التسجيل الأكاديمي أو جدولك الدراسي.',
+    cohortwarn: 'اختر جروبًا رسميًا واحدًا فقط. المجموعات مخصصة لطلاب دفعة 2026/2030.',
+    contacts: 'مسؤولو قبول طلبات الانضمام',
+    officialPages: 'صفحات رسمية',
+    contactMorfi: 'تواصل مع Morfi',
+    devTitle: 'تعرّف على المطور',
+    devName: 'عصام',
+    devCopy:
+      'أنا عصام، أعمل باسم Morfi وبراند Morphine. موشن ديزاينر ومونتير فريلانسر من مصر، بخبرة تقارب سنتين في الموشن جرافيك التجاري والإعلانات وشغل العملاء.',
+    brandLabel: 'البراند',
+    role: 'موشن ديزاينر ومونتير فريلانسر',
+    specialty: 'موشن جرافيك تجاري · إعلانات وشغل عملاء',
+    experience: 'خبرة حوالي سنتين',
+    locationLabel: 'الموقع',
+    location: 'مصر',
+    tools: 'الأدوات',
+    portfolio: 'البورتفوليو',
+    whatsapp: 'واتساب',
+    instagram: 'إنستجرام',
+    email: 'جيميل',
+    emailValue: 'sdyqs0437@gmail.com',
+    about:
+      'أستخدم After Effects وPremiere Pro وPhotoshop وCanva لصناعة موشن جرافيك ومونتاج تجاري يخدم أهداف العملاء.',
+    smtpNotice: 'تنبيه: إشعارات التسجيل بالبريد غير مفعّلة حاليًا؛ يلزم إعداد خدمة البريد لإرسالها.',
+    welcome: 'أهلًا بك',
+    intro: 'مساحة تجمع مجموعات كلية العلوم ومواردها في مكان واحد.',
+    register: 'أنشئ ملفك الطلابي',
+    name: 'الاسم',
+    gender: 'الجنس',
+    choose: 'اختر',
+    male: 'ذكر',
+    female: 'أنثى',
+    other: 'أفضل عدم الإجابة',
+    gmail: 'بريد Gmail',
+    picture: 'صورتك (اختياري)',
+    continue: 'متابعة',
+    skip: 'المتابعة كزائر',
+    privacy: 'أنشئ حسابًا موثقًا بالبريد أو Google أو الهاتف. ملفك وصورتك يُحفظان في حسابك بعد التحقق.',
+    required: 'أكمل الأسماء المطلوبة واختر الجنس.',
+    language: 'English',
+    theme: 'تبديل المظهر',
+    notice: 'تم حفظ ملفك على هذا الجهاز.',
+    admin: 'لوحة الإدارة',
+    phone: 'اتصال',
+    latest: 'مساحة دفعتك، بلمحة واحدة',
+    officialLabel: 'روابط وإرشاد موثوقان',
+    filesTitle: 'ملفات المحاضرات',
+    subjectsTitle: 'جروبات المواد',
+    advisingTitle: 'الإرشاد الأكاديمي',
+    officialTitle: 'الجروبات الرسمية',
+    pageMissing: 'الصفحة غير موجودة',
+  },
+  en: {
+    home: 'Home',
+    subjects: 'Subject groups',
+    lectures: 'Lecture files',
+    advising: 'Academic advising',
+    official: 'Official groups',
+    developer: 'Developer',
+    banner: 'This site is still in development. Share ideas that can help everyone with Morfi.',
+    heroTag: 'Student space · Class of 2026/2030',
+    heroTitle: 'Everything you need,\nin one place.',
+    heroCopy:
+      'A clearer home for the Faculty of Science community. Find your groups and study resources, and stay close to your cohort.',
+    explore: 'Explore the space',
+    made: 'Thoughtfully made for Faculty of Science students',
+    groups: 'Active communities',
+    paths: 'Simple pathways',
+    community: 'One community',
+    open: 'Open group',
+    search: 'Search groups…',
+    all: 'All',
+    empty: 'Nothing here yet.',
+    emptyFiles: 'Lecture files have not been added yet. Check back soon.',
+    download: 'Open file',
+    advisory:
+      'Join only the academic adviser assigned to you. You can find their name in your academic registration or class schedule.',
+    cohortwarn: 'Choose just one official group. These groups are for students in the class of 2026/2030.',
+    contacts: 'Group application coordinators',
+    officialPages: 'Official pages',
+    contactMorfi: 'Contact Morfi',
+    devTitle: 'Meet the developer',
+    devName: 'Essam',
+    devCopy:
+      'I’m Essam, working as Morfi under the Morphine brand. I’m a freelance motion designer and video editor based in Egypt, with around two years of experience in commercial motion graphics, advertising, and client work.',
+    brandLabel: 'Brand',
+    role: 'Freelance motion designer & video editor',
+    specialty: 'Commercial motion graphics · Ads & client work',
+    experience: 'Around two years of experience',
+    locationLabel: 'Location',
+    location: 'Egypt',
+    tools: 'Tools',
+    portfolio: 'Portfolio',
+    whatsapp: 'WhatsApp',
+    instagram: 'Instagram',
+    email: 'Gmail',
+    emailValue: 'sdyqs0437@gmail.com',
+    about:
+      'I use After Effects, Premiere Pro, Photoshop, and Canva to create commercial motion design and edits that serve client goals.',
+    smtpNotice:
+      'Registration email alerts are currently off. An email provider API key is required to send them.',
+    welcome: 'Welcome',
+    intro: 'A home for Faculty of Science groups and study resources.',
+    register: 'Create your student profile',
+    name: 'Name',
+    gender: 'Gender',
+    choose: 'Select',
+    male: 'Male',
+    female: 'Female',
+    other: 'Prefer not to say',
+    gmail: 'Gmail address',
+    picture: 'Your photo (optional)',
+    continue: 'Continue',
+    skip: 'Continue as guest',
+    privacy:
+      'Create a verified account with email, Google, or phone. Your profile and portrait are saved after verification.',
+    required: 'Please enter your name, gender and a valid Gmail address.',
+    language: 'العربية',
+    theme: 'Toggle appearance',
+    notice: 'Your profile is saved on this device.',
+    admin: 'Admin dashboard',
+    phone: 'Call',
+    latest: 'Your cohort, at a glance',
+    officialLabel: 'Official links and guidance',
+    filesTitle: 'Lecture files',
+    subjectsTitle: 'Subject groups',
+    advisingTitle: 'Academic advising',
+    officialTitle: 'Official groups',
+    pageMissing: 'Page not found',
+  },
+};
+dict.ar.firebaseNotice =
+  'تسجيل الحسابات متوقف مؤقتًا حتى ربط مشروع Firebase والتحقق من إعداداته. يمكنك متابعة الموقع كزائر.';
+dict.en.firebaseNotice =
+  'Account registration is paused until the Firebase project is connected. You can continue as a guest.';
+dict.ar.indexedItems = 'ملف ومجلد من Drive';
+dict.ar.flatLibrary = 'اضغط على المجلد للدخول إلى محتوياته، ثم واصل حتى تصل إلى الملفات.';
+dict.ar.searchFiles = 'ابحث باسم الملف أو المادة أو مسارها…';
+dict.ar.loadMore = 'عرض المزيد من الملفات';
+dict.ar.browseDrive = 'فتح المجلد';
+dict.en.indexedItems = 'Drive files and folders';
+dict.en.flatLibrary = 'Open a folder to browse its contents, then continue until you reach the files.';
+dict.en.searchFiles = 'Search by file, course, or folder path…';
+dict.en.loadMore = 'Load more files';
+dict.en.browseDrive = 'Open folder';
+Object.assign(dict.ar, {
+  profile: 'ملفي الشخصي',
+  profileIntro: 'حدّث بياناتك وصورتك في مساحة الكلية.',
+  editProfile: 'تعديل الملف',
+  saveProfile: 'حفظ التغييرات',
+  logout: 'تسجيل الخروج',
+  signedOut: 'أنت تتصفح كزائر',
+  createProfile: 'إنشاء ملف طلابي',
+  chooseAvatar: 'اختر رسمة شخصية',
+  uploadPhoto: 'أو ارفع صورتك',
+  avatarNames: ['نسمة', 'ندى', 'سُهيل', 'ليان', 'غصن', 'قمر', 'ياسمين', 'رائد', 'سَنا', 'نور'],
+  profileSaved: 'تم تحديث ملفك وإرسال إشعار بالبريد.',
+  profileSavedNoEmail: 'تم تحديث ملفك، لكن تعذر إرسال إشعار البريد.',
+  loggedOut: 'تم تسجيل الخروج من هذا الجهاز.',
+  emailPrivate: 'بريدك الشخصي لا يظهر للزوار.',
+  imageTooLarge: 'حجم الصورة يجب أن يكون أقل من 3.5 ميجابايت.',
+  invalidProfile: 'راجع الاسم والنوع وبريد Gmail.',
+  updateError: 'تعذر حفظ التغييرات. حاول مرة أخرى.',
+  registeredEmail: 'سيُرسل تحديث ملفك وصورتك إلى إدارة الموقع.',
+  profileLocalOnly: 'حسابك الموثق محفوظ في Firebase ويمكنك الدخول إليه من أجهزتك.',
+  legacyProfile:
+    'هذا ملف قديم محفوظ على هذا الجهاز فقط. سجّل دخولك لتوصيله بحساب موثّق مع الاحتفاظ ببياناتك.',
+  avatarAlt: 'رسمة شخصية',
+  profilePhoto: 'الصورة الشخصية',
+});
+Object.assign(dict.ar, {
+  authPassword: 'كلمة المرور',
+  googleSignIn: 'المتابعة باستخدام Google',
+  haveAccount: 'لدي حساب بالفعل',
+  createAccount: 'إنشاء حساب جديد',
+  phoneIntl: 'رقم الهاتف بصيغة دولية',
+  sendCode: 'إرسال رمز SMS',
+  smsCode: 'رمز SMS',
+  confirmPhone: 'تأكيد الهاتف',
+  phonePrivacy:
+    'سيُرسل رقمك إلى Google/Firebase للتحقق ومنع إساءة الاستخدام. إرسال رسائل SMS مدفوع حسب المنطقة.',
+  verifyThenLogin: 'افحص بريدك واضغط رابط التحقق، ثم سجّل الدخول هنا.',
+  signingIn: 'جارٍ تسجيل الدخول…',
+});
+Object.assign(dict.en, {
+  authPassword: 'Password',
+  googleSignIn: 'Continue with Google',
+  haveAccount: 'I already have an account',
+  createAccount: 'Create a new account',
+  phoneIntl: 'Phone number (international format)',
+  sendCode: 'Send SMS code',
+  smsCode: 'SMS code',
+  confirmPhone: 'Confirm phone',
+  phonePrivacy:
+    'Your number is sent to Google/Firebase for verification and abuse prevention. SMS is billed by destination.',
+  verifyThenLogin: 'Check your email and open the verification link, then sign in here.',
+  signingIn: 'Signing in…',
+});
+Object.assign(dict.en, {
+  profile: 'My profile',
+  profileIntro: 'Update your details and portrait for the faculty space.',
+  editProfile: 'Edit profile',
+  saveProfile: 'Save changes',
+  logout: 'Log out',
+  signedOut: 'You are browsing as a guest',
+  createProfile: 'Create student profile',
+  chooseAvatar: 'Choose an illustrated portrait',
+  uploadPhoto: 'Or upload your photo',
+  avatarNames: ['Breeze', 'Nada', 'Suhail', 'Layan', 'Olive', 'Moon', 'Jasmine', 'Raed', 'Sana', 'Noor'],
+  profileSaved: 'Your profile was updated and an email notice was sent.',
+  profileSavedNoEmail: 'Your profile was updated, but the email notice could not be sent.',
+  loggedOut: 'You have logged out on this device.',
+  emailPrivate: 'Your email is not shown to other visitors.',
+  imageTooLarge: 'Choose an image smaller than 3.5 MB.',
+  invalidProfile: 'Check the name, gender, and Gmail address.',
+  updateError: 'Could not save your changes. Please try again.',
+  registeredEmail: 'Your updated profile and portrait will be emailed to the site administrator.',
+  profileLocalOnly: 'Your verified account syncs securely through Firebase.',
+  legacyProfile:
+    'This older profile is saved only on this device. Sign in to link it to a verified account without losing your profile.',
+  avatarAlt: 'Illustrated portrait',
+  profilePhoto: 'Profile photo',
+});
+let lang = localStorage.getItem('cs-lang') || 'ar',
+  theme = localStorage.getItem('cs-theme') || 'light',
+  db = { subjects: [], lectures: [], advising: [], official: [], contacts: [] },
+  emailConfigured = false,
+  firebaseEnabled = false;
+const t = (k) => dict[lang][k] || k;
+document.addEventListener('click', (e) => {
+  const target = e.target.closest('.button,.quick-card,.group-card,.icon-btn,.filter,.card-link');
+  if (!target) return;
+  const r = target.getBoundingClientRect(),
+    dot = document.createElement('i');
+  dot.className = 'ripple';
+  dot.style.left = `${e.clientX - r.left}px`;
+  dot.style.top = `${e.clientY - r.top}px`;
+  target.append(dot);
+  setTimeout(() => dot.remove(), 650);
+});
+const paths = ['/', '/subjects', '/lectures', '/advising', '/official', '/developer', '/profile'];
+async function refreshSiteData() {
+  try {
+    const response = await fetch(`/api/site?fresh=${Date.now()}`, { cache: 'no-store' });
+    if (!response.ok) return;
+    db = await response.json();
+    emailConfigured = db.emailNotificationsEnabled === true;
+    firebaseEnabled = db.firebaseAuthEnabled === true;
+    render();
+  } catch {}
 }
-function showToast(message){document.querySelector('.toast')?.remove();const node=document.createElement('div');node.className='toast';node.setAttribute('role','status');node.textContent=message;document.body.append(node);setTimeout(()=>node.remove(),3200)}
-function shell(content){return `<div class="shell">${header()}<div class="content">${banner()}<div id="page" class="page-transition">${content}</div></div>${footer()}</div>`}
-function render(){document.documentElement.lang=lang;document.documentElement.dir=lang==='ar'?'rtl':'ltr';document.body.dataset.theme=theme;const p=location.pathname;let content=p==='/subjects'?collection('subjects',t('subjectsTitle'),t('heroCopy')):p==='/lectures'?collection('lectures',t('filesTitle'),t('heroCopy'),true):p==='/advising'?collection('advising',t('advisingTitle'),t('advisory')):p==='/official'?collection('official',t('officialTitle'),t('heroCopy')):p==='/developer'?developer():p==='/profile'?profilePage():home();if(p==='/admin'||p==='/admin/')return;app.innerHTML=shell(content);document.querySelectorAll('[data-route]').forEach(a=>a.addEventListener('click',e=>{e.preventDefault();navigate(a.dataset.route)}));document.querySelector('#lang').onclick=()=>{lang=lang==='ar'?'en':'ar';localStorage.setItem('cs-lang',lang);render()};document.querySelector('#theme').onclick=()=>{theme=theme==='light'?'dark':'light';localStorage.setItem('cs-theme',theme);render()};document.querySelector('#mobile-menu').onclick=()=>document.querySelector('.nav').classList.toggle('nav-open');if(p==='/profile')wireProfile();else if(p==='/lectures')wireLectureFilters();else wireFilters();observe();}
-function wireFilters(){const search=document.querySelector('#search'),cards=document.querySelectorAll('.group-card');let filter='all';function apply(){const q=(search?.value||'').toLowerCase();cards.forEach(c=>{const category=c.querySelector('.card-category')?.textContent||'';const match=(filter==='all'||category===filter)&&c.textContent.toLowerCase().includes(q);c.classList.toggle('hidden',!match)})}document.querySelectorAll('.filter').forEach(b=>b.onclick=()=>{document.querySelector('.filter.active')?.classList.remove('active');b.classList.add('active');filter=b.dataset.filter;apply()});search?.addEventListener('input',apply)}
-function driveTitle(x){return lang==='ar'?(x.title||x.titleAr||x.titleEn):(x.titleEn||x.title||x.titleAr)}
-function drivePath(item){return (item.note||'').split(/\s*›\s*/).filter(x=>x&&x!=='المجلد الرئيسي'&&x!=='Year root'&&x!=='مجلد السنة')}
-function driveHierarchy(items){const nodes=items.map((item,index)=>({item,index,parent:null,children:[]})),folders=nodes.filter(n=>n.item.type==='folder'),roots=folders.filter(n=>n.item.note==='المجلد الرئيسي'||n.item.note==='Year root');const norm=s=>String(s||'').trim().toLocaleLowerCase();for(const node of nodes){const raw=node.item.note||'';if(!raw||raw==='المجلد الرئيسي'||raw==='Year root')continue;const parts=drivePath(node.item),parentName=parts.at(-1)||raw,expected=parts.slice(0,-1).map(norm).join('›');let candidates=folders.filter(f=>f!==node&&f.item.category===node.item.category&&[f.item.title,f.item.titleAr,f.item.titleEn].some(title=>norm(title)===norm(parentName)));const exact=candidates.filter(f=>drivePath(f.item).map(norm).join('›')===expected);if(exact.length)candidates=exact;if(!candidates.length&&(raw==='مجلد السنة'||raw==='داخل مجلد السنة'))candidates=roots.filter(f=>f.item.category===node.item.category);let parent=candidates.filter(f=>f.index<node.index).at(-1)||candidates[0]||roots.find(f=>f.item.category===node.item.category);if(parent&&parent!==node){node.parent=parent;parent.children.push(node)}}return {nodes,roots}}
-function driveFolderCard(node){const item=node.item,title=driveTitle(item);return `<button class="drive-entry drive-folder-entry reveal" type="button" data-folder-index="${node.index}"><span class="drive-entry-icon">▱</span><span class="drive-entry-copy"><b>${esc(title)}</b><small>${node.children.length} ${lang==='ar'?'عنصر داخل المجلد':'items inside'}</small></span><span class="drive-entry-arrow">${lang==='ar'?'←':'→'}</span></button>`}
-function driveCrumbs(node,nodes){const chain=[];for(let n=node;n;n=n.parent)chain.unshift(n);return `<div class="drive-breadcrumbs"><button type="button" data-folder-index="root">${lang==='ar'?'كل السنوات':'All years'}</button>${chain.map(n=>`<span>›</span><button type="button" data-folder-index="${n.index}">${esc(driveTitle(n.item))}</button>`).join('')}</div>`}
-function wireLectureFilters(){const items=db.driveFiles||db.lectures||[],tree=document.querySelector('#drive-tree'),search=document.querySelector('#search');let filter='all',query='',current='root';const hierarchy=driveHierarchy(items);function draw(){const selected=hierarchy.nodes.filter(n=>filter==='all'||n.item.category===filter),q=query.trim().toLocaleLowerCase();let parent=current==='root'?null:hierarchy.nodes[Number(current)];if(parent&&filter!=='all'&&parent.item.category!==filter){parent=null;current='root'}let entries=parent?parent.children:selected.filter(n=>!n.parent);if(q)entries=hierarchy.nodes.filter(n=>(filter==='all'||n.item.category===filter)&&`${n.item.title||''} ${n.item.titleAr||''} ${n.item.titleEn||''} ${n.item.note||''} ${n.item.category||''}`.toLocaleLowerCase().includes(q));const crumb=parent?driveCrumbs(parent,hierarchy.nodes):'';tree.innerHTML=`${crumb}${parent?`<div class="drive-current"><span>${lang==='ar'?'محتويات المجلد':'Folder contents'}</span><a href="${attr(parent.item.url)}" target="_blank" rel="noopener">${t('browseDrive')} ↗</a></div>`:''}<div class="drive-browser-grid">${entries.map(n=>n.item.type==='folder'?driveFolderCard(n):card(n.item,n.index)).join('')||`<div class="empty-state">${q?(lang==='ar'?'لا توجد نتائج مطابقة.':'No matching items.'):(lang==='ar'?'هذا المجلد فارغ.':'This folder is empty.')}</div>`}</div>`;observe()}tree.addEventListener('click',e=>{const button=e.target.closest('[data-folder-index]');if(!button)return;current=button.dataset.folderIndex;if(query){query='';search.value=''}draw()});document.querySelectorAll('.filter').forEach(b=>b.onclick=()=>{document.querySelector('.filter.active')?.classList.remove('active');b.classList.add('active');filter=b.dataset.filter;current='root';draw()});search?.addEventListener('input',()=>{query=search.value;draw()});draw()}
-function observe(){const io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('visible');io.unobserve(e.target)}}),{threshold:.08});document.querySelectorAll('.reveal').forEach(e=>io.observe(e))}
-function verifyProfilePersistence(){try{const profile=getProfile();if(!profile){document.cookie='cs_profile=; path=/; max-age=0; samesite=lax';document.documentElement.dataset.profilePersistence='guest-no-cookie';return}const raw=document.cookie.split('; ').find(x=>x.startsWith('cs_profile='))?.slice('cs_profile='.length);const saved=raw?JSON.parse(decodeURIComponent(raw)):null;document.documentElement.dataset.profilePersistence=saved?.registered===true?'verified':'incomplete'}catch{document.cookie='cs_profile=; path=/; max-age=0; samesite=lax';document.documentElement.dataset.profilePersistence='guest-no-cookie'}}
-function generatedAvatar(gender){const palettes={male:['#294f42','#93b49b','#e9c48f'],female:['#714d65','#cf9cad','#eacb9d'],other:['#455b82','#8fa8cb','#edc788']};const [coat,accent,skin]=palettes[gender]||palettes.other;const svg=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160"><defs><linearGradient id="a" x2="1" y2="1"><stop stop-color="${accent}"/><stop offset="1" stop-color="#f2eadb"/></linearGradient></defs><rect width="160" height="160" rx="80" fill="url(#a)"/><circle cx="80" cy="67" r="31" fill="${skin}"/><path d="M48 63c1-33 63-42 65 1-12-8-19-21-20-26-9 12-25 21-45 25Z" fill="${coat}"/><path d="M30 160c2-39 22-57 50-57s49 18 51 57" fill="${coat}"/><path d="M66 86q14 10 28 0" fill="none" stroke="#805c50" stroke-width="2" stroke-linecap="round"/><circle cx="68" cy="69" r="2" fill="#453c39"/><circle cx="92" cy="69" r="2" fill="#453c39"/></svg>`;return 'data:image/svg+xml,'+encodeURIComponent(svg)}
-function onboarding(force=false,legacyProfile=null){
- if(!force&&(getProfile()||sessionStorage.getItem('cs-guest')))return;
- const ov=document.createElement('div');ov.className='onboarding';
- ov.innerHTML=`<div class="onboard-left"><a class="brand"><span class="brand-mark">C<span>·</span></span><span>CAPITAL <b>SCIENCE</b><small>STUDENT COMMONS</small></span></a><div class="onboard-decoration"><div class="onboard-ring"></div><span>✳</span><p>كل يوم بداية<br>اكتشاف جديد</p></div><span class="onboard-foot">A STUDENT COMMONS · EST 2026</span></div><div class="onboard-main"><button class="onboard-close" id="skip" aria-label="${lang==='ar'?'إغلاق':'Close'}">×</button><div class="onboard-step" id="step"><span class="section-index">A SPACE FOR YOUR NEXT CHAPTER</span><h1>${t('welcome')},<br><em>curious mind.</em></h1><p>${t('intro')}</p><button class="button primary" id="begin">${t('continue')} <span>↗</span></button><button class="skip-link" id="guest">${t('skip')}</button></div></div>`;
- document.body.append(ov);
- const step=ov.querySelector('#step'),L=(ar,en)=>lang==='ar'?ar:en,errNode=()=>ov.querySelector('#form-error');let method='',email='',phoneConfirmation=null,authUser=null,profileDraft=null;
- const fadeTo=html=>new Promise(resolve=>{step.classList.add('step-leave');setTimeout(()=>{step.innerHTML=html;step.classList.remove('step-leave');step.classList.add('step-enter');requestAnimationFrame(()=>step.classList.add('step-ready'));setTimeout(()=>{step.classList.remove('step-enter','step-ready');resolve()},520)},220)});
- const closeOverlay=()=>{ov.classList.add('out');setTimeout(()=>ov.remove(),520)};
- const guest=()=>{sessionStorage.setItem('cs-guest','1');closeOverlay()};ov.querySelector('#skip').onclick=guest;ov.querySelector('#guest').onclick=guest;
- const showError=(message)=>{const node=errNode();if(node)node.textContent=message};
- const readableAuthError=error=>{const messages={'auth/invalid-credential':L('البريد أو كلمة المرور غير صحيحين. راجع البيانات أو استخدم استعادة كلمة المرور.','Email or password is incorrect. Check your details or reset your password.'),'auth/wrong-password':L('كلمة المرور غير صحيحة. راجعها أو استخدم استعادة كلمة المرور.','That password is incorrect. Check it or reset your password.'),'auth/user-not-found':L('لا يوجد حساب بهذا البريد. ارجع واختر إنشاء حساب جديد.','No account was found for this email. Go back and create an account.'),'auth/email-not-verified':L('الحساب يحتاج تأكيد البريد. أرسلنا رسالة تحقق جديدة؛ افتحها ثم سجّل الدخول.','Your email must be verified. We sent a new verification email; open it, then sign in.'),'auth/too-many-requests':L('محاولات كثيرة. انتظر قليلًا ثم حاول مرة أخرى.','Too many attempts. Wait a little, then try again.'),'auth/user-disabled':L('هذا الحساب موقوف. تواصل مع إدارة الموقع.','This account is disabled. Contact the site administrator.'),'auth/network-request-failed':L('تعذر الاتصال. تحقق من الإنترنت وحاول مجددًا.','Could not connect. Check your internet and try again.'),'auth/operation-not-allowed':L('تسجيل الدخول بالبريد وكلمة المرور غير مفعّل في Firebase.','Email and password sign-in is disabled in Firebase.')};return messages[error?.code]||error?.message||L('تعذر تسجيل الدخول. راجع البريد وكلمة المرور أو أعد تعيينها.','Could not sign in. Check your email and password or reset it.')};
- const showMethod=async()=>{
-  method='';email='';phoneConfirmation=null;authUser=null;
-  await fadeTo(`<span class="section-index">${L('خطوة ١ · طريقة الدخول','STEP 1 · SIGN-IN METHOD')}</span><h1>${L('اختار طريقة التسجيل','Choose how to continue')}</h1><p>${L('اكتب بريدك أو رقمك، أو استخدم حساب Google. كل مرة هنطلب منك خطوة واحدة.','Use your email, phone number, or Google. We will guide you one step at a time.')}</p><p class="form-error" aria-live="polite">${firebaseEnabled?'':t('firebaseNotice')}</p><div class="auth-choice-grid"><button class="auth-choice" data-method="email" ${firebaseEnabled?'':'disabled'}><span>✉</span><b>${L('البريد الإلكتروني','Email')}</b><small>${L('رابط تأكيد آمن من Firebase','Secure Firebase verification link')}</small></button><button class="auth-choice" data-method="phone" ${firebaseEnabled?'':'disabled'}><span>☎</span><b>${L('رقم الهاتف','Phone number')}</b><small>${L('تحقق برسالة SMS','Verify by SMS')}</small></button><button class="auth-choice" data-method="google" ${firebaseEnabled?'':'disabled'}><span>G</span><b>${L('حساب Google','Google account')}</b><small>${L('الاسم والبريد من حسابك','Use your Google name and email')}</small></button></div><p class="form-error" id="form-error" aria-live="polite"></p><button class="skip-link" id="back-welcome">${L('رجوع','Back')}</button>`);
-  step.querySelectorAll('[data-method]').forEach(button=>button.onclick=()=>{method=button.dataset.method;if(method==='google')continueGoogle();else method==='email'?showEmail():showPhone()});step.querySelector('#back-welcome').onclick=showIntro;
- };
- const showIntro=async()=>{await fadeTo(`<span class="section-index">A SPACE FOR YOUR NEXT CHAPTER</span><h1>${t('welcome')},<br><em>curious mind.</em></h1><p>${t('intro')}</p><button class="button primary" id="begin">${t('continue')} <span>↗</span></button><button class="skip-link" id="guest">${t('skip')}</button>`);step.querySelector('#begin').onclick=showMethod;step.querySelector('#guest').onclick=guest};
- const showExistingPassword=async()=>{
-  await fadeTo(`<span class="section-index">${L('حساب موجود','EXISTING ACCOUNT')}</span><h1>${L('أهلًا بعودتك','Welcome back')}</h1><p>${L('هذا البريد مرتبط بحساب بالفعل. سجّل الدخول بكلمة المرور أو استعدها من بريدك.','This email already has an account. Sign in with your password or reset it using your email.')}</p><form id="login-form"><label>${L('البريد الإلكتروني','Email')}<input name="email" type="email" value="${attr(email)}" readonly></label><label>${t('authPassword')}<input name="password" type="password" required autocomplete="current-password"></label><p class="form-error" id="form-error" aria-live="polite"></p><button class="button primary" type="submit">${L('تسجيل الدخول','Sign in')} ↗</button></form><button class="skip-link" id="reset-password">${L('نسيت كلمة المرور؟ أرسل رابط استعادة','Forgot your password? Send a reset link')}</button><button class="skip-link" id="email-link-login">${L('الدخول برابط البريد بدل كلمة المرور','Sign in with an email link instead')}</button><button class="skip-link" id="back-method">${L('استخدم بريدًا أو طريقة أخرى','Use another email or method')}</button>`);
-  step.querySelector('#email-link-login').onclick=async()=>{const button=step.querySelector('#email-link-login');button.disabled=true;try{const auth=await import('/firebase-auth.js');await auth.sendEmailSignInLink(email);showEmailLinkSent()}catch(error){showError(readableAuthError(error));button.disabled=false}};
-  step.querySelector('#reset-password').onclick=async()=>{const button=step.querySelector('#reset-password');button.disabled=true;try{const auth=await import('/firebase-auth.js');await auth.sendPasswordReset(email);showError(L('لو كان لهذا البريد حساب، هتوصلك رسالة فيها رابط آمن لاختيار كلمة مرور جديدة. افحص الوارد والرسائل غير المرغوب فيها.','If an account exists for this email, a secure password-reset link is on its way. Check your inbox and spam folder.'));button.textContent=L('تم طلب رابط الاستعادة','Reset link requested')}catch(error){showError(readableAuthError(error));button.disabled=false}};
-  step.querySelector('#back-method').onclick=showMethod;step.querySelector('#login-form').onsubmit=async e=>{e.preventDefault();const button=e.currentTarget.querySelector('[type=submit]');button.disabled=true;try{const auth=await import('/firebase-auth.js'),user=await auth.signInEmail(email,e.currentTarget.elements.password.value);await completeExisting(user)}catch(error){showError(readableAuthError(error));button.disabled=false}};
- };
- const continueEmail=async()=>{
-  const value=step.querySelector('[name=email]').value.trim().toLowerCase();if(!/^\S+@\S+\.\S+$/.test(value)){showError(L('اكتب بريدًا إلكترونيًا صحيحًا.','Enter a valid email address.'));return}email=value;
-  const button=step.querySelector('#email-continue');button.disabled=true;button.classList.add('is-loading');
-  try{const auth=await import('/firebase-auth.js');if(await auth.checkEmailExists(email)){showExistingPassword();return}await auth.sendEmailSignInLink(email);showEmailLinkSent()}catch(error){if(error.status===409||/already linked|already in use|already exists/i.test(error.message)){showExistingPassword();showToast(L('البريد مرتبط بحساب بالفعل.','That email already has an account.'))}else{showError(error.message||L('تعذر إرسال رابط التأكيد.','Could not send the verification link.'));button.disabled=false;button.classList.remove('is-loading')}}
- };
- const showEmail=async()=>{method='email';await fadeTo(`<span class="section-index">${L('البريد · تحقق ١/٢','EMAIL · VERIFY 1/2')}</span><h1>${L('اكتب بريدك','Enter your email')}</h1><p>${L('هنرسل رابط تأكيد آمن من Firebase. افتحه لإثبات ملكية بريدك، وبعدها أنشئ كلمة المرور. البريد المرتبط بحساب سيحوّلك لتسجيل الدخول.','Firebase will send a secure sign-in link. Open it to verify your email, then create a password. Existing accounts will be sent to sign in.')}</p><form id="email-form"><label>${L('البريد الإلكتروني','Email address')}<input name="email" type="email" inputmode="email" autocomplete="email" required placeholder="name@example.com" value="${attr(email)}"></label><p class="form-error" id="form-error" aria-live="polite"></p><button id="email-continue" class="button primary" type="submit">${t('continue')} ↗</button></form><button class="skip-link" id="back-method">${L('رجوع لطرق التسجيل','Back to sign-in options')}</button>`);step.querySelector('#email-form').onsubmit=e=>{e.preventDefault();continueEmail()};step.querySelector('#back-method').onclick=showMethod;};
- const showEmailLinkSent=async()=>{await fadeTo(`<span class="section-index">${L('تحقق من بريدك','CHECK YOUR EMAIL')}</span><h1>${L('افتح رابط التأكيد','Open the verification link')}</h1><p>${L('أرسلنا رابط تسجيل آمن إلى','A secure sign-in link was sent to')} <b>${esc(email)}</b>. ${L('افتحه في هذا المتصفح؛ ستنتقل تلقائيًا لإكمال التسجيل.','Open it in this browser to continue your registration.')}</p><button class="button primary" id="resend-link">${L('إعادة إرسال الرابط','Resend link')} ↗</button><p class="form-error" id="form-error" aria-live="polite"></p><button class="skip-link" id="change-email">${L('استخدم بريدًا آخر','Use another email')}</button>`);step.querySelector('#resend-link').onclick=()=>{showEmail().then(()=>{step.querySelector('[name=email]').value=email;continueEmail()})};step.querySelector('#change-email').onclick=showEmail;};
- const showEmailLinkCompletion=async()=>{method='email';const savedEmail=sessionStorage.getItem('cs-pending-email-link')||'';email=savedEmail;await fadeTo(`<span class="section-index">${L('تأكيد البريد','VERIFY YOUR EMAIL')}</span><h1>${L('أكمل تسجيل الدخول','Complete sign-in')}</h1><p>${L('لأمان حسابك، اكتب نفس البريد الذي طلبت عليه رابط التأكيد.','For account security, enter the same email address that received the link.')}</p><form id="email-link-form"><label>${L('البريد الإلكتروني','Email address')}<input name="email" type="email" inputmode="email" autocomplete="email" required value="${attr(email)}" placeholder="name@example.com"></label><p class="form-error" id="form-error" aria-live="polite"></p><button class="button primary" type="submit">${L('تأكيد ومتابعة','Verify and continue')} ↗</button></form>`);step.querySelector('#email-link-form').onsubmit=async e=>{e.preventDefault();email=e.currentTarget.elements.email.value.trim().toLowerCase();const button=e.currentTarget.querySelector('[type=submit]');button.disabled=true;try{const auth=await import('/firebase-auth.js');authUser=await auth.completeEmailSignInLink(email);history.replaceState({},'', '/profile');const existing=await auth.loadProfile();if(existing){saveProfile({...existing,email:existing.email||authUser.email||'',phone:existing.phone||authUser.phoneNumber||''});await showSuccess(L('أهلًا بعودتك!','Welcome back!'),L('تم تسجيل دخولك إلى حسابك.','You are signed in to your account.'));return}profileDraft={firstName:'',fatherName:'',lastName:'',email,phone:'',passwordNeeded:true};await showPassword()}catch(error){showError(error.message||L('تعذر تأكيد الرابط. افتحه من الرسالة نفسها ثم أعد المحاولة.','Could not verify the link. Open it from the email and try again.'));button.disabled=false}};};
- const showPassword=async()=>{await fadeTo(`<span class="section-index">${L('تم التحقق · كلمة المرور','VERIFIED · PASSWORD')}</span><h1>${L('أنشئ كلمة مرور','Create a password')}</h1><p>${L('اختر كلمة مرور لحماية حسابك. المثال للتوضيح فقط؛ لا تستخدمه كما هو.','Choose a password for your account. The example is only a reference; do not use it as-is.')}</p><form id="password-form"><label>${L('كلمة المرور','Password')}<input name="password" type="password" minlength="8" autocomplete="new-password" required placeholder="${L('مثال: Ahmed1234','Example: Ahmed1234')}"></label><label>${L('تأكيد كلمة المرور','Confirm password')}<input name="confirmPassword" type="password" minlength="8" autocomplete="new-password" required></label><p class="form-error" id="form-error" aria-live="polite"></p><button class="button primary" type="submit">${L('متابعة','Continue')} ↗</button></form>`);step.querySelector('#password-form').onsubmit=e=>{e.preventDefault();const f=new FormData(e.currentTarget),password=String(f.get('password')||''),confirmation=String(f.get('confirmPassword')||'');if(password.length<8||password!==confirmation){showError(password.length<8?L('كلمة المرور يجب ألا تقل عن ٨ أحرف.','Use at least 8 characters.'):L('كلمتا المرور غير متطابقتين.','The passwords do not match.'));return}profileDraft={...profileDraft,password};showDetails()}};
- const phoneCountries=[['مصر','+20'],['السعودية','+966'],['الإمارات','+971'],['الكويت','+965'],['قطر','+974'],['الأردن','+962'],['لبنان','+961'],['المغرب','+212'],['تونس','+216'],['الجزائر','+213'],['السودان','+249'],['الولايات المتحدة','+1'],['المملكة المتحدة','+44'],['تركيا','+90']];
- const normalizePhone=(code,raw)=>{let digits=String(raw||'').replace(/\D/g,'');if(digits.startsWith('00'+code.slice(1)))digits=digits.slice(code.length+1);else if(digits.startsWith(code.slice(1)))digits=digits.slice(code.length-1);if(code==='+20'){if(digits.startsWith('0'))digits=digits.slice(1);if(!/^1[0125]\d{8}$/.test(digits))return '';return '+20'+digits}if(digits.startsWith('0'))digits=digits.slice(1);return /^\d{7,14}$/.test(digits)?code+digits:''};
- const showPhone=async()=>{method='phone';await fadeTo(`<span class="section-index">${L('الهاتف · تحقق برسالة','PHONE · SMS VERIFICATION')}</span><h1>${L('اكتب رقم هاتفك','Enter your phone number')}</h1><p>${L('مفتاح مصر +20 محدد تلقائيًا. لن يظهر زر إرسال الكود إلا بعد إدخال رقم صحيح.','Egypt +20 is selected by default. The verification button appears only after a valid number is entered.')}</p><form id="phone-form"><label>${L('الدولة ومفتاح الاتصال','Country calling code')}<select name="country" autocomplete="tel-country-code">${phoneCountries.map(([name,code])=>`<option value="${code}" ${code==='+20'?'selected':''}>${lang==='ar'?name:({'+20':'Egypt','+966':'Saudi Arabia','+971':'UAE','+965':'Kuwait','+974':'Qatar','+962':'Jordan','+961':'Lebanon','+212':'Morocco','+216':'Tunisia','+213':'Algeria','+249':'Sudan','+1':'United States','+44':'United Kingdom','+90':'Turkey'}[code]||name)} (${code})</option>`).join('')}</select></label><label>${L('رقم الهاتف','Phone number')}<input name="phone" type="tel" inputmode="tel" autocomplete="tel-national" placeholder="01012345678" required></label><small id="phone-hint" aria-live="polite">${L('أرقام مصر: 010 أو 011 أو 012 أو 015.','Egyptian mobile numbers start with 010, 011, 012, or 015.')}</small><div id="firebase-recaptcha"></div><button id="send-phone-code" class="button primary" type="button" hidden disabled>${L('إرسال كود SMS','Send SMS code')} ↗</button><div id="phone-code-area" hidden><label>${L('كود SMS','SMS code')}<input name="code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" placeholder="000000"></label><button id="confirm-phone" class="button primary" type="button">${L('تأكيد الرقم','Verify phone')} ↗</button></div><p class="form-error" id="form-error" aria-live="polite"></p></form><button class="skip-link" id="back-method">${L('رجوع لطرق التسجيل','Back to sign-in options')}</button>`);
-  const form=step.querySelector('#phone-form'),input=form.elements.phone,country=form.elements.country,send=step.querySelector('#send-phone-code'),hint=step.querySelector('#phone-hint');const update=()=>{const valid=!!normalizePhone(country.value,input.value);send.hidden=!valid;send.disabled=!valid;hint.textContent=valid?L('الرقم صحيح، يمكنك طلب كود التحقق.','Number looks valid. You can request a verification code.'):country.value==='+20'?L('أرقام مصر: 010 أو 011 أو 012 أو 015.','Egyptian mobile numbers start with 010, 011, 012, or 015.'):L('أدخل رقمًا صحيحًا مع مفتاح الدولة المحدد.','Enter a valid number for the selected country code.')};input.addEventListener('input',update);country.addEventListener('change',update);form.elements.code?.addEventListener('input',()=>{});step.querySelector('#back-method').onclick=showMethod;
-  send.onclick=async()=>{const full=normalizePhone(country.value,input.value);if(!full){update();return}send.disabled=true;try{const auth=await import('/firebase-auth.js');const result=await auth.startPhoneSignIn(full,step.querySelector('#firebase-recaptcha'));phoneConfirmation=result.confirmation;step.querySelector('#phone-code-area').hidden=false;input.readOnly=true;country.disabled=true;showToast(L('أرسلنا كود التحقق إلى هاتفك.','SMS verification code sent.'))}catch(error){const code=error.code||'';let message=error.message||L('تعذر إرسال رسالة التحقق.','Could not send the SMS code.');if(code==='auth/argument-error')message=L('تعذر تهيئة اختبار الأمان. أعد تحميل الصفحة ثم حاول مرة أخرى.','Security verification could not initialize. Reload the page and try again.');else if(code==='auth/invalid-phone-number')message=L('رقم الهاتف غير صالح. راجع مفتاح الدولة والرقم.','That phone number is invalid. Check the country code and number.');else if(code==='auth/too-many-requests'||code==='auth/quota-exceeded')message=L('وصل التحقق إلى حد الرسائل المتاح حاليًا. حاول لاحقًا.','The current SMS verification limit has been reached. Try again later.');else if(code==='auth/credential-already-in-use'||code==='auth/phone-number-already-exists')message=L('رقم الهاتف مرتبط بحساب بالفعل. استخدم تسجيل الدخول أو رقمًا آخر.','That phone number is already linked to an account. Sign in or use another number.');showError(message);send.disabled=false}};
-  step.querySelector('#confirm-phone').onclick=async()=>{const code=form.elements.code.value.trim(),button=step.querySelector('#confirm-phone');button.disabled=true;try{if(!phoneConfirmation)throw Error(L('اطلب كود التحقق أولًا.','Request a code first.'));const auth=await import('/firebase-auth.js');authUser=await auth.confirmPhoneSignIn(phoneConfirmation,code);await completeExisting(authUser,true)}catch(error){showError(error.message);button.disabled=false}};
- };
- const completeExisting=async(user,allowNew=false)=>{const auth=await import('/firebase-auth.js');let current=null;try{current=await auth.loadProfile()}catch{}if(current){saveProfile({...current,email:current.email||user.email||'',phone:current.phone||user.phoneNumber||''});showSuccess(L('أهلًا بعودتك!','Welcome back!'),L('تم تسجيل دخولك إلى حسابك.','You are signed in to your account.'));return}if(!allowNew&&user.emailVerified&&method==='google'){authUser=user;profileDraft={firstName:(user.displayName||'').split(/\s+/)[0]||'',fatherName:'',lastName:(user.displayName||'').split(/\s+/).slice(1).join(' '),email:user.email||'',phone:user.phoneNumber||'',passwordNeeded:false};showDetails();return}if(allowNew){authUser=user;profileDraft={firstName:'',fatherName:'',lastName:'',email:user.email||'',phone:user.phoneNumber||'',passwordNeeded:false};showDetails();return}throw Error(L('لم نعثر على ملف مرتبط بالحساب. تواصل مع الدعم.','No profile is linked to this account. Contact support.'))};
- const continueGoogle=async()=>{if(!firebaseEnabled){showMethod();showError(t('firebaseNotice'));return}try{const auth=await import('/firebase-auth.js');authUser=await auth.signInGoogle();await completeExisting(authUser,true)}catch(error){showMethod();showError(error.message||L('تعذر تسجيل الدخول باستخدام Google.','Google sign-in could not be completed.'))}};
- const showDetails=async()=>{
-  const d=profileDraft||{firstName:'',fatherName:'',lastName:'',email:email,phone:'',passwordNeeded:method==='email'};
-  await fadeTo(`<span class="section-index">${L('الخطوة التالية · بياناتك','NEXT · YOUR DETAILS')}</span><h1>${L('عرّفنا بنفسك','Tell us about you')}</h1><p>${L('اكتب اسمك الأول واسم الوالد واسم العائلة. كل الأسماء مطلوبة.','Enter your first name, father’s name, and family name. All are required.')}</p><form id="details-form"><div class="profile-name-fields"><label>${L('الاسم الأول','First name')}<input name="firstName" required maxlength="50" autocomplete="given-name" value="${attr(d.firstName)}"></label><label>${L('اسم الوالد','Father’s name')}<input name="fatherName" required maxlength="50" autocomplete="additional-name" value="${attr(d.fatherName)}"></label><label>${L('اسم العائلة','Family name')}<input name="lastName" required maxlength="50" autocomplete="family-name" value="${attr(d.lastName)}"></label></div><label>${L('الجنس','Gender')}<select name="gender" required><option value="">${L('اختر','Select')}</option><option value="male">${L('ذكر','Male')}</option><option value="female">${L('أنثى','Female')}</option><option value="other">${L('أفضل عدم الإجابة','Prefer not to say')}</option></select></label><p class="form-error" id="form-error" aria-live="polite"></p><button class="button primary" type="submit">${L('متابعة إلى الصورة','Continue to photo')} ↗</button></form>`);
-  step.querySelector('#details-form').onsubmit=e=>{e.preventDefault();const f=new FormData(e.currentTarget),first=String(f.get('firstName')||'').trim(),father=String(f.get('fatherName')||'').trim(),last=String(f.get('lastName')||'').trim(),gender=String(f.get('gender')||'');if(!first||!father||!last||!['male','female','other'].includes(gender)){showError(L('أكمل الاسم الأول واسم الوالد واسم العائلة والجنس.','Complete your first, father’s, and family names, and select gender.'));return}profileDraft={...d,firstName:first,fatherName:father,lastName:last,gender};showPhoto()};
- };
- const showPhoto=async()=>{const initial=avatarForGender(profileDraft?.gender||'other');await fadeTo(`<span class="section-index">${L('الخطوة الأخيرة · صورتك','LAST STEP · YOUR PHOTO')}</span><h1>${L('اختر صورتك','Choose a profile photo')}</h1><p>${L('اختر رسمة من المجموعة أو ارفع صورة من جهازك. الصورة اختيارية.','Choose an illustration or upload a photo. Adding a photo is optional.')}</p><form id="photo-form"><div class="avatar-preview-wrap"><img class="avatar-preview" src="${attr(initial)}" alt="${t('profilePhoto')}"></div><input type="hidden" name="picture" value="${attr(initial)}">${avatarGallery(initial)}<label class="upload-photo">${t('uploadPhoto')}<input name="profileFile" type="file" accept="image/png,image/jpeg,image/webp"></label><p class="form-error" id="form-error" aria-live="polite"></p><button class="button primary" type="submit">${L('إنشاء الحساب','Create account')} ↗</button></form><button class="skip-link" id="skip-photo">${L('المتابعة بدون صورة','Continue without a photo')}</button>`);const form=step.querySelector('#photo-form');wireAvatarPicker(form);step.querySelector('#skip-photo').onclick=()=>submitProfile(form,true);form.onsubmit=e=>{e.preventDefault();submitProfile(form,false)}};
- const submitProfile=async(form,skipPhoto)=>{const f=new FormData(form);let picture=skipPhoto?avatarForGender(profileDraft?.gender||'other'):String(f.get('picture')||avatarForGender(profileDraft?.gender||'other'));const file=f.get('profileFile');if(!skipPhoto&&file?.size){if(file.size>3_500_000){showError(t('imageTooLarge'));return}try{picture=await fileAsDataUrl(file)}catch{showError(L('تعذر قراءة الصورة. جرّب صورة أخرى.','Could not read that image. Try another one.'));return}}profileDraft={...profileDraft,picture};const button=form.querySelector('[type=submit]');button.disabled=true;button.classList.add('is-loading');button.textContent=t('signingIn');
-  try{const auth=await import('/firebase-auth.js');if(method==='email'){if(!authUser)throw Error(L('افتح رابط التأكيد أولًا.','Open the verification link first.'));await auth.setEmailPassword(email,profileDraft.password)}if(!authUser)throw Error(L('أكمل التحقق أولًا.','Complete verification first.'));const name=[profileDraft.firstName,profileDraft.fatherName,profileDraft.lastName].filter(Boolean).join(' ');const saved=await auth.persistProfile({name,firstName:profileDraft.firstName,fatherName:profileDraft.fatherName,lastName:profileDraft.lastName,gender:profileDraft.gender,picture});sessionStorage.removeItem('cs-pending-profile');saveProfile({...saved,email:saved.email||email||'',phone:saved.phone||profileDraft.phone||''});showSuccess(L('أهلًا بك في مجتمعنا!','Welcome to the community!'),saved.notificationSent?L('اكتمل تسجيلك وأُرسلت بيانات الملف إلى إدارة الموقع.','Registration is complete and your profile was emailed to the site owner.'):L('اكتمل تسجيلك، لكن تعذر إرسال إشعار البريد إلى الإدارة.','Registration is complete, but the owner notification email could not be sent.'))}catch(error){showError(error.message||t('updateError'));button.disabled=false;button.classList.remove('is-loading');button.textContent=L('إنشاء الحساب','Create account')+' ↗'}};
- const showSuccess=async(title,copy)=>{await fadeTo(`<div class="signup-success"><span class="success-mark">✓</span><span class="section-index">CAPITAL SCIENCE · COMMUNITY</span><h1>${title}</h1><p>${copy}</p><button id="enter-site" class="button primary">${L('ادخل للموقع','Enter the site')} ↗</button></div>`);step.querySelector('#enter-site').onclick=closeOverlay};
- ov.querySelector('#begin').onclick=showMethod;
- if(legacyProfile){method=legacyProfile.email?'email':'phone';email=legacyProfile.email||'';showMethod()}
- else if(new URLSearchParams(location.search).get('mode')==='signIn'){import('/firebase-auth.js').then(auth=>auth.isEmailSignInLink()).then(isLink=>{if(isLink)showEmailLinkCompletion()}).catch(()=>{})}
+const siteUpdates =
+  typeof BroadcastChannel === 'function' ? new BroadcastChannel('capital-science-updates') : null;
+siteUpdates?.addEventListener('message', (event) => {
+  if (event.data?.type === 'content-updated') refreshSiteData();
+});
+window.addEventListener('storage', (event) => {
+  if (event.key === 'cs-site-updated') refreshSiteData();
+});
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') refreshSiteData();
+});
+function navigate(p) {
+  if (!paths.includes(p)) p = '/';
+  history.pushState({}, '', p);
+  render();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
 }
-(async()=>{await resetOldProfileSession();try{db=await fetch('/api/site').then(r=>r.json());emailConfigured=db.emailNotificationsEnabled===true;firebaseEnabled=db.firebaseAuthEnabled===true}catch{}render();verifyProfilePersistence();onboarding()})();
+window.addEventListener('popstate', render);
+function link(p, label, cl = '') {
+  return `<a class="${cl}" href="${p}" data-route="${p}">${label}</a>`;
+}
+function icon(name) {
+  return (
+    {
+      arrow: '↗',
+      moon: '◐',
+      sun: '☼',
+      search: '⌕',
+      group: '✳',
+      file: '▤',
+      cap: '⌂',
+      person: '◉',
+      spark: '✳',
+    }[name] || '✳'
+  );
+}
+const avatars = Array.from({ length: 10 }, (_, i) => ({
+  id: `art-${String(i + 1).padStart(2, '0')}`,
+  src: `/avatars/art-${String(i + 1).padStart(2, '0')}.svg`,
+  name: dict.ar.avatarNames[i],
+}));
+const defaultAvatar = { male: 'art-04', female: 'art-02', other: 'art-05' };
+const avatarForGender = (gender) =>
+  avatars.find((a) => a.id === defaultAvatar[gender])?.src || avatars[4].src;
+function getProfile() {
+  try {
+    const p = JSON.parse(localStorage.getItem('cs-profile') || 'null');
+    return localStorage.getItem('cs-registered') === '1' && p?.name && (p?.email || p?.phone) && p?.gender
+      ? p
+      : null;
+  } catch {
+    return null;
+  }
+}
+function profileCookieValue(p) {
+  return { registered: true, id: String(p.id || '') };
+}
+function saveProfile(p) {
+  localStorage.setItem('cs-profile', JSON.stringify(p));
+  localStorage.setItem('cs-registered', '1');
+  const cookie = encodeURIComponent(JSON.stringify(profileCookieValue(p)));
+  document.cookie = `cs_profile=${cookie}; path=/; max-age=31536000; samesite=lax${location.protocol === 'https:' ? '; secure' : ''}`;
+  verifyProfilePersistence();
+}
+function clearProfile() {
+  localStorage.removeItem('cs-profile');
+  localStorage.removeItem('cs-registered');
+  document.cookie = 'cs_profile=; path=/; max-age=0; samesite=lax';
+  sessionStorage.setItem('cs-guest', '1');
+  verifyProfilePersistence();
+}
+async function resetOldProfileSession() {
+  const version = '2';
+  if (localStorage.getItem('cs-onboarding-version') === version) return;
+  localStorage.removeItem('cs-profile');
+  localStorage.removeItem('cs-registered');
+  sessionStorage.removeItem('cs-guest');
+  document.cookie = 'cs_profile=; path=/; max-age=0; samesite=lax';
+  localStorage.setItem('cs-onboarding-version', version);
+  try {
+    const auth = await import('/firebase-auth.js');
+    await auth.signOutFirebase();
+  } catch {}
+}
+function avatarGallery(selected = '') {
+  return `<fieldset class="avatar-picker"><legend>${t('chooseAvatar')}</legend><div class="avatar-grid">${avatars.map((a, i) => `<label class="avatar-option"><input type="radio" name="avatar-choice" value="${a.src}" ${selected === a.src ? 'checked' : ''}><img src="${a.src}" alt="${t('avatarAlt')} ${i + 1}" loading="lazy"><span>${esc(lang === 'ar' ? a.name : dict.en.avatarNames[i])}</span></label>`).join('')}</div></fieldset>`;
+}
+function header() {
+  const profile = getProfile(),
+    avatar = profile?.picture
+      ? `<img src="${attr(profile.picture)}" alt="${t('profilePhoto')}">`
+      : profile?.name
+        ? esc(profile.name.slice(0, 1).toLocaleUpperCase())
+        : icon('person');
+  return `<header class="topbar"><a class="brand" href="/" data-route="/"><span class="brand-mark">C<span>·</span></span><span>CAPITAL <b>SCIENCE</b><small>STUDENT COMMONS</small></span></a><nav class="nav">${link('/', t('home'))}${link('/subjects', t('subjects'))}${link('/lectures', t('lectures'))}${link('/advising', t('advising'))}${link('/official', t('official'))}${link('/developer', t('developer'))}</nav><div class="tools"><button class="icon-btn" id="lang" aria-label="${t('language')}">${t('language')}</button><button class="icon-btn theme" id="theme" aria-label="${t('theme')}">${theme === 'light' ? icon('moon') : icon('sun')}</button><a class="avatar-mini" href="/profile" data-route="/profile" aria-label="${t('profile')}" title="${t('profile')}">${avatar}</a><button class="mobile-menu" id="mobile-menu">☰</button></div></header>`;
+}
+function banner() {
+  return `<a class="dev-banner" href="/developer" data-route="/developer"><span class="banner-dot"></span><span>${t('banner')}</span><span class="banner-arrow">↗</span></a>`;
+}
+function footer() {
+  return `<footer class="footer"><div class="foot-main"><a class="brand" href="/" data-route="/"><span class="brand-mark">C<span>·</span></span><span>CAPITAL <b>SCIENCE</b><small>STUDENT COMMONS</small></span></a><p>${t('made')}</p></div><div class="foot-links">${link('/subjects', t('subjects'))}${link('/advising', t('advising'))}${link('/official', t('official'))}${link('/developer', 'Morfi ↗')}</div><div class="foot-bottom"><span>© 2026 Capital Science · Student made</span><a href="/admin">${t('admin')}</a></div></footer>`;
+}
+function categoryTitle(item) {
+  return lang === 'ar'
+    ? item.categoryAr || item.category || t('all')
+    : item.categoryEn || item.category || t('all');
+}
+function cardNote(item) {
+  if (!item.note) return '';
+  if (item.note === 'المجلد الرئيسي' || item.note === 'Year root')
+    return lang === 'ar' ? 'المجلد الرئيسي' : 'Year root';
+  return `${lang === 'ar' ? 'داخل: ' : 'In: '}${item.note}`;
+}
+function card(item, i) {
+  const title =
+      lang === 'ar' ? item.title || item.titleAr || item.titleEn : item.titleEn || item.title || item.titleAr,
+    isFolder = item.type === 'folder',
+    note = cardNote(item);
+  return `<article class="group-card reveal" data-category="${attr(item.category || '')}" style="--delay:${Math.min(i % 6, 5) * 55}ms"><div class="card-top"><span class="card-icon">${item.kind === 'facebook' ? 'f' : isFolder ? '▱' : '▤'}</span><span class="card-category">${esc(categoryTitle(item))}</span></div><h3>${esc(title)}</h3>${note ? `<p>${esc(note)}</p>` : ''}<a class="card-link" href="${attr(item.url)}" target="_blank" rel="noopener">${item.file ? t('download') : isFolder ? t('browseDrive') : t('open')} <span>↗</span></a></article>`;
+}
+function esc(s = '') {
+  return String(s).replace(
+    /[&<>"']/g,
+    (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c],
+  );
+}
+function attr(s = '') {
+  return esc(s);
+}
+function home() {
+  return `<main class="home"><section class="hero"><div class="hero-copy"><div class="eyebrow"><span></span>${t('heroTag')}</div><h1>${t('heroTitle').replace('\n', '<br>')}</h1><p>${t('heroCopy')}</p><a class="button primary" href="/subjects" data-route="/subjects">${t('explore')} <span>↗</span></a><div class="hero-note"><div class="note-avatars"><span>م</span><span>S</span><span>ع</span><b>+</b></div><span>${t('made')}</span></div></div><div class="hero-art"><div class="orbit orbit-one"></div><div class="orbit orbit-two"></div><div class="art-center"><div class="art-arch"><span> C </span></div><div class="art-leaf leaf-a">✳</div><div class="art-leaf leaf-b">✦</div></div><div class="float-card float-one"><span class="float-icon">✳</span><span><b>${db.subjects.length}+ ${t('groups')}</b><small>${t('latest')}</small></span></div><div class="float-card float-two"><span class="float-icon green">↗</span><span><b>${t('officialLabel')}</b><small>2026 — 2030</small></span></div><div class="art-caption">01 — 04 <i></i> STAY CURIOUS</div></div></section><section class="home-bottom"><div class="bottom-heading"><span class="section-index">01 / THE SPACE</span><h2>${t('latest')}</h2></div><div class="quick-grid">${[
+    ['✳', '/subjects', 'subjects', 'groups'],
+    ['▤', '/lectures', 'lectures', 'filesTitle'],
+    ['⌂', '/advising', 'advising', 'advisory'],
+    ['↗', '/official', 'official', 'officialLabel'],
+  ]
+    .map(
+      ([ic, p, k, sub]) =>
+        `<a class="quick-card" href="${p}" data-route="${p}"><span class="quick-icon">${ic}</span><span class="quick-name">${t(k)}<small>${t(sub)}</small></span><span class="quick-arrow">↗</span></a>`,
+    )
+    .join('')}</div></section></main>`;
+}
+function collection(key, title, desc = '', files = false) {
+  const items = db[key] || [],
+    categories = [...new Set(items.map((x) => x.category).filter(Boolean))],
+    sectionNumber = key === 'subjects' ? '02' : key === 'lectures' ? '03' : key === 'advising' ? '04' : '05';
+  if (key === 'lectures') return lectureLibrary(title, desc);
+  return `<main class="page"><div class="page-heading"><span class="section-index">${sectionNumber} / ${key.toUpperCase()}</span><h1>${title}</h1><p>${desc}</p></div>${key === 'advising' ? `<div class="notice"><span>✳</span><p>${t('advisory')}</p></div>` : ''}${key === 'official' ? `<div class="notice warning"><span>!</span><p>${t('cohortwarn')}</p></div>` : ''}${items.length ? `<div class="filter-row"><div class="filters"><button class="filter active" data-filter="all">${t('all')}</button>${categories.map((c) => `<button class="filter" data-filter="${attr(c)}">${esc(c)}</button>`).join('')}</div><label class="search"><span>${icon('search')}</span><input id="search" placeholder="${t('search')}"></label></div><div class="card-grid" id="cards">${items.map(card).join('')}</div>` : `<div class="empty-state"><span>${files ? '▤' : '✳'}</span><h2>${files ? t('emptyFiles') : t('empty')}</h2><p>${files ? '' : t('made')}</p></div>`}${key === 'official' && db.contacts?.length ? `<section class="contacts"><span class="section-index">STUDENT SUPPORT</span><h2>${t('contacts')}</h2><div class="contact-row">${db.contacts.map((c) => `<a href="tel:${attr(c.phone)}" class="contact-chip"><span>${esc(c.name)}</span><small>${esc(c.phone)}</small></a>`).join('')}</div></section>` : ''}</main>`;
+}
+function lectureLibrary(title, desc) {
+  const items = db.driveFiles || db.lectures || [],
+    categories = [...new Set(items.map((x) => x.category).filter(Boolean))];
+  return `<main class="page lecture-library"><div class="page-heading"><span class="section-index">03 / LECTURE FILES</span><h1>${title}</h1><p>${desc}</p><p class="drive-path-note">${items.length.toLocaleString(lang === 'ar' ? 'ar-EG' : 'en-US')} ${t('indexedItems')} · ${t('flatLibrary')}</p></div>${
+    items.length
+      ? `<div class="filter-row"><div class="filters"><button class="filter active" data-filter="all">${t('all')}</button>${categories
+          .map((c) => {
+            const sample = items.find((x) => x.category === c);
+            return `<button class="filter" data-filter="${attr(c)}">${esc(categoryTitle(sample || { category: c }))}</button>`;
+          })
+          .join(
+            '',
+          )}</div><label class="search"><span>${icon('search')}</span><input id="search" placeholder="${t('searchFiles')}"></label></div><div id="drive-tree" class="drive-tree"></div>`
+      : `<div class="empty-state"><span>▤</span><h2>${t('emptyFiles')}</h2></div>`
+  }</main>`;
+}
+function developer() {
+  return `<main class="page developer-page"><div class="page-heading"><span class="section-index">06 / THE MAKER</span><h1>${t('devTitle')}</h1><p>${t('devCopy')}</p></div><div class="dev-card"><div class="dev-monogram">M<span>·</span></div><div class="dev-details"><span class="section-index">${t('role')}</span><h2>${t('devName')} · Morfi</h2><div class="dev-meta"><span><b>${t('brandLabel')}:</b> Morphine</span><span><b>${t('locationLabel')}:</b> ${t('location')}</span><span>${t('experience')}</span></div><p>${t('specialty')}</p><p class="dev-tools"><b>${t('tools')}:</b> After Effects · Premiere Pro · Photoshop · Canva</p><div class="dev-links"><a href="https://morfi28i.github.io/portfolio/" target="_blank" rel="noopener">${t('portfolio')} ↗</a><a href="https://wa.me/201009088676" target="_blank" rel="noopener">${t('whatsapp')} ↗</a><a href="https://instagram.com/Morfi.28i" target="_blank" rel="noopener">${t('instagram')} ↗</a><a href="mailto:sdyqs0437@gmail.com">${t('email')}: ${t('emailValue')}</a></div><p>${t('about')}</p></div><div class="dev-lines">✳</div></div><div class="dev-quote"><span>“</span><p>${t('banner')}</p></div></main>`;
+}
+function profilePage() {
+  const p = getProfile();
+  if (!p)
+    return `<main class="page profile-page"><div class="page-heading"><span class="section-index">07 / STUDENT PROFILE</span><h1>${t('profile')}</h1><p>${t('signedOut')}</p></div><section class="profile-signed-out"><span class="profile-empty-icon">◉</span><h2>${t('signedOut')}</h2><p>${firebaseEnabled ? t('privacy') : t('firebaseNotice')}</p><button class="button primary" id="create-profile" ${firebaseEnabled ? '' : 'disabled'}>${t('createProfile')} <span>↗</span></button></section></main>`;
+  const profileNames = [p.firstName || '', p.fatherName || '', p.lastName || ''];
+  if (!profileNames.some(Boolean)) {
+    const parts = String(p.name || '')
+      .trim()
+      .split(/\s+/);
+    profileNames[0] = parts.shift() || '';
+    profileNames[2] = parts.pop() || '';
+    profileNames[1] = parts.join(' ');
+  }
+  const currentAvatar =
+      avatars.find((a) => p.picture === a.src || String(p.picture || '').endsWith(a.src))?.src ||
+      avatarForGender(p.gender),
+    currentPicture =
+      /\/uploads\//.test(p.picture || '') || /^data:image\/(png|jpeg|webp);base64,/.test(p.picture || '')
+        ? p.picture
+        : currentAvatar;
+  return `<main class="page profile-page"><div class="page-heading"><span class="section-index">07 / STUDENT PROFILE</span><h1>${t('profile')}</h1><p>${t('profileIntro')}</p></div><section class="profile-card"><div class="profile-card-head"><img class="profile-photo" src="${attr(currentPicture)}" alt="${t('profilePhoto')}"><div><span class="section-index">${t('editProfile')}</span><h2>${esc(p.name)}</h2><p>${t('emailPrivate')}</p><small class="account-id">${p.id ? `ID · ${esc(p.id)}` : t('legacyProfile')}</small></div><button class="button ghost" id="logout">${t('logout')} ↗</button></div><form id="profile-form" class="profile-form"><input type="hidden" name="picture" id="profile-picture" value="${attr(currentPicture)}"><div class="profile-fields"><label>${lang === 'ar' ? 'الاسم الأول' : 'First name'}<input name="firstName" value="${attr(profileNames[0])}" required maxlength="50" autocomplete="given-name"></label><label>${lang === 'ar' ? 'اسم الوالد' : 'Father’s name'}<input name="fatherName" value="${attr(profileNames[1])}" required maxlength="50" autocomplete="additional-name"></label><label>${lang === 'ar' ? 'اسم العائلة' : 'Family name'}<input name="lastName" value="${attr(profileNames[2])}" required maxlength="50" autocomplete="family-name"></label><label>${t('gender')}<select name="gender" required><option value="male" ${p.gender === 'male' ? 'selected' : ''}>${t('male')}</option><option value="female" ${p.gender === 'female' ? 'selected' : ''}>${t('female')}</option><option value="other" ${p.gender === 'other' ? 'selected' : ''}>${t('other')}</option></select></label><label class="profile-email">${p.email ? t('gmail') : lang === 'ar' ? 'رقم الهاتف الموثق' : 'Verified phone'}<input name="email" type="${p.email ? 'email' : 'text'}" value="${attr(p.email || p.phone || '')}" readonly ${p.email ? 'required' : 'disabled'}></label></div><p class="profile-private-note">${p.id ? t('profileLocalOnly') : t('legacyProfile')} ${p.id ? t('registeredEmail') : ''}</p>${p.id ? `<section class="contact-change-card"><h3>${lang === 'ar' ? 'تغيير البريد أو الهاتف' : 'Change email or phone'}</h3><p>${lang === 'ar' ? 'لا يعتمد أي تغيير قبل تأكيد ملكية وسيلة التواصل الجديدة.' : 'A new contact method is not saved until you verify it.'}</p><div class="contact-change-row"><label>${lang === 'ar' ? 'البريد الجديد' : 'New email'}<input id="new-contact-email" type="email" inputmode="email" autocomplete="email" placeholder="name@example.com"></label><button class="button ghost" id="send-email-change" type="button" hidden disabled>${lang === 'ar' ? 'إرسال رابط التحقق' : 'Send verification link'}</button></div><p id="email-change-status" class="contact-status" aria-live="polite"></p><button class="button ghost" id="refresh-email-change" type="button">${lang === 'ar' ? 'تحققت من الرابط · تحديث الملف' : 'I verified the link · Refresh profile'}</button><div class="contact-change-row phone-change-row"><label>${lang === 'ar' ? 'مفتاح الدولة' : 'Country code'}<select id="new-phone-country"><option value="+20" selected>مصر (+20)</option><option value="+966">السعودية (+966)</option><option value="+971">الإمارات (+971)</option><option value="+965">الكويت (+965)</option><option value="+974">قطر (+974)</option><option value="+962">الأردن (+962)</option><option value="+1">United States (+1)</option><option value="+44">United Kingdom (+44)</option></select></label><label>${lang === 'ar' ? 'رقم الهاتف الجديد' : 'New phone number'}<input id="new-contact-phone" type="tel" inputmode="tel" autocomplete="tel-national" placeholder="01012345678"></label><button class="button ghost" id="send-phone-change" type="button" hidden disabled>${lang === 'ar' ? 'إرسال كود SMS' : 'Send SMS code'}</button></div><div id="firebase-phone-update-recaptcha"></div><div id="phone-change-code-area" hidden><label>${lang === 'ar' ? 'كود SMS' : 'SMS code'}<input id="phone-change-code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="000000"></label><button class="button ghost" id="confirm-phone-change" type="button">${lang === 'ar' ? 'تأكيد الرقم' : 'Verify phone'}</button></div><p id="phone-change-status" class="contact-status" aria-live="polite"></p></section>` : ''}${avatarGallery(currentAvatar)}<label class="upload-photo">${t('uploadPhoto')}<input type="file" id="profile-upload" accept="image/png,image/jpeg,image/webp"></label><p id="profile-error" class="form-error" aria-live="polite"></p><div class="profile-actions"><button class="button primary" type="submit" ${firebaseEnabled && p.id ? '' : 'disabled'}>${t('saveProfile')} <span>↗</span></button></div></form></section>${p.id ? `<section class="profile-card mailbox-card"><div class="profile-card-head"><div><span class="section-index">PRIVATE · INBOX</span><h2>${lang === 'ar' ? 'صندوق البريد' : 'Inbox'}</h2><p>${lang === 'ar' ? 'رسائلك الخاصة من إدارة الموقع' : 'Private messages from site administration'}</p></div><button class="button ghost" id="refresh-mailbox">${lang === 'ar' ? 'تحديث' : 'Refresh'} ↻</button></div><div id="mailbox-list" aria-live="polite"><p class="mailbox-loading">${lang === 'ar' ? 'جارٍ تحميل الرسائل…' : 'Loading messages…'}</p></div></section>` : `<section class="profile-card mailbox-card"><h2>${lang === 'ar' ? 'صندوق البريد' : 'Inbox'}</h2><p>${t('legacyProfile')}</p><button class="button primary" id="link-existing-account">${lang === 'ar' ? 'تسجيل الدخول وربط الملف' : 'Sign in and link profile'} ↗</button></section>`}</main>`;
+}
+function wireAvatarPicker(root) {
+  const hidden = root.querySelector('[name="picture"]'),
+    upload = root.querySelector('input[type="file"]'),
+    preview = root.querySelector('.profile-photo,.avatar-preview');
+  root.querySelectorAll('[name="avatar-choice"]').forEach((r) =>
+    r.addEventListener('change', () => {
+      if (r.checked) {
+        root.dataset.avatarManual = 'true';
+        hidden.value = r.value;
+        if (upload) upload.value = '';
+        if (preview) preview.src = r.value;
+      }
+    }),
+  );
+  upload?.addEventListener('change', async () => {
+    const file = upload.files?.[0];
+    if (!file) return;
+    if (file.size > 3_500_000) {
+      upload.value = '';
+      const error = root.querySelector('.form-error');
+      if (error) error.textContent = t('imageTooLarge');
+      return;
+    }
+    root.dataset.avatarManual = 'true';
+    hidden.value = await fileAsDataUrl(file);
+    root.querySelectorAll('[name="avatar-choice"]').forEach((r) => (r.checked = false));
+    if (preview) preview.src = hidden.value;
+  });
+}
+function fileAsDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const image = new Image();
+      image.onload = () => {
+        const scale = Math.min(1, 1000 / Math.max(image.naturalWidth, image.naturalHeight)),
+          canvas = document.createElement('canvas');
+        canvas.width = Math.round(image.naturalWidth * scale);
+        canvas.height = Math.round(image.naturalHeight * scale);
+        canvas.getContext('2d').drawImage(image, 0, 0, canvas.width, canvas.height);
+        let quality = 0.82,
+          data = canvas.toDataURL('image/jpeg', quality);
+        while (data.length > 650000 && quality > 0.35) {
+          quality -= 0.1;
+          data = canvas.toDataURL('image/jpeg', quality);
+        }
+        if (data.length > 650000) return reject(Error('Choose a smaller image.'));
+        resolve(data);
+      };
+      image.onerror = reject;
+      image.src = reader.result;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+async function loadMailbox() {
+  const list = document.querySelector('#mailbox-list');
+  if (!list) return;
+  list.innerHTML = `<p class="mailbox-loading">${lang === 'ar' ? 'جارٍ تحميل الرسائل…' : 'Loading messages…'}</p>`;
+  try {
+    const auth = await import('/firebase-auth.js'),
+      messages = await auth.loadMessages();
+    if (!document.querySelector('#mailbox-list')) return;
+    list.innerHTML = messages.length
+      ? messages
+          .map((m) => {
+            const stamp = m.createdAt?.seconds
+              ? new Date(m.createdAt.seconds * 1000).toLocaleString(lang === 'ar' ? 'ar-EG' : 'en-US')
+              : '';
+            return `<article class="mailbox-message ${m.readAt ? '' : 'unread'}"><div class="mailbox-message-head"><strong>${esc(m.subject || (lang === 'ar' ? 'رسالة من الإدارة' : 'Message from administration'))}</strong><time>${esc(stamp)}</time></div><p>${esc(m.message || '')}</p><small>${esc(m.from || 'Morfi')}</small>${m.readAt ? '' : `<button class="button ghost mailbox-read" data-message-id="${attr(m.id)}">${lang === 'ar' ? 'تحديد كمقروءة' : 'Mark as read'}</button>`}</article>`;
+          })
+          .join('')
+      : `<p class="mailbox-loading">${lang === 'ar' ? 'لا توجد رسائل حتى الآن.' : 'No messages yet.'}</p>`;
+    list.querySelectorAll('.mailbox-read').forEach((button) =>
+      button.addEventListener('click', async () => {
+        button.disabled = true;
+        try {
+          await auth.markMessageRead(button.dataset.messageId);
+          loadMailbox();
+        } catch {
+          button.disabled = false;
+          showToast(lang === 'ar' ? 'تعذر تحديث الرسالة.' : 'Could not update message.');
+        }
+      }),
+    );
+  } catch (error) {
+    list.innerHTML = `<p class="mailbox-loading">${esc(error.message || 'Could not load messages.')}</p>`;
+  }
+}
+function wireProfile() {
+  const form = document.querySelector('#profile-form'),
+    legacy = getProfile(),
+    L = (ar, en) => (lang === 'ar' ? ar : en);
+  document.querySelector('#create-profile')?.addEventListener('click', () => onboarding(true));
+  document.querySelector('#link-existing-account')?.addEventListener('click', () => onboarding(true, legacy));
+  document.querySelector('#logout')?.addEventListener('click', async () => {
+    try {
+      const auth = await import('/firebase-auth.js');
+      await auth.signOutFirebase();
+    } catch {}
+    clearProfile();
+    sessionStorage.removeItem('cs-pending-email-change');
+    render();
+    showToast(t('loggedOut'));
+  });
+  if (!form) return;
+  loadMailbox();
+  document.querySelector('#refresh-mailbox')?.addEventListener('click', loadMailbox);
+  wireAvatarPicker(form);
+  const profile = () => getProfile() || {},
+    emailInput = document.querySelector('#new-contact-email'),
+    emailButton = document.querySelector('#send-email-change'),
+    emailStatus = document.querySelector('#email-change-status');
+  const phoneInput = document.querySelector('#new-contact-phone'),
+    phoneCountry = document.querySelector('#new-phone-country'),
+    phoneButton = document.querySelector('#send-phone-change'),
+    phoneStatus = document.querySelector('#phone-change-status');
+  let phoneVerification = null,
+    pendingEmailChange = sessionStorage.getItem('cs-pending-email-change') || '';
+  const normalizedPhone = () => {
+    let digits = String(phoneInput?.value || '').replace(/\D/g, ''),
+      code = phoneCountry?.value || '+20';
+    if (digits.startsWith('00' + code.slice(1))) digits = digits.slice(code.length + 1);
+    else if (digits.startsWith(code.slice(1))) digits = digits.slice(code.length - 1);
+    if (code === '+20') {
+      if (digits.startsWith('0')) digits = digits.slice(1);
+      return /^1[0125]\d{8}$/.test(digits) ? '+20' + digits : '';
+    }
+    if (digits.startsWith('0')) digits = digits.slice(1);
+    return /^\d{7,14}$/.test(digits) ? code + digits : '';
+  };
+  const checkEmail = () => {
+    if (!emailInput || !emailButton) return;
+    const value = emailInput.value.trim().toLowerCase(),
+      valid =
+        /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value) && value !== String(profile().email || '').toLowerCase();
+    emailButton.hidden = !valid;
+    emailButton.disabled = !valid;
+    if (emailStatus && !value) emailStatus.textContent = '';
+  };
+  emailInput?.addEventListener('input', checkEmail);
+  emailButton?.addEventListener('click', async () => {
+    const value = emailInput.value.trim().toLowerCase();
+    emailButton.disabled = true;
+    emailStatus.textContent = '';
+    try {
+      const auth = await import('/firebase-auth.js');
+      await auth.checkContactAvailability({ email: value });
+      await auth.requestEmailChange(value);
+      pendingEmailChange = value;
+      sessionStorage.setItem('cs-pending-email-change', value);
+      emailStatus.textContent = L(
+        'أرسلنا رابط التأكيد إلى البريد الجديد. لن يتغير بريد الحساب قبل فتح الرابط.',
+        'A verification link was sent to the new email. Your account will keep the current email until the link is opened.',
+      );
+    } catch (error) {
+      const message =
+        error.status === 409 || /already|in use|exists/i.test(error.message)
+          ? L(
+              'البريد الإلكتروني مسجل بالفعل لحساب آخر.',
+              'That email is already registered to another account.',
+            )
+          : error.message;
+      emailStatus.textContent = message;
+      emailButton.disabled = false;
+    }
+  });
+  document.querySelector('#refresh-email-change')?.addEventListener('click', async (event) => {
+    const button = event.currentTarget;
+    button.disabled = true;
+    try {
+      const auth = await import('/firebase-auth.js'),
+        user = await auth.refreshCurrentUser();
+      if (!pendingEmailChange || user.email?.toLowerCase() !== pendingEmailChange)
+        throw Error(
+          L(
+            'افتح رابط تأكيد البريد الجديد أولًا ثم ارجع هنا.',
+            'Open the new email verification link first, then return here.',
+          ),
+        );
+      const p = profile(),
+        saved = await auth.persistProfile({
+          name: p.name,
+          firstName: p.firstName || '',
+          fatherName: p.fatherName || '',
+          lastName: p.lastName || '',
+          gender: p.gender,
+          picture: p.picture,
+        });
+      saveProfile({ ...saved, email: user.email || '', phone: user.phoneNumber || '' });
+      pendingEmailChange = '';
+      sessionStorage.removeItem('cs-pending-email-change');
+      showToast(
+        saved.notificationSent
+          ? L(
+              'تم تأكيد البريد وإرسال تحديث الملف إلى الإدارة.',
+              'Email verified and the profile update was emailed to the administrator.',
+            )
+          : L(
+              'تم تأكيد البريد، لكن تعذر إرسال إشعار الإدارة.',
+              'Email verified, but the administrator email notice could not be sent.',
+            ),
+      );
+      render();
+    } catch (error) {
+      emailStatus.textContent =
+        error.message || L('لم نعثر على تأكيد للبريد الجديد.', 'The new email has not been verified yet.');
+    } finally {
+      button.disabled = false;
+    }
+  });
+  const updatePhoneButton = () => {
+    if (!phoneButton) return;
+    const valid = !!normalizedPhone() && normalizedPhone() !== profile().phone;
+    phoneButton.hidden = !valid;
+    phoneButton.disabled = !valid;
+  };
+  phoneInput?.addEventListener('input', updatePhoneButton);
+  phoneCountry?.addEventListener('change', updatePhoneButton);
+  phoneButton?.addEventListener('click', async () => {
+    const phone = normalizedPhone();
+    if (!phone) return;
+    phoneButton.disabled = true;
+    phoneStatus.textContent = '';
+    try {
+      const auth = await import('/firebase-auth.js');
+      await auth.checkContactAvailability({ phone });
+      phoneVerification = await auth.startPhoneUpdate(
+        phone,
+        document.querySelector('#firebase-phone-update-recaptcha'),
+      );
+      document.querySelector('#phone-change-code-area').hidden = false;
+      phoneInput.readOnly = true;
+      phoneCountry.disabled = true;
+      phoneStatus.textContent = L(
+        'أرسلنا كود SMS. أدخله لتأكيد الرقم.',
+        'An SMS code was sent. Enter it to verify the number.',
+      );
+    } catch (error) {
+      phoneStatus.textContent =
+        error.status === 409 || /already|in use|exists/i.test(error.message)
+          ? L('رقم الهاتف مسجل بالفعل لحساب آخر.', 'That phone number is already linked to another account.')
+          : error.message;
+      phoneButton.disabled = false;
+    }
+  });
+  document.querySelector('#confirm-phone-change')?.addEventListener('click', async (event) => {
+    const button = event.currentTarget,
+      code = document.querySelector('#phone-change-code').value.trim();
+    button.disabled = true;
+    try {
+      if (!phoneVerification) throw Error(L('اطلب كود التحقق أولًا.', 'Request the code first.'));
+      const auth = await import('/firebase-auth.js'),
+        user = await auth.finishPhoneUpdate(phoneVerification.verificationId, code),
+        p = profile(),
+        saved = await auth.persistProfile({
+          name: p.name,
+          firstName: p.firstName || '',
+          fatherName: p.fatherName || '',
+          lastName: p.lastName || '',
+          gender: p.gender,
+          picture: p.picture,
+        });
+      saveProfile({ ...saved, email: user.email || '', phone: user.phoneNumber || '' });
+      showToast(
+        saved.notificationSent
+          ? L('تم تأكيد الهاتف وإرسال التحديث للإدارة.', 'Phone verified and the profile update was emailed.')
+          : L(
+              'تم تأكيد الهاتف، لكن تعذر إرسال إشعار الإدارة.',
+              'Phone verified, but the administrator email notice could not be sent.',
+            ),
+      );
+      render();
+    } catch (error) {
+      phoneStatus.textContent = /already|in use|exists/i.test(error.message)
+        ? L('رقم الهاتف مسجل بالفعل لحساب آخر.', 'That phone number is already linked to another account.')
+        : error.message;
+      button.disabled = false;
+    }
+  });
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const error = form.querySelector('.form-error'),
+      button = form.querySelector('[type="submit"]'),
+      fd = new FormData(form),
+      old = profile(),
+      firstName = String(fd.get('firstName') || '').trim(),
+      fatherName = String(fd.get('fatherName') || '').trim(),
+      lastName = String(fd.get('lastName') || '').trim(),
+      payload = {
+        name: [firstName, fatherName, lastName].filter(Boolean).join(' '),
+        firstName,
+        fatherName,
+        lastName,
+        gender: String(fd.get('gender') || ''),
+        picture: String(fd.get('picture') || ''),
+      };
+    if (!firstName || !fatherName || !lastName || !['male', 'female', 'other'].includes(payload.gender)) {
+      error.textContent = t('invalidProfile');
+      return;
+    }
+    error.textContent = '';
+    button.disabled = true;
+    button.classList.add('is-loading');
+    try {
+      const auth = await import('/firebase-auth.js'),
+        saved = await auth.persistProfile(payload),
+        user = await auth.refreshCurrentUser();
+      saveProfile({
+        ...saved,
+        email: user.email || saved.email || '',
+        phone: user.phoneNumber || saved.phone || '',
+      });
+      render();
+      showToast(
+        saved.notificationSent
+          ? L(
+              'تم حفظ البيانات وإرسال التحديث للإدارة.',
+              'Profile saved and update emailed to the administrator.',
+            )
+          : L(
+              'تم حفظ الملف لكن تعذر إرسال إشعار البريد.',
+              'Profile saved, but the email notice could not be sent.',
+            ),
+      );
+    } catch (err) {
+      error.textContent = err.message || t('updateError');
+      button.disabled = false;
+      button.classList.remove('is-loading');
+    }
+  });
+}
+function showToast(message) {
+  document.querySelector('.toast')?.remove();
+  const node = document.createElement('div');
+  node.className = 'toast';
+  node.setAttribute('role', 'status');
+  node.textContent = message;
+  document.body.append(node);
+  setTimeout(() => node.remove(), 3200);
+}
+function shell(content) {
+  return `<div class="shell">${header()}<div class="content">${banner()}<div id="page" class="page-transition">${content}</div></div>${footer()}</div>`;
+}
+function render() {
+  document.documentElement.lang = lang;
+  document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
+  document.body.dataset.theme = theme;
+  const p = location.pathname;
+  let content =
+    p === '/subjects'
+      ? collection('subjects', t('subjectsTitle'), t('heroCopy'))
+      : p === '/lectures'
+        ? collection('lectures', t('filesTitle'), t('heroCopy'), true)
+        : p === '/advising'
+          ? collection('advising', t('advisingTitle'), t('advisory'))
+          : p === '/official'
+            ? collection('official', t('officialTitle'), t('heroCopy'))
+            : p === '/developer'
+              ? developer()
+              : p === '/profile'
+                ? profilePage()
+                : home();
+  if (p === '/admin' || p === '/admin/') return;
+  app.innerHTML = shell(content);
+  document.querySelectorAll('[data-route]').forEach((a) =>
+    a.addEventListener('click', (e) => {
+      e.preventDefault();
+      navigate(a.dataset.route);
+    }),
+  );
+  document.querySelector('#lang').onclick = () => {
+    lang = lang === 'ar' ? 'en' : 'ar';
+    localStorage.setItem('cs-lang', lang);
+    render();
+  };
+  document.querySelector('#theme').onclick = () => {
+    theme = theme === 'light' ? 'dark' : 'light';
+    localStorage.setItem('cs-theme', theme);
+    render();
+  };
+  document.querySelector('#mobile-menu').onclick = () =>
+    document.querySelector('.nav').classList.toggle('nav-open');
+  if (p === '/profile') wireProfile();
+  else if (p === '/lectures') wireLectureFilters();
+  else wireFilters();
+  observe();
+}
+function wireFilters() {
+  const search = document.querySelector('#search'),
+    cards = document.querySelectorAll('.group-card');
+  let filter = 'all';
+  function apply() {
+    const q = (search?.value || '').toLowerCase();
+    cards.forEach((c) => {
+      const category = c.querySelector('.card-category')?.textContent || '';
+      const match = (filter === 'all' || category === filter) && c.textContent.toLowerCase().includes(q);
+      c.classList.toggle('hidden', !match);
+    });
+  }
+  document.querySelectorAll('.filter').forEach(
+    (b) =>
+      (b.onclick = () => {
+        document.querySelector('.filter.active')?.classList.remove('active');
+        b.classList.add('active');
+        filter = b.dataset.filter;
+        apply();
+      }),
+  );
+  search?.addEventListener('input', apply);
+}
+function driveTitle(x) {
+  return lang === 'ar' ? x.title || x.titleAr || x.titleEn : x.titleEn || x.title || x.titleAr;
+}
+function drivePath(item) {
+  return (item.note || '')
+    .split(/\s*›\s*/)
+    .filter((x) => x && x !== 'المجلد الرئيسي' && x !== 'Year root' && x !== 'مجلد السنة');
+}
+function driveHierarchy(items) {
+  const nodes = items.map((item, index) => ({ item, index, parent: null, children: [] })),
+    folders = nodes.filter((n) => n.item.type === 'folder'),
+    roots = folders.filter((n) => n.item.note === 'المجلد الرئيسي' || n.item.note === 'Year root');
+  const norm = (s) =>
+    String(s || '')
+      .trim()
+      .toLocaleLowerCase();
+  for (const node of nodes) {
+    const raw = node.item.note || '';
+    if (!raw || raw === 'المجلد الرئيسي' || raw === 'Year root') continue;
+    const parts = drivePath(node.item),
+      parentName = parts.at(-1) || raw,
+      expected = parts.slice(0, -1).map(norm).join('›');
+    let candidates = folders.filter(
+      (f) =>
+        f !== node &&
+        f.item.category === node.item.category &&
+        [f.item.title, f.item.titleAr, f.item.titleEn].some((title) => norm(title) === norm(parentName)),
+    );
+    const exact = candidates.filter((f) => drivePath(f.item).map(norm).join('›') === expected);
+    if (exact.length) candidates = exact;
+    if (!candidates.length && (raw === 'مجلد السنة' || raw === 'داخل مجلد السنة'))
+      candidates = roots.filter((f) => f.item.category === node.item.category);
+    let parent =
+      candidates.filter((f) => f.index < node.index).at(-1) ||
+      candidates[0] ||
+      roots.find((f) => f.item.category === node.item.category);
+    if (parent && parent !== node) {
+      node.parent = parent;
+      parent.children.push(node);
+    }
+  }
+  return { nodes, roots };
+}
+function driveFolderCard(node) {
+  const item = node.item,
+    title = driveTitle(item);
+  return `<button class="drive-entry drive-folder-entry reveal" type="button" data-folder-index="${node.index}"><span class="drive-entry-icon">▱</span><span class="drive-entry-copy"><b>${esc(title)}</b><small>${node.children.length} ${lang === 'ar' ? 'عنصر داخل المجلد' : 'items inside'}</small></span><span class="drive-entry-arrow">${lang === 'ar' ? '←' : '→'}</span></button>`;
+}
+function driveCrumbs(node, nodes) {
+  const chain = [];
+  for (let n = node; n; n = n.parent) chain.unshift(n);
+  return `<div class="drive-breadcrumbs"><button type="button" data-folder-index="root">${lang === 'ar' ? 'كل السنوات' : 'All years'}</button>${chain.map((n) => `<span>›</span><button type="button" data-folder-index="${n.index}">${esc(driveTitle(n.item))}</button>`).join('')}</div>`;
+}
+function wireLectureFilters() {
+  const items = db.driveFiles || db.lectures || [],
+    tree = document.querySelector('#drive-tree'),
+    search = document.querySelector('#search');
+  let filter = 'all',
+    query = '',
+    current = 'root';
+  const hierarchy = driveHierarchy(items);
+  function draw() {
+    const selected = hierarchy.nodes.filter((n) => filter === 'all' || n.item.category === filter),
+      q = query.trim().toLocaleLowerCase();
+    let parent = current === 'root' ? null : hierarchy.nodes[Number(current)];
+    if (parent && filter !== 'all' && parent.item.category !== filter) {
+      parent = null;
+      current = 'root';
+    }
+    let entries = parent ? parent.children : selected.filter((n) => !n.parent);
+    if (q)
+      entries = hierarchy.nodes.filter(
+        (n) =>
+          (filter === 'all' || n.item.category === filter) &&
+          `${n.item.title || ''} ${n.item.titleAr || ''} ${n.item.titleEn || ''} ${n.item.note || ''} ${n.item.category || ''}`
+            .toLocaleLowerCase()
+            .includes(q),
+      );
+    const crumb = parent ? driveCrumbs(parent, hierarchy.nodes) : '';
+    tree.innerHTML = `${crumb}${parent ? `<div class="drive-current"><span>${lang === 'ar' ? 'محتويات المجلد' : 'Folder contents'}</span><a href="${attr(parent.item.url)}" target="_blank" rel="noopener">${t('browseDrive')} ↗</a></div>` : ''}<div class="drive-browser-grid">${entries.map((n) => (n.item.type === 'folder' ? driveFolderCard(n) : card(n.item, n.index))).join('') || `<div class="empty-state">${q ? (lang === 'ar' ? 'لا توجد نتائج مطابقة.' : 'No matching items.') : lang === 'ar' ? 'هذا المجلد فارغ.' : 'This folder is empty.'}</div>`}</div>`;
+    observe();
+  }
+  tree.addEventListener('click', (e) => {
+    const button = e.target.closest('[data-folder-index]');
+    if (!button) return;
+    current = button.dataset.folderIndex;
+    if (query) {
+      query = '';
+      search.value = '';
+    }
+    draw();
+  });
+  document.querySelectorAll('.filter').forEach(
+    (b) =>
+      (b.onclick = () => {
+        document.querySelector('.filter.active')?.classList.remove('active');
+        b.classList.add('active');
+        filter = b.dataset.filter;
+        current = 'root';
+        draw();
+      }),
+  );
+  search?.addEventListener('input', () => {
+    query = search.value;
+    draw();
+  });
+  draw();
+}
+function observe() {
+  const io = new IntersectionObserver(
+    (es) =>
+      es.forEach((e) => {
+        if (e.isIntersecting) {
+          e.target.classList.add('visible');
+          io.unobserve(e.target);
+        }
+      }),
+    { threshold: 0.08 },
+  );
+  document.querySelectorAll('.reveal').forEach((e) => io.observe(e));
+}
+function verifyProfilePersistence() {
+  try {
+    const profile = getProfile();
+    if (!profile) {
+      document.cookie = 'cs_profile=; path=/; max-age=0; samesite=lax';
+      document.documentElement.dataset.profilePersistence = 'guest-no-cookie';
+      return;
+    }
+    const raw = document.cookie
+      .split('; ')
+      .find((x) => x.startsWith('cs_profile='))
+      ?.slice('cs_profile='.length);
+    const saved = raw ? JSON.parse(decodeURIComponent(raw)) : null;
+    document.documentElement.dataset.profilePersistence =
+      saved?.registered === true ? 'verified' : 'incomplete';
+  } catch {
+    document.cookie = 'cs_profile=; path=/; max-age=0; samesite=lax';
+    document.documentElement.dataset.profilePersistence = 'guest-no-cookie';
+  }
+}
+function generatedAvatar(gender) {
+  const palettes = {
+    male: ['#294f42', '#93b49b', '#e9c48f'],
+    female: ['#714d65', '#cf9cad', '#eacb9d'],
+    other: ['#455b82', '#8fa8cb', '#edc788'],
+  };
+  const [coat, accent, skin] = palettes[gender] || palettes.other;
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160"><defs><linearGradient id="a" x2="1" y2="1"><stop stop-color="${accent}"/><stop offset="1" stop-color="#f2eadb"/></linearGradient></defs><rect width="160" height="160" rx="80" fill="url(#a)"/><circle cx="80" cy="67" r="31" fill="${skin}"/><path d="M48 63c1-33 63-42 65 1-12-8-19-21-20-26-9 12-25 21-45 25Z" fill="${coat}"/><path d="M30 160c2-39 22-57 50-57s49 18 51 57" fill="${coat}"/><path d="M66 86q14 10 28 0" fill="none" stroke="#805c50" stroke-width="2" stroke-linecap="round"/><circle cx="68" cy="69" r="2" fill="#453c39"/><circle cx="92" cy="69" r="2" fill="#453c39"/></svg>`;
+  return 'data:image/svg+xml,' + encodeURIComponent(svg);
+}
+function onboarding(force = false, legacyProfile = null) {
+  if (!force && (getProfile() || sessionStorage.getItem('cs-guest'))) return;
+  const ov = document.createElement('div');
+  ov.className = 'onboarding';
+  ov.innerHTML = `<div class="onboard-left"><a class="brand"><span class="brand-mark">C<span>·</span></span><span>CAPITAL <b>SCIENCE</b><small>STUDENT COMMONS</small></span></a><div class="onboard-decoration"><div class="onboard-ring"></div><span>✳</span><p>كل يوم بداية<br>اكتشاف جديد</p></div><span class="onboard-foot">A STUDENT COMMONS · EST 2026</span></div><div class="onboard-main"><button class="onboard-close" id="skip" aria-label="${lang === 'ar' ? 'إغلاق' : 'Close'}">×</button><div class="onboard-step" id="step"><span class="section-index">A SPACE FOR YOUR NEXT CHAPTER</span><h1>${t('welcome')},<br><em>curious mind.</em></h1><p>${t('intro')}</p><button class="button primary" id="begin">${t('continue')} <span>↗</span></button><button class="skip-link" id="guest">${t('skip')}</button></div></div>`;
+  document.body.append(ov);
+  const step = ov.querySelector('#step'),
+    L = (ar, en) => (lang === 'ar' ? ar : en),
+    errNode = () => ov.querySelector('#form-error');
+  let method = '',
+    email = '',
+    phoneConfirmation = null,
+    authUser = null,
+    profileDraft = null;
+  const fadeTo = (html) =>
+    new Promise((resolve) => {
+      step.classList.add('step-leave');
+      setTimeout(() => {
+        step.innerHTML = html;
+        step.classList.remove('step-leave');
+        step.classList.add('step-enter');
+        requestAnimationFrame(() => step.classList.add('step-ready'));
+        setTimeout(() => {
+          step.classList.remove('step-enter', 'step-ready');
+          resolve();
+        }, 520);
+      }, 220);
+    });
+  const closeOverlay = () => {
+    ov.classList.add('out');
+    setTimeout(() => ov.remove(), 520);
+  };
+  const guest = () => {
+    sessionStorage.setItem('cs-guest', '1');
+    closeOverlay();
+  };
+  ov.querySelector('#skip').onclick = guest;
+  ov.querySelector('#guest').onclick = guest;
+  const showError = (message) => {
+    const node = errNode();
+    if (node) node.textContent = message;
+  };
+  const readableAuthError = (error) => {
+    const messages = {
+      'auth/invalid-credential': L(
+        'البريد أو كلمة المرور غير صحيحين. راجع البيانات أو استخدم استعادة كلمة المرور.',
+        'Email or password is incorrect. Check your details or reset your password.',
+      ),
+      'auth/wrong-password': L(
+        'كلمة المرور غير صحيحة. راجعها أو استخدم استعادة كلمة المرور.',
+        'That password is incorrect. Check it or reset your password.',
+      ),
+      'auth/user-not-found': L(
+        'لا يوجد حساب بهذا البريد. ارجع واختر إنشاء حساب جديد.',
+        'No account was found for this email. Go back and create an account.',
+      ),
+      'auth/email-not-verified': L(
+        'الحساب يحتاج تأكيد البريد. أرسلنا رسالة تحقق جديدة؛ افتحها ثم سجّل الدخول.',
+        'Your email must be verified. We sent a new verification email; open it, then sign in.',
+      ),
+      'auth/too-many-requests': L(
+        'محاولات كثيرة. انتظر قليلًا ثم حاول مرة أخرى.',
+        'Too many attempts. Wait a little, then try again.',
+      ),
+      'auth/user-disabled': L(
+        'هذا الحساب موقوف. تواصل مع إدارة الموقع.',
+        'This account is disabled. Contact the site administrator.',
+      ),
+      'auth/network-request-failed': L(
+        'تعذر الاتصال. تحقق من الإنترنت وحاول مجددًا.',
+        'Could not connect. Check your internet and try again.',
+      ),
+      'auth/operation-not-allowed': L(
+        'تسجيل الدخول بالبريد وكلمة المرور غير مفعّل في Firebase.',
+        'Email and password sign-in is disabled in Firebase.',
+      ),
+    };
+    return (
+      messages[error?.code] ||
+      error?.message ||
+      L(
+        'تعذر تسجيل الدخول. راجع البريد وكلمة المرور أو أعد تعيينها.',
+        'Could not sign in. Check your email and password or reset it.',
+      )
+    );
+  };
+  const showMethod = async () => {
+    method = '';
+    email = '';
+    phoneConfirmation = null;
+    authUser = null;
+    await fadeTo(
+      `<span class="section-index">${L('خطوة ١ · طريقة الدخول', 'STEP 1 · SIGN-IN METHOD')}</span><h1>${L('اختار طريقة التسجيل', 'Choose how to continue')}</h1><p>${L('اكتب بريدك أو رقمك، أو استخدم حساب Google. كل مرة هنطلب منك خطوة واحدة.', 'Use your email, phone number, or Google. We will guide you one step at a time.')}</p><p class="form-error" aria-live="polite">${firebaseEnabled ? '' : t('firebaseNotice')}</p><div class="auth-choice-grid"><button class="auth-choice" data-method="email" ${firebaseEnabled ? '' : 'disabled'}><span>✉</span><b>${L('البريد الإلكتروني', 'Email')}</b><small>${L('رابط تأكيد آمن من Firebase', 'Secure Firebase verification link')}</small></button><button class="auth-choice" data-method="phone" ${firebaseEnabled ? '' : 'disabled'}><span>☎</span><b>${L('رقم الهاتف', 'Phone number')}</b><small>${L('تحقق برسالة SMS', 'Verify by SMS')}</small></button><button class="auth-choice" data-method="google" ${firebaseEnabled ? '' : 'disabled'}><span>G</span><b>${L('حساب Google', 'Google account')}</b><small>${L('الاسم والبريد من حسابك', 'Use your Google name and email')}</small></button></div><p class="form-error" id="form-error" aria-live="polite"></p><button class="skip-link" id="back-welcome">${L('رجوع', 'Back')}</button>`,
+    );
+    step.querySelectorAll('[data-method]').forEach(
+      (button) =>
+        (button.onclick = () => {
+          method = button.dataset.method;
+          if (method === 'google') continueGoogle();
+          else method === 'email' ? showEmail() : showPhone();
+        }),
+    );
+    step.querySelector('#back-welcome').onclick = showIntro;
+  };
+  const showIntro = async () => {
+    await fadeTo(
+      `<span class="section-index">A SPACE FOR YOUR NEXT CHAPTER</span><h1>${t('welcome')},<br><em>curious mind.</em></h1><p>${t('intro')}</p><button class="button primary" id="begin">${t('continue')} <span>↗</span></button><button class="skip-link" id="guest">${t('skip')}</button>`,
+    );
+    step.querySelector('#begin').onclick = showMethod;
+    step.querySelector('#guest').onclick = guest;
+  };
+  const showExistingPassword = async () => {
+    await fadeTo(
+      `<span class="section-index">${L('حساب موجود', 'EXISTING ACCOUNT')}</span><h1>${L('أهلًا بعودتك', 'Welcome back')}</h1><p>${L('هذا البريد مرتبط بحساب بالفعل. سجّل الدخول بكلمة المرور أو استعدها من بريدك.', 'This email already has an account. Sign in with your password or reset it using your email.')}</p><form id="login-form"><label>${L('البريد الإلكتروني', 'Email')}<input name="email" type="email" value="${attr(email)}" readonly></label><label>${t('authPassword')}<input name="password" type="password" required autocomplete="current-password"></label><p class="form-error" id="form-error" aria-live="polite"></p><button class="button primary" type="submit">${L('تسجيل الدخول', 'Sign in')} ↗</button></form><button class="skip-link" id="reset-password">${L('نسيت كلمة المرور؟ أرسل رابط استعادة', 'Forgot your password? Send a reset link')}</button><button class="skip-link" id="email-link-login">${L('الدخول برابط البريد بدل كلمة المرور', 'Sign in with an email link instead')}</button><button class="skip-link" id="back-method">${L('استخدم بريدًا أو طريقة أخرى', 'Use another email or method')}</button>`,
+    );
+    step.querySelector('#email-link-login').onclick = async () => {
+      const button = step.querySelector('#email-link-login');
+      button.disabled = true;
+      try {
+        const auth = await import('/firebase-auth.js');
+        await auth.sendEmailSignInLink(email);
+        showEmailLinkSent();
+      } catch (error) {
+        showError(readableAuthError(error));
+        button.disabled = false;
+      }
+    };
+    step.querySelector('#reset-password').onclick = async () => {
+      const button = step.querySelector('#reset-password');
+      button.disabled = true;
+      try {
+        const auth = await import('/firebase-auth.js');
+        await auth.sendPasswordReset(email);
+        showError(
+          L(
+            'لو كان لهذا البريد حساب، هتوصلك رسالة فيها رابط آمن لاختيار كلمة مرور جديدة. افحص الوارد والرسائل غير المرغوب فيها.',
+            'If an account exists for this email, a secure password-reset link is on its way. Check your inbox and spam folder.',
+          ),
+        );
+        button.textContent = L('تم طلب رابط الاستعادة', 'Reset link requested');
+      } catch (error) {
+        showError(readableAuthError(error));
+        button.disabled = false;
+      }
+    };
+    step.querySelector('#back-method').onclick = showMethod;
+    step.querySelector('#login-form').onsubmit = async (e) => {
+      e.preventDefault();
+      const button = e.currentTarget.querySelector('[type=submit]');
+      button.disabled = true;
+      try {
+        const auth = await import('/firebase-auth.js'),
+          user = await auth.signInEmail(email, e.currentTarget.elements.password.value);
+        await completeExisting(user);
+      } catch (error) {
+        showError(readableAuthError(error));
+        button.disabled = false;
+      }
+    };
+  };
+  const continueEmail = async () => {
+    const value = step.querySelector('[name=email]').value.trim().toLowerCase();
+    if (!/^\S+@\S+\.\S+$/.test(value)) {
+      showError(L('اكتب بريدًا إلكترونيًا صحيحًا.', 'Enter a valid email address.'));
+      return;
+    }
+    email = value;
+    const button = step.querySelector('#email-continue');
+    button.disabled = true;
+    button.classList.add('is-loading');
+    try {
+      const auth = await import('/firebase-auth.js');
+      if (await auth.checkEmailExists(email)) {
+        showExistingPassword();
+        return;
+      }
+      await auth.sendEmailSignInLink(email);
+      showEmailLinkSent();
+    } catch (error) {
+      if (error.status === 409 || /already linked|already in use|already exists/i.test(error.message)) {
+        showExistingPassword();
+        showToast(L('البريد مرتبط بحساب بالفعل.', 'That email already has an account.'));
+      } else {
+        showError(error.message || L('تعذر إرسال رابط التأكيد.', 'Could not send the verification link.'));
+        button.disabled = false;
+        button.classList.remove('is-loading');
+      }
+    }
+  };
+  const showEmail = async () => {
+    method = 'email';
+    await fadeTo(
+      `<span class="section-index">${L('البريد · تحقق ١/٢', 'EMAIL · VERIFY 1/2')}</span><h1>${L('اكتب بريدك', 'Enter your email')}</h1><p>${L('هنرسل رابط تأكيد آمن من Firebase. افتحه لإثبات ملكية بريدك، وبعدها أنشئ كلمة المرور. البريد المرتبط بحساب سيحوّلك لتسجيل الدخول.', 'Firebase will send a secure sign-in link. Open it to verify your email, then create a password. Existing accounts will be sent to sign in.')}</p><form id="email-form"><label>${L('البريد الإلكتروني', 'Email address')}<input name="email" type="email" inputmode="email" autocomplete="email" required placeholder="name@example.com" value="${attr(email)}"></label><p class="form-error" id="form-error" aria-live="polite"></p><button id="email-continue" class="button primary" type="submit">${t('continue')} ↗</button></form><button class="skip-link" id="back-method">${L('رجوع لطرق التسجيل', 'Back to sign-in options')}</button>`,
+    );
+    step.querySelector('#email-form').onsubmit = (e) => {
+      e.preventDefault();
+      continueEmail();
+    };
+    step.querySelector('#back-method').onclick = showMethod;
+  };
+  const showEmailLinkSent = async () => {
+    await fadeTo(
+      `<span class="section-index">${L('تحقق من بريدك', 'CHECK YOUR EMAIL')}</span><h1>${L('افتح رابط التأكيد', 'Open the verification link')}</h1><p>${L('أرسلنا رابط تسجيل آمن إلى', 'A secure sign-in link was sent to')} <b>${esc(email)}</b>. ${L('افتحه في هذا المتصفح؛ ستنتقل تلقائيًا لإكمال التسجيل.', 'Open it in this browser to continue your registration.')}</p><button class="button primary" id="resend-link">${L('إعادة إرسال الرابط', 'Resend link')} ↗</button><p class="form-error" id="form-error" aria-live="polite"></p><button class="skip-link" id="change-email">${L('استخدم بريدًا آخر', 'Use another email')}</button>`,
+    );
+    step.querySelector('#resend-link').onclick = () => {
+      showEmail().then(() => {
+        step.querySelector('[name=email]').value = email;
+        continueEmail();
+      });
+    };
+    step.querySelector('#change-email').onclick = showEmail;
+  };
+  const showEmailLinkCompletion = async () => {
+    method = 'email';
+    const savedEmail = sessionStorage.getItem('cs-pending-email-link') || '';
+    email = savedEmail;
+    await fadeTo(
+      `<span class="section-index">${L('تأكيد البريد', 'VERIFY YOUR EMAIL')}</span><h1>${L('أكمل تسجيل الدخول', 'Complete sign-in')}</h1><p>${L('لأمان حسابك، اكتب نفس البريد الذي طلبت عليه رابط التأكيد.', 'For account security, enter the same email address that received the link.')}</p><form id="email-link-form"><label>${L('البريد الإلكتروني', 'Email address')}<input name="email" type="email" inputmode="email" autocomplete="email" required value="${attr(email)}" placeholder="name@example.com"></label><p class="form-error" id="form-error" aria-live="polite"></p><button class="button primary" type="submit">${L('تأكيد ومتابعة', 'Verify and continue')} ↗</button></form>`,
+    );
+    step.querySelector('#email-link-form').onsubmit = async (e) => {
+      e.preventDefault();
+      email = e.currentTarget.elements.email.value.trim().toLowerCase();
+      const button = e.currentTarget.querySelector('[type=submit]');
+      button.disabled = true;
+      try {
+        const auth = await import('/firebase-auth.js');
+        authUser = await auth.completeEmailSignInLink(email);
+        history.replaceState({}, '', '/profile');
+        const existing = await auth.loadProfile();
+        if (existing) {
+          saveProfile({
+            ...existing,
+            email: existing.email || authUser.email || '',
+            phone: existing.phone || authUser.phoneNumber || '',
+          });
+          await showSuccess(
+            L('أهلًا بعودتك!', 'Welcome back!'),
+            L('تم تسجيل دخولك إلى حسابك.', 'You are signed in to your account.'),
+          );
+          return;
+        }
+        profileDraft = {
+          firstName: '',
+          fatherName: '',
+          lastName: '',
+          email,
+          phone: '',
+          passwordNeeded: true,
+        };
+        await showPassword();
+      } catch (error) {
+        showError(
+          error.message ||
+            L(
+              'تعذر تأكيد الرابط. افتحه من الرسالة نفسها ثم أعد المحاولة.',
+              'Could not verify the link. Open it from the email and try again.',
+            ),
+        );
+        button.disabled = false;
+      }
+    };
+  };
+  const showPassword = async () => {
+    await fadeTo(
+      `<span class="section-index">${L('تم التحقق · كلمة المرور', 'VERIFIED · PASSWORD')}</span><h1>${L('أنشئ كلمة مرور', 'Create a password')}</h1><p>${L('اختر كلمة مرور لحماية حسابك. المثال للتوضيح فقط؛ لا تستخدمه كما هو.', 'Choose a password for your account. The example is only a reference; do not use it as-is.')}</p><form id="password-form"><label>${L('كلمة المرور', 'Password')}<input name="password" type="password" minlength="8" autocomplete="new-password" required placeholder="${L('مثال: Ahmed1234', 'Example: Ahmed1234')}"></label><label>${L('تأكيد كلمة المرور', 'Confirm password')}<input name="confirmPassword" type="password" minlength="8" autocomplete="new-password" required></label><p class="form-error" id="form-error" aria-live="polite"></p><button class="button primary" type="submit">${L('متابعة', 'Continue')} ↗</button></form>`,
+    );
+    step.querySelector('#password-form').onsubmit = (e) => {
+      e.preventDefault();
+      const f = new FormData(e.currentTarget),
+        password = String(f.get('password') || ''),
+        confirmation = String(f.get('confirmPassword') || '');
+      if (password.length < 8 || password !== confirmation) {
+        showError(
+          password.length < 8
+            ? L('كلمة المرور يجب ألا تقل عن ٨ أحرف.', 'Use at least 8 characters.')
+            : L('كلمتا المرور غير متطابقتين.', 'The passwords do not match.'),
+        );
+        return;
+      }
+      profileDraft = { ...profileDraft, password };
+      showDetails();
+    };
+  };
+  const phoneCountries = [
+    ['مصر', '+20'],
+    ['السعودية', '+966'],
+    ['الإمارات', '+971'],
+    ['الكويت', '+965'],
+    ['قطر', '+974'],
+    ['الأردن', '+962'],
+    ['لبنان', '+961'],
+    ['المغرب', '+212'],
+    ['تونس', '+216'],
+    ['الجزائر', '+213'],
+    ['السودان', '+249'],
+    ['الولايات المتحدة', '+1'],
+    ['المملكة المتحدة', '+44'],
+    ['تركيا', '+90'],
+  ];
+  const normalizePhone = (code, raw) => {
+    let digits = String(raw || '').replace(/\D/g, '');
+    if (digits.startsWith('00' + code.slice(1))) digits = digits.slice(code.length + 1);
+    else if (digits.startsWith(code.slice(1))) digits = digits.slice(code.length - 1);
+    if (code === '+20') {
+      if (digits.startsWith('0')) digits = digits.slice(1);
+      if (!/^1[0125]\d{8}$/.test(digits)) return '';
+      return '+20' + digits;
+    }
+    if (digits.startsWith('0')) digits = digits.slice(1);
+    return /^\d{7,14}$/.test(digits) ? code + digits : '';
+  };
+  const showPhone = async () => {
+    method = 'phone';
+    await fadeTo(
+      `<span class="section-index">${L('الهاتف · تحقق برسالة', 'PHONE · SMS VERIFICATION')}</span><h1>${L('اكتب رقم هاتفك', 'Enter your phone number')}</h1><p>${L('مفتاح مصر +20 محدد تلقائيًا. لن يظهر زر إرسال الكود إلا بعد إدخال رقم صحيح.', 'Egypt +20 is selected by default. The verification button appears only after a valid number is entered.')}</p><form id="phone-form"><label>${L('الدولة ومفتاح الاتصال', 'Country calling code')}<select name="country" autocomplete="tel-country-code">${phoneCountries.map(([name, code]) => `<option value="${code}" ${code === '+20' ? 'selected' : ''}>${lang === 'ar' ? name : { '+20': 'Egypt', '+966': 'Saudi Arabia', '+971': 'UAE', '+965': 'Kuwait', '+974': 'Qatar', '+962': 'Jordan', '+961': 'Lebanon', '+212': 'Morocco', '+216': 'Tunisia', '+213': 'Algeria', '+249': 'Sudan', '+1': 'United States', '+44': 'United Kingdom', '+90': 'Turkey' }[code] || name} (${code})</option>`).join('')}</select></label><label>${L('رقم الهاتف', 'Phone number')}<input name="phone" type="tel" inputmode="tel" autocomplete="tel-national" placeholder="01012345678" required></label><small id="phone-hint" aria-live="polite">${L('أرقام مصر: 010 أو 011 أو 012 أو 015.', 'Egyptian mobile numbers start with 010, 011, 012, or 015.')}</small><div id="firebase-recaptcha"></div><button id="send-phone-code" class="button primary" type="button" hidden disabled>${L('إرسال كود SMS', 'Send SMS code')} ↗</button><div id="phone-code-area" hidden><label>${L('كود SMS', 'SMS code')}<input name="code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" placeholder="000000"></label><button id="confirm-phone" class="button primary" type="button">${L('تأكيد الرقم', 'Verify phone')} ↗</button></div><p class="form-error" id="form-error" aria-live="polite"></p></form><button class="skip-link" id="back-method">${L('رجوع لطرق التسجيل', 'Back to sign-in options')}</button>`,
+    );
+    const form = step.querySelector('#phone-form'),
+      input = form.elements.phone,
+      country = form.elements.country,
+      send = step.querySelector('#send-phone-code'),
+      hint = step.querySelector('#phone-hint');
+    const update = () => {
+      const valid = !!normalizePhone(country.value, input.value);
+      send.hidden = !valid;
+      send.disabled = !valid;
+      hint.textContent = valid
+        ? L('الرقم صحيح، يمكنك طلب كود التحقق.', 'Number looks valid. You can request a verification code.')
+        : country.value === '+20'
+          ? L(
+              'أرقام مصر: 010 أو 011 أو 012 أو 015.',
+              'Egyptian mobile numbers start with 010, 011, 012, or 015.',
+            )
+          : L(
+              'أدخل رقمًا صحيحًا مع مفتاح الدولة المحدد.',
+              'Enter a valid number for the selected country code.',
+            );
+    };
+    input.addEventListener('input', update);
+    country.addEventListener('change', update);
+    form.elements.code?.addEventListener('input', () => {});
+    step.querySelector('#back-method').onclick = showMethod;
+    send.onclick = async () => {
+      const full = normalizePhone(country.value, input.value);
+      if (!full) {
+        update();
+        return;
+      }
+      send.disabled = true;
+      try {
+        const auth = await import('/firebase-auth.js');
+        const result = await auth.startPhoneSignIn(full, step.querySelector('#firebase-recaptcha'));
+        phoneConfirmation = result.confirmation;
+        step.querySelector('#phone-code-area').hidden = false;
+        input.readOnly = true;
+        country.disabled = true;
+        showToast(L('أرسلنا كود التحقق إلى هاتفك.', 'SMS verification code sent.'));
+      } catch (error) {
+        const code = error.code || '';
+        let message = error.message || L('تعذر إرسال رسالة التحقق.', 'Could not send the SMS code.');
+        if (code === 'auth/argument-error')
+          message = L(
+            'تعذر تهيئة اختبار الأمان. أعد تحميل الصفحة ثم حاول مرة أخرى.',
+            'Security verification could not initialize. Reload the page and try again.',
+          );
+        else if (code === 'auth/invalid-phone-number')
+          message = L(
+            'رقم الهاتف غير صالح. راجع مفتاح الدولة والرقم.',
+            'That phone number is invalid. Check the country code and number.',
+          );
+        else if (code === 'auth/too-many-requests' || code === 'auth/quota-exceeded')
+          message = L(
+            'وصل التحقق إلى حد الرسائل المتاح حاليًا. حاول لاحقًا.',
+            'The current SMS verification limit has been reached. Try again later.',
+          );
+        else if (code === 'auth/credential-already-in-use' || code === 'auth/phone-number-already-exists')
+          message = L(
+            'رقم الهاتف مرتبط بحساب بالفعل. استخدم تسجيل الدخول أو رقمًا آخر.',
+            'That phone number is already linked to an account. Sign in or use another number.',
+          );
+        showError(message);
+        send.disabled = false;
+      }
+    };
+    step.querySelector('#confirm-phone').onclick = async () => {
+      const code = form.elements.code.value.trim(),
+        button = step.querySelector('#confirm-phone');
+      button.disabled = true;
+      try {
+        if (!phoneConfirmation) throw Error(L('اطلب كود التحقق أولًا.', 'Request a code first.'));
+        const auth = await import('/firebase-auth.js');
+        authUser = await auth.confirmPhoneSignIn(phoneConfirmation, code);
+        await completeExisting(authUser, true);
+      } catch (error) {
+        showError(error.message);
+        button.disabled = false;
+      }
+    };
+  };
+  const completeExisting = async (user, allowNew = false) => {
+    const auth = await import('/firebase-auth.js');
+    let current = null;
+    try {
+      current = await auth.loadProfile();
+    } catch {}
+    if (current) {
+      saveProfile({
+        ...current,
+        email: current.email || user.email || '',
+        phone: current.phone || user.phoneNumber || '',
+      });
+      showSuccess(
+        L('أهلًا بعودتك!', 'Welcome back!'),
+        L('تم تسجيل دخولك إلى حسابك.', 'You are signed in to your account.'),
+      );
+      return;
+    }
+    if (!allowNew && user.emailVerified && method === 'google') {
+      authUser = user;
+      profileDraft = {
+        firstName: (user.displayName || '').split(/\s+/)[0] || '',
+        fatherName: '',
+        lastName: (user.displayName || '').split(/\s+/).slice(1).join(' '),
+        email: user.email || '',
+        phone: user.phoneNumber || '',
+        passwordNeeded: false,
+      };
+      showDetails();
+      return;
+    }
+    if (allowNew) {
+      authUser = user;
+      profileDraft = {
+        firstName: '',
+        fatherName: '',
+        lastName: '',
+        email: user.email || '',
+        phone: user.phoneNumber || '',
+        passwordNeeded: false,
+      };
+      showDetails();
+      return;
+    }
+    throw Error(
+      L(
+        'لم نعثر على ملف مرتبط بالحساب. تواصل مع الدعم.',
+        'No profile is linked to this account. Contact support.',
+      ),
+    );
+  };
+  const continueGoogle = async () => {
+    if (!firebaseEnabled) {
+      showMethod();
+      showError(t('firebaseNotice'));
+      return;
+    }
+    try {
+      const auth = await import('/firebase-auth.js');
+      authUser = await auth.signInGoogle();
+      await completeExisting(authUser, true);
+    } catch (error) {
+      showMethod();
+      showError(
+        error.message || L('تعذر تسجيل الدخول باستخدام Google.', 'Google sign-in could not be completed.'),
+      );
+    }
+  };
+  const showDetails = async () => {
+    const d = profileDraft || {
+      firstName: '',
+      fatherName: '',
+      lastName: '',
+      email: email,
+      phone: '',
+      passwordNeeded: method === 'email',
+    };
+    await fadeTo(
+      `<span class="section-index">${L('الخطوة التالية · بياناتك', 'NEXT · YOUR DETAILS')}</span><h1>${L('عرّفنا بنفسك', 'Tell us about you')}</h1><p>${L('اكتب اسمك الأول واسم الوالد واسم العائلة. كل الأسماء مطلوبة.', 'Enter your first name, father’s name, and family name. All are required.')}</p><form id="details-form"><div class="profile-name-fields"><label>${L('الاسم الأول', 'First name')}<input name="firstName" required maxlength="50" autocomplete="given-name" value="${attr(d.firstName)}"></label><label>${L('اسم الوالد', 'Father’s name')}<input name="fatherName" required maxlength="50" autocomplete="additional-name" value="${attr(d.fatherName)}"></label><label>${L('اسم العائلة', 'Family name')}<input name="lastName" required maxlength="50" autocomplete="family-name" value="${attr(d.lastName)}"></label></div><label>${L('الجنس', 'Gender')}<select name="gender" required><option value="">${L('اختر', 'Select')}</option><option value="male">${L('ذكر', 'Male')}</option><option value="female">${L('أنثى', 'Female')}</option><option value="other">${L('أفضل عدم الإجابة', 'Prefer not to say')}</option></select></label><p class="form-error" id="form-error" aria-live="polite"></p><button class="button primary" type="submit">${L('متابعة إلى الصورة', 'Continue to photo')} ↗</button></form>`,
+    );
+    step.querySelector('#details-form').onsubmit = (e) => {
+      e.preventDefault();
+      const f = new FormData(e.currentTarget),
+        first = String(f.get('firstName') || '').trim(),
+        father = String(f.get('fatherName') || '').trim(),
+        last = String(f.get('lastName') || '').trim(),
+        gender = String(f.get('gender') || '');
+      if (!first || !father || !last || !['male', 'female', 'other'].includes(gender)) {
+        showError(
+          L(
+            'أكمل الاسم الأول واسم الوالد واسم العائلة والجنس.',
+            'Complete your first, father’s, and family names, and select gender.',
+          ),
+        );
+        return;
+      }
+      profileDraft = { ...d, firstName: first, fatherName: father, lastName: last, gender };
+      showPhoto();
+    };
+  };
+  const showPhoto = async () => {
+    const initial = avatarForGender(profileDraft?.gender || 'other');
+    await fadeTo(
+      `<span class="section-index">${L('الخطوة الأخيرة · صورتك', 'LAST STEP · YOUR PHOTO')}</span><h1>${L('اختر صورتك', 'Choose a profile photo')}</h1><p>${L('اختر رسمة من المجموعة أو ارفع صورة من جهازك. الصورة اختيارية.', 'Choose an illustration or upload a photo. Adding a photo is optional.')}</p><form id="photo-form"><div class="avatar-preview-wrap"><img class="avatar-preview" src="${attr(initial)}" alt="${t('profilePhoto')}"></div><input type="hidden" name="picture" value="${attr(initial)}">${avatarGallery(initial)}<label class="upload-photo">${t('uploadPhoto')}<input name="profileFile" type="file" accept="image/png,image/jpeg,image/webp"></label><p class="form-error" id="form-error" aria-live="polite"></p><button class="button primary" type="submit">${L('إنشاء الحساب', 'Create account')} ↗</button></form><button class="skip-link" id="skip-photo">${L('المتابعة بدون صورة', 'Continue without a photo')}</button>`,
+    );
+    const form = step.querySelector('#photo-form');
+    wireAvatarPicker(form);
+    step.querySelector('#skip-photo').onclick = () => submitProfile(form, true);
+    form.onsubmit = (e) => {
+      e.preventDefault();
+      submitProfile(form, false);
+    };
+  };
+  const submitProfile = async (form, skipPhoto) => {
+    const f = new FormData(form);
+    let picture = skipPhoto
+      ? avatarForGender(profileDraft?.gender || 'other')
+      : String(f.get('picture') || avatarForGender(profileDraft?.gender || 'other'));
+    const file = f.get('profileFile');
+    if (!skipPhoto && file?.size) {
+      if (file.size > 3_500_000) {
+        showError(t('imageTooLarge'));
+        return;
+      }
+      try {
+        picture = await fileAsDataUrl(file);
+      } catch {
+        showError(L('تعذر قراءة الصورة. جرّب صورة أخرى.', 'Could not read that image. Try another one.'));
+        return;
+      }
+    }
+    profileDraft = { ...profileDraft, picture };
+    const button = form.querySelector('[type=submit]');
+    button.disabled = true;
+    button.classList.add('is-loading');
+    button.textContent = t('signingIn');
+    try {
+      const auth = await import('/firebase-auth.js');
+      if (method === 'email') {
+        if (!authUser) throw Error(L('افتح رابط التأكيد أولًا.', 'Open the verification link first.'));
+        await auth.setEmailPassword(email, profileDraft.password);
+      }
+      if (!authUser) throw Error(L('أكمل التحقق أولًا.', 'Complete verification first.'));
+      const name = [profileDraft.firstName, profileDraft.fatherName, profileDraft.lastName]
+        .filter(Boolean)
+        .join(' ');
+      const saved = await auth.persistProfile({
+        name,
+        firstName: profileDraft.firstName,
+        fatherName: profileDraft.fatherName,
+        lastName: profileDraft.lastName,
+        gender: profileDraft.gender,
+        picture,
+      });
+      sessionStorage.removeItem('cs-pending-profile');
+      saveProfile({
+        ...saved,
+        email: saved.email || email || '',
+        phone: saved.phone || profileDraft.phone || '',
+      });
+      showSuccess(
+        L('أهلًا بك في مجتمعنا!', 'Welcome to the community!'),
+        saved.notificationSent
+          ? L(
+              'اكتمل تسجيلك وأُرسلت بيانات الملف إلى إدارة الموقع.',
+              'Registration is complete and your profile was emailed to the site owner.',
+            )
+          : L(
+              'اكتمل تسجيلك، لكن تعذر إرسال إشعار البريد إلى الإدارة.',
+              'Registration is complete, but the owner notification email could not be sent.',
+            ),
+      );
+    } catch (error) {
+      showError(error.message || t('updateError'));
+      button.disabled = false;
+      button.classList.remove('is-loading');
+      button.textContent = L('إنشاء الحساب', 'Create account') + ' ↗';
+    }
+  };
+  const showSuccess = async (title, copy) => {
+    await fadeTo(
+      `<div class="signup-success"><span class="success-mark">✓</span><span class="section-index">CAPITAL SCIENCE · COMMUNITY</span><h1>${title}</h1><p>${copy}</p><button id="enter-site" class="button primary">${L('ادخل للموقع', 'Enter the site')} ↗</button></div>`,
+    );
+    step.querySelector('#enter-site').onclick = closeOverlay;
+  };
+  ov.querySelector('#begin').onclick = showMethod;
+  if (legacyProfile) {
+    method = legacyProfile.email ? 'email' : 'phone';
+    email = legacyProfile.email || '';
+    showMethod();
+  } else if (new URLSearchParams(location.search).get('mode') === 'signIn') {
+    import('/firebase-auth.js')
+      .then((auth) => auth.isEmailSignInLink())
+      .then((isLink) => {
+        if (isLink) showEmailLinkCompletion();
+      })
+      .catch(() => {});
+  }
+}
+(async () => {
+  await resetOldProfileSession();
+  try {
+    db = await fetch('/api/site').then((r) => r.json());
+    emailConfigured = db.emailNotificationsEnabled === true;
+    firebaseEnabled = db.firebaseAuthEnabled === true;
+  } catch {}
+  render();
+  verifyProfilePersistence();
+  onboarding();
+})();
