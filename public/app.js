@@ -1067,6 +1067,8 @@ function render() {
   document.title = `${pageTitle ? `${pageTitle} · ` : ''}Capital Science — ${lang === 'ar' ? 'كلية العلوم' : 'Faculty of Science'}`;
   const skip = document.querySelector('.skip-to-content');
   if (skip) skip.textContent = lang === 'ar' ? 'تخطي إلى المحتوى' : 'Skip to content';
+  // The menu backdrop lives on <body>, which render() does not rebuild; clear it on every page change.
+  document.body.classList.remove('menu-open');
   app.innerHTML = shell(content);
   document.querySelectorAll('[data-route]').forEach((a) =>
     a.addEventListener('click', (e) => {
@@ -1094,7 +1096,14 @@ function render() {
     menuButton.setAttribute('aria-label', open ? t('closeMenu') : t('menu'));
     menuButton.innerHTML = icon(open ? 'close' : 'menu');
   };
-  menuButton.onclick = () => setMenu(!nav.classList.contains('nav-open'));
+  menuButton.onclick = (e) => {
+    e.stopPropagation();
+    setMenu(!nav.classList.contains('nav-open'));
+  };
+  // A tap anywhere outside the open menu closes it.
+  document.onclick = (e) => {
+    if (nav.classList.contains('nav-open') && !nav.contains(e.target)) setMenu(false);
+  };
   nav.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
       setMenu(false);
@@ -1219,14 +1228,12 @@ function wireLectureFilters() {
       current = 'root';
     }
     // Folders first, then files, keeping Drive's own order inside each group.
-    let entries = (parent ? parent.children : selected.filter((n) => !n.parent))
-      .slice()
-      .sort(
-        (x, y) =>
-          (y.item.type === 'folder') - (x.item.type === 'folder') ||
-          // Year roots always appear oldest first: 2024/2025, 2025/2026, 2026/2027.
-          (parent ? 0 : String(x.item.category).localeCompare(String(y.item.category))),
-      );
+    let entries = (parent ? parent.children : selected.filter((n) => !n.parent)).slice().sort(
+      (x, y) =>
+        (y.item.type === 'folder') - (x.item.type === 'folder') ||
+        // Year roots always appear oldest first: 2024/2025, 2025/2026, 2026/2027.
+        (parent ? 0 : String(x.item.category).localeCompare(String(y.item.category))),
+    );
     if (q)
       entries = hierarchy.nodes.filter(
         (n) =>
