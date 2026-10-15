@@ -3,10 +3,11 @@
 
 Usage:  python3 scripts/update-drive-catalog.py
 
-Each year root is a record in the catalog whose note is "المجلد الرئيسي". The script opens every
-public folder page under it, reads the file listing Drive embeds in the page, follows shortcuts to
-their targets, and writes one catalog row per folder/file with its parent folder ID. Curated titles
-(titleAr/titleEn) from the previous catalog are kept. Nothing is written if any year fails to load.
+The year roots, their order and their names are fixed in YEAR_ROOTS below. The script opens every
+public folder page under each root, reads the file listing Drive embeds in the page, follows shortcuts
+to their targets, and writes one catalog row per folder/file with its parent folder ID and its current
+Drive name. Items deleted from Drive disappear and new ones are added. Nothing is written if a year
+fails to load.
 """
 import json
 import re
@@ -20,6 +21,15 @@ UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 14_0) AppleWebKit/537.36 Chrome/128
 FOLDER = 'application/vnd.google-apps.folder'
 SHORTCUT = 'application/vnd.google-apps.shortcut'
 ROOT_NOTE = 'المجلد الرئيسي'
+# The three year roots, in display order, with their fixed names. Edit here to add a new year.
+YEAR_ROOTS = [
+    {'id': '1hvZIcXA4Xc45X_YXJXnK9V0q5CC6Ye1W', 'title': 'ماتيريال 2024/2025', 'titleEn': 'Study materials · 2024/2025',
+     'category': '2024/2025', 'categoryAr': 'دفعة 2024/2025', 'categoryEn': 'Class of 2024/25'},
+    {'id': '1WhpUU4jCUmcOwdapwVRDK5UIK5b7xuU4', 'title': 'ماتيريال 2025/2026', 'titleEn': 'Study materials · 2025/2026',
+     'category': '2025/2026', 'categoryAr': 'دفعة 2025/2026', 'categoryEn': 'Class of 2025/26'},
+    {'id': '10egV3LBAs9fEo3HjghyjnsQBuzcdnvgX', 'title': 'ماتيريال 2026/2027', 'titleEn': 'Study materials · 2026/2027',
+     'category': '2026/2027', 'categoryAr': 'دفعة 2026/2027', 'categoryEn': 'Class of 2026/27'},
+]
 ESC = {'n': '\n', 't': '\t', 'r': '\r', 'b': '\b', 'f': '\f', 'v': '\v', '0': '\0'}
 
 
@@ -115,44 +125,43 @@ def item_url(row):
     return f"https://drive.google.com/file/d/{row['id']}/view"
 
 
-def item_id(entry):
-    match = re.search(r'/(?:folders|d)/([\w-]+)', entry.get('url', ''))
-    return entry.get('id') or (match and match.group(1))
-
-
 def main():
     old = json.loads(CATALOG.read_text(encoding='utf-8'))
-    previous = {item_id(x): x for x in old if item_id(x)}
-    roots = [x for x in old if x.get('note') == ROOT_NOTE]
     catalog = []
-    for root in roots:
-        root = {**root, 'id': item_id(root)}
-        print(f"Crawling {root['category']} …", file=sys.stderr)
-        rows, problems = crawl(root['id'])
+    for year in YEAR_ROOTS:
+        print(f"Crawling {year['category']} …", file=sys.stderr)
+        rows, problems = crawl(year['id'])
         if not rows:
-            sys.exit(f"Stopped: {root['category']} returned nothing ({problems[:1]}). Catalog left unchanged.")
-        catalog.append(root)
+            sys.exit(f"Stopped: {year['category']} returned nothing ({problems[:1]}). Catalog left unchanged.")
+        base = {k: year[k] for k in ('category', 'categoryAr', 'categoryEn')}
+        catalog.append({
+            'id': year['id'],
+            'title': year['title'],
+            'titleAr': year['title'],
+            'titleEn': year['titleEn'],
+            'url': f"https://drive.google.com/drive/folders/{year['id']}",
+            'kind': 'drive',
+            'file': False,
+            'type': 'folder',
+            **base,
+            'note': ROOT_NOTE,
+            'noteEn': 'Year root',
+        })
+        # Everything below a root takes its current name from Drive, so renames there show up here.
         for row in rows:
-            before = previous.get(row['id'], {})
-            entry = {
+            catalog.append({
                 'id': row['id'],
                 'parentId': row['parentId'],
-                'title': before.get('title') or row['name'],
+                'title': row['name'],
                 'url': item_url(row),
                 'kind': 'drive',
                 'file': row['mime'] != FOLDER,
                 'type': 'folder' if row['mime'] == FOLDER else 'file',
-                'category': root['category'],
-                'categoryAr': root.get('categoryAr'),
-                'categoryEn': root.get('categoryEn'),
+                **base,
                 'note': ' › '.join(row['path']) if row['path'] else 'مجلد السنة',
-            }
-            for key in ('titleAr', 'titleEn'):
-                if before.get(key):
-                    entry[key] = before[key]
-            catalog.append(entry)
-        old_count = sum(1 for x in old if x['category'] == root['category'])
-        print(f"  {root['category']}: {old_count} → {len(rows) + 1} entries", file=sys.stderr)
+            })
+        old_count = sum(1 for x in old if x['category'] == year['category'])
+        print(f"  {year['category']}: {old_count} → {len(rows) + 1} entries", file=sys.stderr)
         for problem in problems:
             print(f'  ! {problem}', file=sys.stderr)
     CATALOG.write_text(json.dumps(catalog, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')

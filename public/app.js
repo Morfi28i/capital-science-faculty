@@ -1221,7 +1221,12 @@ function wireLectureFilters() {
     // Folders first, then files, keeping Drive's own order inside each group.
     let entries = (parent ? parent.children : selected.filter((n) => !n.parent))
       .slice()
-      .sort((x, y) => (y.item.type === 'folder') - (x.item.type === 'folder'));
+      .sort(
+        (x, y) =>
+          (y.item.type === 'folder') - (x.item.type === 'folder') ||
+          // Year roots always appear oldest first: 2024/2025, 2025/2026, 2026/2027.
+          (parent ? 0 : String(x.item.category).localeCompare(String(y.item.category))),
+      );
     if (q)
       entries = hierarchy.nodes.filter(
         (n) =>

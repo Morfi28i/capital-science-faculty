@@ -384,36 +384,14 @@ async function api(req, res, url) {
     } catch {
       driveFiles = db.lectures || [];
     }
-    const managedRoots = (db.lectures || []).filter((item) => Array.isArray(item.folders));
-    const managedByCategory = new Map(
-      managedRoots.map((item) => [
-        String(item.category || '')
-          .trim()
-          .toLocaleLowerCase(),
-        item,
-      ]),
+    // Year roots come from the Drive catalog with fixed names and order (see scripts/update-drive-catalog.py).
+    // A dashboard lecture entry that points at one of those roots is the same folder, so it is not listed twice.
+    const rootUrls = new Set(
+      driveFiles
+        .filter((item) => item.type === 'folder' && ['المجلد الرئيسي', 'Year root'].includes(item.note))
+        .map((item) => item.url),
     );
-    const mergedRoots = new Set();
-    driveFiles = driveFiles.map((item) => {
-      if (item.type !== 'folder' || !['المجلد الرئيسي', 'Year root'].includes(item.note)) return item;
-      const managed =
-        managedRoots.find((entry) => entry.url === item.url) ||
-        managedByCategory.get(
-          String(item.categoryAr || item.category || '')
-            .trim()
-            .toLocaleLowerCase(),
-        );
-      if (!managed) return item;
-      mergedRoots.add(managed.id);
-      return {
-        ...item,
-        title: managed.title || item.title,
-        titleAr: managed.title || item.titleAr,
-        titleEn: managed.titleEn || item.titleEn,
-        url: managed.url || item.url,
-        categoryAr: managed.category || item.categoryAr,
-      };
-    });
+    const mergedRoots = new Set((db.lectures || []).filter((item) => rootUrls.has(item.url)).map((item) => item.id));
     const extraLectures = (db.lectures || []).filter(
       (item) => !Array.isArray(item.folders) && !mergedRoots.has(item.id),
     );

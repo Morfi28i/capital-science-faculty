@@ -41,7 +41,7 @@ The global banner and footer navigation are rendered from `public/app.js`. Langu
 - `public/admin.html`, `public/admin.js`: current admin interface.
 - `data/site.json`: subject groups, lecture root links, advising groups, official links, coordinator contacts.
 - `data/drive-catalog.json`: flattened Google Drive folders/files. Each row has `id` and `parentId` (the containing folder), which the lecture browser uses to build the tree; `note` keeps the readable parent path with `›`. A year root has `note: "المجلد الرئيسي"`.
-- `scripts/update-drive-catalog.py`: re-crawls every year root's public Drive folders (following shortcuts) and rewrites the catalog, keeping curated `titleAr`/`titleEn`. Run `python3 scripts/update-drive-catalog.py` after material is added on Drive, review the printed counts, then commit.
+- `scripts/update-drive-catalog.py`: re-crawls every year root's public Drive folders (following shortcuts) and rewrites the catalog. The three year roots, their order and their names are fixed in `YEAR_ROOTS` inside the script (ماتيريال 2024/2025, ماتيريال 2025/2026, ماتيريال 2026/2027); everything below them takes its current name from Drive. The server always shows the catalog's root names, so an old title in Firestore `site/content.lectures` cannot override them. Run `python3 scripts/update-drive-catalog.py` after material is added on Drive, review the printed counts, then commit.
 - `public/avatars/`: profile illustration choices.
 - `.env.example`: environment variable names; never put actual credentials there.
 - `render.yaml`: Render service declaration.
