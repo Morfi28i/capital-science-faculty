@@ -93,6 +93,128 @@ function sameOrigin(req) {
     return false;
   }
 }
+// Stricter variant for new state-changing endpoints: the Origin header must be present and match the host.
+function strictSameOrigin(req) {
+  try {
+    return Boolean(req.headers.origin) && new URL(req.headers.origin).host === req.headers.host;
+  } catch {
+    return false;
+  }
+}
+
+// ---------- Drive sync (GitHub Actions workflow ⇄ site) ----------
+const SYNC_WORKFLOW = 'drive-sync.yml';
+const SYNC_SCHEDULE_HOURS_UTC = [3, 11, 19];
+const SYNC_RUNS_KEPT = 100;
+const SYNC_LIST_LIMIT = 25;
+const syncBuckets = ['added', 'removed', 'renamed', 'moved', 'changed'];
+const digest = (value) => crypto.createHash('sha256').update(String(value)).digest();
+// Bearer-token check for the workflow's calls; compares fixed-length digests in constant time.
+function syncTokenValid(req) {
+  const expected = process.env.SYNC_REPORT_TOKEN;
+  const given = String(req.headers.authorization || '').replace(/^Bearer\s+/i, '');
+  return Boolean(expected && given) && crypto.timingSafeEqual(digest(given), digest(expected));
+}
+const text = (value, max) => (typeof value === 'string' ? value.slice(0, max) : '');
+const int = (value, max = 1_000_000) => (Number.isInteger(value) && value >= 0 && value <= max ? value : 0);
+const isoText = (value) =>
+  typeof value === 'string' && !Number.isNaN(Date.parse(value)) ? value.slice(0, 40) : null;
+function syncItem(item) {
+  if (!item || typeof item !== 'object') return null;
+  const clean = {
+    id: text(item.id, 80),
+    title: text(item.title, 200),
+    type: item.type === 'folder' ? 'folder' : 'file',
+    note: text(item.note, 300),
+  };
+  if (typeof item.from === 'string') clean.from = text(item.from, 200);
+  if (typeof item.fromNote === 'string') clean.fromNote = text(item.fromNote, 300);
+  return clean.id ? clean : null;
+}
+// Validate and bound a report posted by the workflow. Returns null when the shape is wrong.
+function cleanSyncReport(raw) {
+  if (!raw || typeof raw !== 'object' || raw.schemaVersion !== 1) return null;
+  const status = ['paused', 'skipped', 'success', 'failure'].includes(raw.status) ? raw.status : null;
+  const mode = ['dry-run', 'write'].includes(raw.mode) ? raw.mode : null;
+  const runId = text(raw.runId, 80).replace(/[^A-Za-z0-9_-]/g, '-');
+  if (!status || !mode || !runId) return null;
+  const years = {};
+  for (const [category, year] of Object.entries(
+    raw.years && typeof raw.years === 'object' ? raw.years : {},
+  ).slice(0, 6)) {
+    if (!/^\d{4}\/\d{4}$/.test(category) || !year || typeof year !== 'object') continue;
+    const counts = {};
+    for (const name of syncBuckets) counts[name] = int(year.counts?.[name]);
+    const clean = { before: int(year.before), after: int(year.after), counts };
+    for (const name of syncBuckets)
+      clean[name] = (Array.isArray(year[name]) ? year[name] : [])
+        .slice(0, SYNC_LIST_LIMIT)
+        .map(syncItem)
+        .filter(Boolean);
+    clean.stale = (Array.isArray(year.stale) ? year.stale : []).slice(0, SYNC_LIST_LIMIT).map((s) => ({
+      id: text(s?.id, 80),
+      note: text(s?.note, 300),
+      reason: text(s?.reason, 200),
+      kept: int(s?.kept),
+    }));
+    clean.problems = (Array.isArray(year.problems) ? year.problems : [])
+      .slice(0, SYNC_LIST_LIMIT)
+      .map((p) => text(p, 300));
+    years[category] = clean;
+  }
+  const totals = {};
+  for (const name of [...syncBuckets, 'stale']) totals[name] = int(raw.totals?.[name]);
+  return {
+    runId,
+    runUrl:
+      typeof raw.runUrl === 'string' && raw.runUrl.startsWith('https://github.com/')
+        ? text(raw.runUrl, 200)
+        : null,
+    trigger: text(raw.trigger, 40) || 'unknown',
+    status,
+    mode,
+    startedAt: isoText(raw.startedAt),
+    finishedAt: isoText(raw.finishedAt),
+    durationSec: int(raw.durationSec, 86_400),
+    ok: raw.ok === true,
+    changed: raw.changed === true,
+    wrote: raw.wrote === true,
+    commit: typeof raw.commit === 'string' && /^[0-9a-f]{7,40}$/.test(raw.commit) ? raw.commit : null,
+    rows: { before: int(raw.rows?.before), after: int(raw.rows?.after) },
+    totals,
+    gates: (Array.isArray(raw.gates) ? raw.gates : []).slice(0, 20).map((g) => ({
+      code: text(g?.code, 40).replace(/[^a-z_]/g, ''),
+      message: text(g?.message, 300),
+      details: (Array.isArray(g?.details) ? g.details : []).slice(0, 10).map((d) => text(String(d), 200)),
+    })),
+    years,
+  };
+}
+// Summary of a run without the per-item lists, for the history table and syncState/latest.
+const syncRunSummary = (run) => {
+  const { years, ...rest } = run;
+  return { ...rest, gateCodes: run.gates.map((g) => g.code) };
+};
+function nextSyncRun(now = new Date()) {
+  for (let day = 0; day < 2; day++)
+    for (const hour of SYNC_SCHEDULE_HOURS_UTC) {
+      const at = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + day, hour));
+      if (at > now) return at.toISOString();
+    }
+  return null;
+}
+const firestoreTime = (value) => (value?.toDate ? value.toDate().toISOString() : value || null);
+// Record dashboard actions that change sync behaviour. Never blocks the action itself.
+async function audit(req, action, detail = {}) {
+  try {
+    await firebase()
+      .db.collection('audit')
+      .add({ action, ip: clientIp(req), at: FieldValue.serverTimestamp(), ...detail });
+  } catch (error) {
+    console.error('Audit log write failed:', error.message);
+  }
+}
+
 const readLocalDB = async () => JSON.parse(await readFile(dbPath, 'utf8'));
 const siteContentRef = () => firebase().db.collection('site').doc('content');
 async function readDB() {
@@ -391,7 +513,9 @@ async function api(req, res, url) {
         .filter((item) => item.type === 'folder' && ['المجلد الرئيسي', 'Year root'].includes(item.note))
         .map((item) => item.url),
     );
-    const mergedRoots = new Set((db.lectures || []).filter((item) => rootUrls.has(item.url)).map((item) => item.id));
+    const mergedRoots = new Set(
+      (db.lectures || []).filter((item) => rootUrls.has(item.url)).map((item) => item.id),
+    );
     const extraLectures = (db.lectures || []).filter(
       (item) => !Array.isArray(item.folders) && !mergedRoots.has(item.id),
     );
@@ -510,6 +634,44 @@ async function api(req, res, url) {
       });
     }
   }
+  // Machine endpoints for the Drive sync workflow: Bearer SYNC_REPORT_TOKEN, no cookies, no browser access.
+  if (url.pathname.startsWith('/api/sync/')) {
+    if (!process.env.SYNC_REPORT_TOKEN) return json(res, 503, { error: 'Sync reporting is not configured.' });
+    if (!syncTokenValid(req)) return json(res, 401, { error: 'Invalid sync token.' });
+    if (req.method === 'POST' && url.pathname === '/api/sync/report') {
+      const run = cleanSyncReport(await body(req, 200_000));
+      if (!run) return json(res, 400, { error: 'Report does not match the expected schema.' });
+      if (!firebaseConfigured()) return json(res, 503, { error: 'Firebase is not configured.' });
+      const { db } = firebase();
+      await db
+        .collection('syncRuns')
+        .doc(run.runId)
+        .set({ ...run, receivedAt: FieldValue.serverTimestamp() });
+      await db
+        .collection('syncState')
+        .doc('latest')
+        .set({ lastRun: syncRunSummary(run), updatedAt: FieldValue.serverTimestamp() }, { merge: true });
+      // Keep only the newest runs so the collection stays small.
+      const old = await db
+        .collection('syncRuns')
+        .orderBy('receivedAt', 'desc')
+        .offset(SYNC_RUNS_KEPT)
+        .limit(100)
+        .get();
+      if (!old.empty) {
+        const batch = db.batch();
+        old.docs.forEach((doc) => batch.delete(doc.ref));
+        await batch.commit();
+      }
+      return json(res, 200, { ok: true, runId: run.runId });
+    }
+    if (req.method === 'GET' && url.pathname === '/api/sync/state') {
+      if (!firebaseConfigured()) return json(res, 503, { error: 'Firebase is not configured.' });
+      const state = await firebase().db.collection('syncState').doc('latest').get();
+      return json(res, 200, { paused: state.exists && state.get('paused') === true });
+    }
+    return json(res, 404, { error: 'Not found' });
+  }
   if (req.method === 'POST' && ['/api/register', '/api/profile/update'].includes(url.pathname)) {
     return json(res, 503, { error: 'Verified registration is available only through Firebase Auth.' });
   }
@@ -585,6 +747,86 @@ async function api(req, res, url) {
         total: accounts.length,
         matched: matches.length,
       });
+    }
+    if (url.pathname.startsWith('/api/admin/sync/')) {
+      if (req.method !== 'GET' && !strictSameOrigin(req))
+        return json(res, 403, { error: 'Cross-site request blocked.' });
+      const dispatchConfigured = Boolean(
+        process.env.GITHUB_DISPATCH_TOKEN && /^[\w.-]+\/[\w.-]+$/.test(process.env.GITHUB_REPO || ''),
+      );
+      if (req.method === 'GET' && url.pathname === '/api/admin/sync/status') {
+        const config = {
+          dispatchConfigured,
+          reportConfigured: Boolean(process.env.SYNC_REPORT_TOKEN),
+          firebaseConfigured: firebaseConfigured(),
+          schedule: '0 3,11,19 * * * (UTC)',
+          nextRun: nextSyncRun(),
+        };
+        if (!firebaseConfigured())
+          return json(res, 200, { ...config, paused: false, latest: null, runs: [] });
+        const { db } = firebase();
+        const [state, runs] = await Promise.all([
+          db.collection('syncState').doc('latest').get(),
+          db.collection('syncRuns').orderBy('receivedAt', 'desc').limit(20).get(),
+        ]);
+        const all = runs.docs.map((doc) => ({
+          ...doc.data(),
+          receivedAt: firestoreTime(doc.get('receivedAt')),
+        }));
+        return json(res, 200, {
+          ...config,
+          paused: state.exists && state.get('paused') === true,
+          latest: all[0] || null,
+          runs: all.map(syncRunSummary),
+        });
+      }
+      if (req.method === 'POST' && url.pathname === '/api/admin/sync/run') {
+        if (!dispatchConfigured)
+          return json(res, 503, {
+            error: 'GITHUB_DISPATCH_TOKEN and GITHUB_REPO must be set on the server.',
+          });
+        const d = await body(req, 2000);
+        const dryRun = d.dryRun !== false,
+          allowRemovals = d.allowRemovals === true;
+        const response = await fetch(
+          `https://api.github.com/repos/${process.env.GITHUB_REPO}/actions/workflows/${SYNC_WORKFLOW}/dispatches`,
+          {
+            method: 'POST',
+            headers: {
+              Authorization: `Bearer ${process.env.GITHUB_DISPATCH_TOKEN}`,
+              Accept: 'application/vnd.github+json',
+              'X-GitHub-Api-Version': '2022-11-28',
+              'User-Agent': 'capital-science-faculty',
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              ref: 'main',
+              inputs: {
+                dry_run: String(dryRun),
+                allow_removals: String(allowRemovals),
+                allow_large: 'false',
+              },
+            }),
+            signal: AbortSignal.timeout(15000),
+          },
+        );
+        if (response.status !== 204)
+          return json(res, 502, { error: `GitHub refused the run request (HTTP ${response.status}).` });
+        await audit(req, 'sync.run', { dryRun, allowRemovals });
+        return json(res, 200, { ok: true, dryRun, allowRemovals });
+      }
+      if (req.method === 'POST' && url.pathname === '/api/admin/sync/pause') {
+        if (!firebaseConfigured()) return json(res, 503, { error: 'Firebase is not configured.' });
+        const d = await body(req, 2000);
+        if (typeof d.paused !== 'boolean') return json(res, 400, { error: 'paused must be true or false.' });
+        await firebase()
+          .db.collection('syncState')
+          .doc('latest')
+          .set({ paused: d.paused, pausedChangedAt: FieldValue.serverTimestamp() }, { merge: true });
+        await audit(req, d.paused ? 'sync.pause' : 'sync.resume');
+        return json(res, 200, { ok: true, paused: d.paused });
+      }
+      return json(res, 404, { error: 'Not found' });
     }
     if (req.method === 'GET' && url.pathname === '/api/admin/audience') {
       if (!firebaseConfigured()) return json(res, 503, { error: 'Firebase is not configured.' });

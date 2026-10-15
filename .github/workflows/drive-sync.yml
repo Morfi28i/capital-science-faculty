@@ -1,0 +1,139 @@
+name: Drive sync
+
+on:
+  # Scheduled runs (03:00, 11:00, 19:00 UTC) stay off until the owner approves them.
+  # To enable, remove the "#" from the next two lines and push.
+  # schedule:
+  #   - cron: '0 3,11,19 * * *'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Dry run: crawl and report only, never commit'
+        type: boolean
+        default: true
+      allow_removals:
+        description: 'Allow a year to lose more than max(10 rows, 3%)'
+        type: boolean
+        default: false
+      allow_large:
+        description: 'Allow more than 400 new rows in one run'
+        type: boolean
+        default: false
+
+concurrency:
+  group: drive-sync
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    env:
+      SITE_URL: ${{ vars.SITE_URL || 'https://capital-science-faculty.onrender.com' }}
+      SYNC_REPORT_TOKEN: ${{ secrets.SYNC_REPORT_TOKEN }}
+      # Scheduled runs write; manual runs follow the inputs (dry run by default).
+      DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run || 'false' }}
+      ALLOW_REMOVALS: ${{ github.event_name == 'workflow_dispatch' && inputs.allow_removals || 'false' }}
+      ALLOW_LARGE: ${{ github.event_name == 'workflow_dispatch' && inputs.allow_large || 'false' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Check pause flag
+        id: pause
+        run: |
+          if [ -z "$SYNC_REPORT_TOKEN" ]; then
+            echo "::warning::SYNC_REPORT_TOKEN is not set; cannot read the pause flag or post the report."
+            echo "paused=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          # The free Render instance may need up to a minute to wake up.
+          state=$(curl -sS --retry 3 --retry-all-errors --max-time 90 \
+            -H "Authorization: Bearer $SYNC_REPORT_TOKEN" "$SITE_URL/api/sync/state" || echo '{}')
+          paused=$(printf '%s' "$state" | python3 -c 'import json,sys; d=json.loads(sys.stdin.read() or "{}"); print("true" if isinstance(d, dict) and d.get("paused") is True else "false")' 2>/dev/null || echo false)
+          if [ "$paused" = "true" ]; then echo "::notice::Drive sync is paused from the dashboard; skipping."; fi
+          echo "paused=$paused" >> "$GITHUB_OUTPUT"
+
+      - name: Unit tests
+        if: steps.pause.outputs.paused != 'true'
+        run: python3 -m unittest discover -s scripts/tests
+
+      - name: Crawl Drive and validate
+        id: sync
+        if: steps.pause.outputs.paused != 'true'
+        run: |
+          args=(--report sync-report.json --candidate drive-catalog.candidate.json)
+          [ "$DRY_RUN" = "true" ] && args+=(--dry-run)
+          [ "$ALLOW_REMOVALS" = "true" ] && args+=(--allow-removals)
+          [ "$ALLOW_LARGE" = "true" ] && args+=(--allow-large)
+          python3 scripts/update-drive-catalog.py "${args[@]}"
+
+      - name: Read report
+        id: report
+        if: always() && steps.pause.outputs.paused != 'true'
+        run: |
+          if [ ! -f sync-report.json ]; then echo "wrote=false" >> "$GITHUB_OUTPUT"; exit 0; fi
+          python3 - <<'PY' >> "$GITHUB_OUTPUT"
+          import json
+          r = json.load(open('sync-report.json', encoding='utf-8'))
+          t = r.get('totals', {})
+          print(f"wrote={'true' if r.get('wrote') else 'false'}")
+          print(f"added={t.get('added', 0)}")
+          print(f"removed={t.get('removed', 0)}")
+          PY
+
+      - name: Commit and push catalog
+        id: commit
+        if: success() && steps.report.outputs.wrote == 'true' && env.DRY_RUN != 'true'
+        env:
+          ADDED: ${{ steps.report.outputs.added }}
+          REMOVED: ${{ steps.report.outputs.removed }}
+        run: |
+          git config user.name "drive-sync[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          # Validate the exact bytes being committed once more, against the version on main.
+          git show HEAD:data/drive-catalog.json > /tmp/previous-catalog.json
+          flags=()
+          [ "$ALLOW_REMOVALS" = "true" ] && flags+=(--allow-removals)
+          [ "$ALLOW_LARGE" = "true" ] && flags+=(--allow-large)
+          python3 scripts/validate-catalog.py data/drive-catalog.json --old /tmp/previous-catalog.json "${flags[@]}"
+          git add data/drive-catalog.json
+          if git diff --cached --quiet; then echo "Nothing to commit."; exit 0; fi
+          git commit -m "sync: +${ADDED} -${REMOVED} ($(date -u +%Y-%m-%dT%H:%MZ))"
+          git pull --rebase origin main
+          git push origin HEAD:main
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: Keep report and candidate
+        if: always() && steps.pause.outputs.paused != 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: drive-sync-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            sync-report.json
+            drive-catalog.candidate.json
+          if-no-files-found: ignore
+          retention-days: 14
+
+      - name: Post report to the site
+        if: always()
+        env:
+          COMMIT_SHA: ${{ steps.commit.outputs.sha }}
+          PAUSED: ${{ steps.pause.outputs.paused }}
+          JOB_STATUS: ${{ job.status }}
+        run: |
+          if [ -z "$SYNC_REPORT_TOKEN" ]; then exit 0; fi
+          if [ "$PAUSED" = "true" ]; then export SYNC_STATUS=paused
+          elif [ "$JOB_STATUS" = "success" ]; then export SYNC_STATUS=success
+          else export SYNC_STATUS=failure; fi
+          python3 scripts/sync-report-payload.py sync-report.json > sync-payload.json
+          curl -sS --retry 3 --retry-all-errors --max-time 90 -o /dev/null -w "report posted: HTTP %{http_code}\n" \
+            -X POST -H "Authorization: Bearer $SYNC_REPORT_TOKEN" -H "Content-Type: application/json" \
+            --data-binary @sync-payload.json "$SITE_URL/api/sync/report" \
+            || echo "::warning::Could not post the sync report to the site."

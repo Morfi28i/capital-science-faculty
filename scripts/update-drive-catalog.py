@@ -1,19 +1,35 @@
 #!/usr/bin/env python3
 """Rebuild data/drive-catalog.json by crawling the public Google Drive folders of every year root.
 
-Usage:  python3 scripts/update-drive-catalog.py
+Usage:
+  python3 scripts/update-drive-catalog.py [--dry-run] [--report PATH] [--candidate PATH]
+                                          [--allow-removals] [--allow-large]
 
 The year roots, their order and their names are fixed in YEAR_ROOTS below. The script opens every
 public folder page under each root, reads the file listing Drive embeds in the page, follows shortcuts
-to their targets, and writes one catalog row per folder/file with its parent folder ID and its current
-Drive name. Items deleted from Drive disappear and new ones are added. Nothing is written if a year
-fails to load.
+to their targets, and builds one catalog row per folder/file with its parent folder ID and its current
+Drive name, in breadth-first crawl order.
+
+Safety for unattended runs:
+- A folder whose listing still fails after retries keeps its previous subtree from the old catalog and
+  is reported as "stale". A row is removed only when its parent folder was listed successfully.
+- The candidate must pass every gate in scripts/validate-catalog.py; otherwise nothing is written and
+  the exit code is 2.
+- The catalog is rewritten only when the set of (id, parentId, title, type, url) changed, so a run
+  against an unchanged Drive leaves the file byte-identical.
+
+Exit codes: 0 success (changed or not), 1 unexpected error, 2 a gate failed.
 """
+import argparse
+import concurrent.futures
+import importlib.util
 import json
+import os
 import re
 import sys
 import time
 import urllib.request
+from datetime import datetime, timezone
 from pathlib import Path
 
 CATALOG = Path(__file__).resolve().parent.parent / 'data' / 'drive-catalog.json'
@@ -59,15 +75,15 @@ def list_folder(folder_id):
         f'https://drive.google.com/drive/folders/{folder_id}',
         headers={'User-Agent': UA, 'Accept-Language': 'en'},
     )
-    for attempt in range(3):
+    for attempt in range(2):
         try:
-            with urllib.request.urlopen(req, timeout=40) as response:
+            with urllib.request.urlopen(req, timeout=25) as response:
                 html = response.read().decode('utf-8', 'replace')
             break
         except Exception:
-            if attempt == 2:
+            if attempt == 1:
                 raise
-            time.sleep(2 + attempt * 3)
+            time.sleep(3)
     match = re.search(r"window\['_DRIVE_ivd'\]\s*=\s*'((?:[^'\\]|\\.)*)'", html, re.S)
     if not match:
         return None
@@ -85,37 +101,96 @@ def list_folder(folder_id):
     return children
 
 
-def crawl(root_id):
-    seen, queue, rows, problems = {root_id}, [(root_id, [])], [], []
-    while queue:
-        folder_id, path = queue.pop(0)
-        try:
-            children = list_folder(folder_id)
-            if children is None:
-                # Drive occasionally serves a page without the listing under load; try once more.
-                time.sleep(4)
-                children = list_folder(folder_id)
-        except Exception as error:
-            problems.append(f"{'/'.join(path) or 'root'}: {error}")
-            continue
+def old_children_index(old):
+    """Map folder id → its previous children (in previous order), for keeping stale subtrees."""
+    children = {}
+    for row in old:
+        if isinstance(row, dict) and row.get('parentId'):
+            children.setdefault(row['parentId'], []).append(row)
+    return children
+
+
+def from_old(row):
+    """Turn a previous catalog row back into a crawl child, keeping its previous URL."""
+    return {'id': row['id'], 'name': row['title'], 'mime': FOLDER if row.get('type') == 'folder' else 'stale',
+            'url': row.get('url'), 'stale': True}
+
+
+WORKERS = 4
+MAX_CONSECUTIVE_FAILURES = 25
+
+
+def fetch_listing(lister, folder_id, delay):
+    """List one folder: (children, None) on success, (None, reason) on failure."""
+    try:
+        children = lister(folder_id)
         if children is None:
-            problems.append(f"{'/'.join(path) or 'root'}: no public listing")
-            continue
+            # Drive occasionally serves a page without the listing under load; try once more.
+            time.sleep(delay * 10)
+            children = lister(folder_id)
+        time.sleep(delay)
+        return (children, None) if children is not None else (None, 'no public listing')
+    except Exception as error:
+        return None, str(error)
+
+
+def crawl(root_id, previous_children, lister=None, delay=0.4):
+    """Breadth-first walk. Returns (rows, problems, stale) where stale lists folders kept from before.
+
+    Folders of one depth level are fetched in parallel (WORKERS at a time) but processed in queue order,
+    so the output is exactly what a one-at-a-time breadth-first walk would produce."""
+    lister = lister or list_folder
+    seen, level, rows, problems, stale = {root_id}, [(root_id, [], False)], [], [], []
+    failures_in_a_row = 0
+    with concurrent.futures.ThreadPoolExecutor(max_workers=WORKERS) as pool:
+        while level:
+            next_level = []
+            # Submit a few folders at a time so the failure breaker can stop the rest of a level.
+            batches = [level[i:i + WORKERS * 2] for i in range(0, len(level), WORKERS * 2)]
+            for batch in batches:
+                # Stop fetching once Drive keeps failing; the rest is kept from the old catalog.
+                breaker = failures_in_a_row >= MAX_CONSECUTIVE_FAILURES
+                jobs = [None if offline or breaker else pool.submit(fetch_listing, lister, folder_id, delay)
+                        for folder_id, _, offline in batch]
+                failures_in_a_row = visit_batch(batch, jobs, previous_children, seen, rows, problems, stale,
+                                                next_level, failures_in_a_row)
+            if sys.stderr.isatty():
+                print(f'  {len(rows)} items, {len(next_level)} folders in next level', file=sys.stderr, end='\r')
+            level = next_level
+    if sys.stderr.isatty():
+        print(file=sys.stderr)
+    return rows, problems, stale
+
+
+def visit_batch(batch, jobs, previous_children, seen, rows, problems, stale, next_level, failures_in_a_row):
+    """Record one batch of folder listings in queue order; returns the updated failure streak."""
+    for (folder_id, path, offline), job in zip(batch, jobs):
+        if job is None:
+            children, failure = None, 'below the depth/size guard' if offline else 'stopped after repeated Drive failures'
+        else:
+            children, failure = job.result()
+            failures_in_a_row = 0 if children is not None else failures_in_a_row + 1
+        if children is None:
+            # Keep what we had for this folder; never delete rows whose parent could not be listed.
+            children = [from_old(row) for row in previous_children.get(folder_id, [])]
+            problems.append(f"{'/'.join(path) or 'root'}: {failure}")
+            stale.append({'id': folder_id, 'note': ' › '.join(path), 'reason': failure, 'kept': len(children)})
         for child in children:
             if child['id'] in seen or child['mime'] == SHORTCUT:
                 continue
             seen.add(child['id'])
             rows.append({**child, 'parentId': folder_id, 'path': path})
-            # Guard against shortcuts that lead into huge or very deep foreign trees.
-            if child['mime'] == FOLDER and len(path) < 12 and len(rows) < 8000:
-                queue.append((child['id'], path + [child['name']]))
-        time.sleep(0.4)
-        print(f'  {len(rows)} items, {len(queue)} folders left', file=sys.stderr, end='\r')
-    print(file=sys.stderr)
-    return rows, problems
+            if child['mime'] == FOLDER:
+                # Guard against shortcuts that lead into huge or very deep foreign trees: beyond it,
+                # keep the previous subtree instead of fetching.
+                guarded = len(path) >= 12 or len(rows) >= 8000
+                next_level.append((child['id'], path + [child['name']], offline or guarded))
+    return failures_in_a_row
 
 
 def item_url(row):
+    if row.get('stale') and row.get('url'):
+        return row['url']
     if row['mime'] == FOLDER:
         return f"https://drive.google.com/drive/folders/{row['id']}"
     docs = {'document': 'document', 'spreadsheet': 'spreadsheets', 'presentation': 'presentation', 'form': 'forms'}
@@ -125,14 +200,21 @@ def item_url(row):
     return f"https://drive.google.com/file/d/{row['id']}/view"
 
 
-def main():
-    old = json.loads(CATALOG.read_text(encoding='utf-8'))
-    catalog = []
+def load_validator():
+    path = Path(__file__).resolve().parent / 'validate-catalog.py'
+    spec = importlib.util.spec_from_file_location('validate_catalog', path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def build_catalog(old, lister=None, delay=0.4):
+    """Crawl every year root. Returns (catalog, per-year crawl info)."""
+    previous_children = old_children_index(old)
+    catalog, info = [], {}
     for year in YEAR_ROOTS:
         print(f"Crawling {year['category']} …", file=sys.stderr)
-        rows, problems = crawl(year['id'])
-        if not rows:
-            sys.exit(f"Stopped: {year['category']} returned nothing ({problems[:1]}). Catalog left unchanged.")
+        rows, problems, stale = crawl(year['id'], previous_children, lister, delay)
         base = {k: year[k] for k in ('category', 'categoryAr', 'categoryEn')}
         catalog.append({
             'id': year['id'],
@@ -160,13 +242,108 @@ def main():
                 **base,
                 'note': ' › '.join(row['path']) if row['path'] else 'مجلد السنة',
             })
-        old_count = sum(1 for x in old if x['category'] == year['category'])
-        print(f"  {year['category']}: {old_count} → {len(rows) + 1} entries", file=sys.stderr)
+        fresh = sum(1 for row in rows if not row.get('stale'))
+        info[year['category']] = {'problems': problems, 'stale': stale, 'fresh': fresh}
         for problem in problems:
             print(f'  ! {problem}', file=sys.stderr)
-    CATALOG.write_text(json.dumps(catalog, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
-    print(f'Wrote {len(catalog)} entries to {CATALOG}')
+    return catalog, info
+
+
+def serialize(catalog):
+    return json.dumps(catalog, ensure_ascii=False, indent=2) + '\n'
+
+
+def run_context():
+    """Identify the run: GitHub Actions variables when present, otherwise a local id."""
+    now = datetime.now(timezone.utc)
+    run_id = os.environ.get('GITHUB_RUN_ID')
+    attempt = os.environ.get('GITHUB_RUN_ATTEMPT', '1')
+    server, repo = os.environ.get('GITHUB_SERVER_URL'), os.environ.get('GITHUB_REPOSITORY')
+    return {
+        'runId': f'{run_id}-{attempt}' if run_id else f"local-{now.strftime('%Y%m%dT%H%M%SZ')}",
+        'runUrl': f'{server}/{repo}/actions/runs/{run_id}' if run_id and server and repo else None,
+        'trigger': os.environ.get('GITHUB_EVENT_NAME') or 'local',
+    }
+
+
+def main(argv=None, lister=None, catalog_path=None, delay=0.4):
+    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument('--dry-run', action='store_true', help='never write the catalog')
+    parser.add_argument('--report', help='write a machine-readable JSON report to this path')
+    parser.add_argument('--candidate', help='always write the candidate catalog to this path (for review)')
+    parser.add_argument('--allow-removals', action='store_true', help='allow a year to drop many rows')
+    parser.add_argument('--allow-large', action='store_true', help='allow more than the usual number of new rows')
+    args = parser.parse_args(argv)
+    catalog_path = Path(catalog_path or CATALOG)
+    validator = load_validator()
+    started = datetime.now(timezone.utc)
+    old_text = catalog_path.read_text(encoding='utf-8')
+    old = json.loads(old_text)
+
+    candidate, info = build_catalog(old, lister, delay)
+    errors = validator.validate(old, candidate, YEAR_ROOTS, args.allow_removals, args.allow_large)
+    for year in YEAR_ROOTS:
+        # A year whose listings all failed would only repeat old rows; treat it as a failed run.
+        if info[year['category']]['fresh'] == 0 and not any(e['code'] == 'empty_year' for e in errors):
+            errors.append(validator.gate('empty_year', f"{year['title']} returned no rows from Drive.",
+                                         [year['category']]))
+    years = validator.diff(old, candidate, YEAR_ROOTS)
+    for category, crawl_info in info.items():
+        years[category]['stale'] = crawl_info['stale']
+        years[category]['problems'] = crawl_info['problems'][:validator.REPORT_LIST_LIMIT]
+    totals = {name: sum(y['counts'][name] for y in years.values())
+              for name in ('added', 'removed', 'renamed', 'moved', 'changed')}
+    totals['stale'] = sum(len(y['stale']) for y in years.values())
+    changed = any(totals[name] for name in ('added', 'removed', 'renamed', 'moved', 'changed'))
+    if args.candidate:
+        Path(args.candidate).write_text(serialize(candidate), encoding='utf-8')
+
+    wrote = False
+    if not errors and changed and not args.dry_run:
+        catalog_path.write_text(serialize(candidate), encoding='utf-8')
+        wrote = True
+    finished = datetime.now(timezone.utc)
+    report = {
+        'schemaVersion': 1,
+        **run_context(),
+        'mode': 'dry-run' if args.dry_run else 'write',
+        'startedAt': started.isoformat(timespec='seconds'),
+        'finishedAt': finished.isoformat(timespec='seconds'),
+        'durationSec': round((finished - started).total_seconds()),
+        'ok': not errors,
+        'changed': changed,
+        'wrote': wrote,
+        'rows': {'before': len(old), 'after': len(candidate)},
+        'totals': totals,
+        'gates': errors,
+        'years': years,
+        'flags': {'allowRemovals': args.allow_removals, 'allowLarge': args.allow_large},
+    }
+    if args.report:
+        Path(args.report).write_text(json.dumps(report, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
+
+    for category, year in years.items():
+        print(f"  {category}: {year['before']} → {year['after']} rows · " +
+              ', '.join(f'{name} {count}' for name, count in year['counts'].items()) +
+              f", stale {len(year['stale'])}", file=sys.stderr)
+    if errors:
+        for error in errors:
+            print(f"✗ gate {error['code']}: {error['message']}", file=sys.stderr)
+        print('Nothing written.', file=sys.stderr)
+        return 2
+    if not changed:
+        print('No changes on Drive; catalog left untouched.')
+    elif args.dry_run:
+        print('Dry run: changes found, catalog not written.')
+    else:
+        print(f'Wrote {len(candidate)} entries to {catalog_path}')
+    return 0
 
 
 if __name__ == '__main__':
-    main()
+    try:
+        sys.exit(main())
+    except Exception:  # Unexpected failure: show it and leave the catalog untouched.
+        import traceback
+        traceback.print_exc()
+        sys.exit(1)

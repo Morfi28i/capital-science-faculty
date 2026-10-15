@@ -2095,6 +2095,7 @@ input[type='file']::file-selector-button {
   min-height: 100vh;
 }
 .admin-side {
+  min-width: 0;
   position: sticky;
   top: 0;
   height: 100vh;
@@ -2252,6 +2253,18 @@ input[type='file']::file-selector-button {
   border-color: var(--danger);
   color: var(--danger);
   background: var(--danger-soft);
+}
+#sync-body .admin-row small {
+  white-space: normal;
+  overflow-wrap: anywhere;
+  direction: inherit;
+}
+#sync-body .admin-row {
+  flex-wrap: wrap;
+}
+#sync-body .storage-status ul {
+  margin: 8px 0 0;
+  padding-inline-start: 20px;
 }
 .admin-muted {
   color: var(--muted);
@@ -2452,7 +2465,7 @@ input[type='file']::file-selector-button {
     display: none;
   }
   .admin-layout {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
   .admin-side {
     position: static;

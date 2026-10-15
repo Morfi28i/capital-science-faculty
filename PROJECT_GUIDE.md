@@ -48,6 +48,10 @@ The global banner and footer navigation are rendered from `public/app.js`. Langu
 - `apphosting.yaml`: Firebase App Hosting runtime, scale-to-zero configuration and Secret Manager references.
 - `build-firebase-config.js`: writes the public Firebase Web SDK config during build from App Hosting's `FIREBASE_WEBAPP_CONFIG`; generated output is ignored by Git.
 
+### Drive sync automation
+
+`scripts/update-drive-catalog.py` is safe to run unattended (stale-folder fallback, gates in `scripts/validate-catalog.py`, JSON report, byte-identical output when Drive has not changed). `.github/workflows/drive-sync.yml` runs it and commits `data/drive-catalog.json`; the schedule is off until the owner enables it. Reports land in Firestore `syncRuns`/`syncState` through `POST /api/sync/report`, and the dashboard tab "مزامنة Drive" shows them and can trigger, dry-run or pause the workflow. Dashboard sync actions are written to Firestore `audit`. A verified dry run on 2026-10-15 took 8.7 minutes with 4 parallel fetches and produced a candidate byte-identical to the committed catalog. Setup, secrets, first runs and rollback are in README → "Drive sync".
+
 ### Drive inventory reviewed
 
 Full crawl on 2026-10-15 with `scripts/update-drive-catalog.py`:

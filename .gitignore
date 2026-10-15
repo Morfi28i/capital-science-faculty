@@ -8,3 +8,7 @@ public/uploads/*
 !public/uploads/.gitkeep
 public/firebase-config.json
 .DS_Store
+__pycache__/
+sync-report.json
+sync-payload.json
+drive-catalog.candidate.json
