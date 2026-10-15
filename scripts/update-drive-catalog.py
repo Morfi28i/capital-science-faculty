@@ -71,9 +71,12 @@ def js_unescape(s):
 
 def list_folder(folder_id):
     """Return the children of a public folder, or None when Drive does not expose a listing."""
+    # Drive sorts a folder's items by the page language, which otherwise follows the caller's location
+    # (Arabic names first from Egypt, Latin first from GitHub's US servers). Pinning hl=ar keeps the
+    # order, and so the catalog bytes, identical wherever the crawler runs.
     req = urllib.request.Request(
-        f'https://drive.google.com/drive/folders/{folder_id}',
-        headers={'User-Agent': UA, 'Accept-Language': 'en'},
+        f'https://drive.google.com/drive/folders/{folder_id}?hl=ar',
+        headers={'User-Agent': UA, 'Accept-Language': 'ar'},
     )
     for attempt in range(2):
         try:
