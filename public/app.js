@@ -315,7 +315,9 @@ let lang = localStorage.getItem('cs-lang') === 'en' ? 'en' : 'ar',
     : '',
   db = { subjects: [], lectures: [], advising: [], official: [], contacts: [] },
   emailConfigured = false,
-  firebaseEnabled = false;
+  firebaseEnabled = false,
+  // SMS sign-in needs Firebase's paid plan, so it stays hidden unless the server enables it.
+  phoneAuthEnabled = false;
 const t = (k) => dict[lang][k] || k;
 document.addEventListener('click', (e) => {
   const target = e.target.closest('.button,.quick-card,.group-card,.icon-btn,.filter');
@@ -342,6 +344,7 @@ async function refreshSiteData() {
     db = JSON.parse(text);
     emailConfigured = db.emailNotificationsEnabled === true;
     firebaseEnabled = db.firebaseAuthEnabled === true;
+    phoneAuthEnabled = db.phoneAuthEnabled === true;
     if (document.activeElement?.matches('input,select,textarea') || document.querySelector('.onboarding'))
       return;
     render();
@@ -664,9 +667,10 @@ function developer() {
   return `<main class="page developer-page">${pageHeading('developer', t('devTitle'), t('devDesc'))}<div class="dev-card"><div class="dev-monogram" aria-hidden="true"><span>M</span><i></i></div><div class="dev-details"><span class="section-index">${t('role')}</span><h2>${t('devName')} · Morfi</h2><p class="dev-lead">${t('devCopy')}</p><dl class="dev-meta"><div><dt>${t('brandLabel')}</dt><dd>Morphine</dd></div><div><dt>${t('locationLabel')}</dt><dd>${t('location')}</dd></div><div><dt>${lang === 'ar' ? 'الخبرة' : 'Experience'}</dt><dd>${t('experience')}</dd></div></dl><p>${t('about')}</p><div class="dev-tools" aria-label="${t('tools')}">${tools.map((x) => `<span>${x}</span>`).join('')}</div><div class="dev-links"><a href="https://morfi28i.github.io/portfolio/" target="_blank" rel="noopener noreferrer">${icon('globe')} ${t('portfolio')}</a><a href="https://wa.me/201009088676" target="_blank" rel="noopener noreferrer">${icon('chat')} ${t('whatsapp')}</a><a href="https://instagram.com/Morfi.28i" target="_blank" rel="noopener noreferrer">${icon('instagram')} ${t('instagram')}</a><a href="mailto:sdyqs0437@gmail.com">${icon('mail')} <span dir="ltr">${t('emailValue')}</span></a></div></div></div><figure class="dev-quote"><span aria-hidden="true">“</span><blockquote>${t('banner')}</blockquote></figure></main>`;
 }
 function profilePage() {
-  const p = getProfile();
+  const p = getProfile(),
+    L = (ar, en) => (lang === 'ar' ? ar : en);
   if (!p)
-    return `<main class="page profile-page">${pageHeading('profile', t('profile'), t('signedOut'))}<section class="profile-signed-out"><span class="profile-empty-icon">${icon('user')}</span><h2>${t('signedOut')}</h2><p>${firebaseEnabled ? t('privacy') : t('firebaseNotice')}</p><button class="button primary" id="create-profile" ${firebaseEnabled ? '' : 'disabled'}>${t('createProfile')} ${icon('arrow')}</button></section></main>`;
+    return `<main class="page profile-page">${pageHeading('profile', t('profile'), t('signedOut'))}<section class="profile-signed-out"><span class="profile-empty-icon">${icon('user')}</span><h2>${t('signedOut')}</h2><p>${firebaseEnabled ? t('privacy') : t('firebaseNotice')}</p><ul class="profile-perks"><li>${icon('mail')} ${L('صندوق رسائل خاص من إدارة الموقع', 'A private inbox from the site team')}</li><li>${icon('user')} ${L('صورتك وبياناتك محفوظة على أي جهاز', 'Your photo and details on every device')}</li><li>${icon('shield')} ${L('حساب موثّق ببريدك أو Google', 'A verified account with email or Google')}</li></ul><button class="button primary" id="create-profile" ${firebaseEnabled ? '' : 'disabled'}>${t('createProfile')} ${icon('arrow')}</button></section></main>`;
   const profileNames = [p.firstName || '', p.fatherName || '', p.lastName || ''];
   if (!profileNames.some(Boolean)) {
     const parts = String(p.name || '')
@@ -685,12 +689,34 @@ function profilePage() {
       /^https:\/\//.test(p.picture || '')
         ? p.picture
         : currentAvatar;
-  return `<main class="page profile-page">${pageHeading('profile', t('profile'), t('profileIntro'))}<section class="profile-card"><div class="profile-card-head"><img class="profile-photo" src="${attr(currentPicture)}" alt="${t('profilePhoto')}"><div><span class="section-index">${t('editProfile')}</span><h2>${esc(p.name)}</h2><p>${t('emailPrivate')}</p><small class="account-id">${p.id ? `ID · ${esc(p.id)}` : t('legacyProfile')}</small></div><button class="button ghost" id="logout">${icon('logout')} ${t('logout')}</button></div><form id="profile-form" class="profile-form"><input type="hidden" name="picture" id="profile-picture" value="${attr(currentPicture)}"><div class="profile-fields"><label>${lang === 'ar' ? 'الاسم الأول' : 'First name'}<input name="firstName" value="${attr(profileNames[0])}" required maxlength="50" autocomplete="given-name"></label><label>${lang === 'ar' ? 'اسم الوالد' : 'Father’s name'}<input name="fatherName" value="${attr(profileNames[1])}" required maxlength="50" autocomplete="additional-name"></label><label>${lang === 'ar' ? 'اسم العائلة' : 'Family name'}<input name="lastName" value="${attr(profileNames[2])}" required maxlength="50" autocomplete="family-name"></label><label>${t('gender')}<select name="gender" required><option value="male" ${p.gender === 'male' ? 'selected' : ''}>${t('male')}</option><option value="female" ${p.gender === 'female' ? 'selected' : ''}>${t('female')}</option><option value="other" ${p.gender === 'other' ? 'selected' : ''}>${t('other')}</option></select></label><label class="profile-email">${p.email ? t('gmail') : lang === 'ar' ? 'رقم الهاتف الموثق' : 'Verified phone'}<input name="email" type="${p.email ? 'email' : 'text'}" value="${attr(p.email || p.phone || '')}" readonly ${p.email ? 'required' : 'disabled'}></label></div><p class="profile-private-note">${p.id ? t('profileLocalOnly') : t('legacyProfile')} ${p.id ? t('registeredEmail') : ''}</p>${p.id ? `<section class="contact-change-card"><h3>${lang === 'ar' ? 'تغيير البريد أو الهاتف' : 'Change email or phone'}</h3><p>${lang === 'ar' ? 'لا يعتمد أي تغيير قبل تأكيد ملكية وسيلة التواصل الجديدة.' : 'A new contact method is not saved until you verify it.'}</p><div class="contact-change-row"><label>${lang === 'ar' ? 'البريد الجديد' : 'New email'}<input id="new-contact-email" type="email" inputmode="email" autocomplete="email" placeholder="name@example.com"></label><button class="button ghost" id="send-email-change" type="button" hidden disabled>${lang === 'ar' ? 'إرسال رابط التحقق' : 'Send verification link'}</button></div><p id="email-change-status" class="contact-status" aria-live="polite"></p><button class="button ghost" id="refresh-email-change" type="button">${lang === 'ar' ? 'تحققت من الرابط · تحديث الملف' : 'I verified the link · Refresh profile'}</button><div class="contact-change-row phone-change-row"><label>${lang === 'ar' ? 'مفتاح الدولة' : 'Country code'}<select id="new-phone-country"><option value="+20" selected>مصر (+20)</option><option value="+966">السعودية (+966)</option><option value="+971">الإمارات (+971)</option><option value="+965">الكويت (+965)</option><option value="+974">قطر (+974)</option><option value="+962">الأردن (+962)</option><option value="+1">United States (+1)</option><option value="+44">United Kingdom (+44)</option></select></label><label>${lang === 'ar' ? 'رقم الهاتف الجديد' : 'New phone number'}<input id="new-contact-phone" type="tel" inputmode="tel" autocomplete="tel-national" placeholder="01012345678"></label><button class="button ghost" id="send-phone-change" type="button" hidden disabled>${lang === 'ar' ? 'إرسال كود SMS' : 'Send SMS code'}</button></div><div id="firebase-phone-update-recaptcha"></div><div id="phone-change-code-area" hidden><label>${lang === 'ar' ? 'كود SMS' : 'SMS code'}<input id="phone-change-code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="000000"></label><button class="button ghost" id="confirm-phone-change" type="button">${lang === 'ar' ? 'تأكيد الرقم' : 'Verify phone'}</button></div><p id="phone-change-status" class="contact-status" aria-live="polite"></p></section>` : ''}${avatarGallery(currentAvatar)}<label class="upload-photo">${t('uploadPhoto')}<input type="file" id="profile-upload" accept="image/png,image/jpeg,image/webp"></label><p id="profile-error" class="form-error" aria-live="polite"></p><div class="profile-actions"><button class="button primary" type="submit" ${firebaseEnabled && p.id ? '' : 'disabled'}>${t('saveProfile')} ${icon('arrow')}</button></div></form></section>${p.id ? `<section class="profile-card mailbox-card"><div class="profile-card-head"><div><span class="section-index">PRIVATE · INBOX</span><h2>${lang === 'ar' ? 'صندوق البريد' : 'Inbox'}</h2><p>${lang === 'ar' ? 'رسائلك الخاصة من إدارة الموقع' : 'Private messages from site administration'}</p></div><button class="button ghost" id="refresh-mailbox">${icon('refresh')} ${lang === 'ar' ? 'تحديث' : 'Refresh'}</button></div><div id="mailbox-list" aria-live="polite"><p class="mailbox-loading">${lang === 'ar' ? 'جارٍ تحميل الرسائل…' : 'Loading messages…'}</p></div></section>` : `<section class="profile-card mailbox-card"><h2>${lang === 'ar' ? 'صندوق البريد' : 'Inbox'}</h2><p>${t('legacyProfile')}</p><button class="button primary" id="link-existing-account">${lang === 'ar' ? 'تسجيل الدخول وربط الملف' : 'Sign in and link profile'} ${icon('arrow')}</button></section>`}</main>`;
+  const verified = `<span class="verified-badge">${icon('shield')} ${L('موثّق', 'Verified')}</span>`;
+  const contacts = [
+    p.email && `<li>${icon('mail')}<span dir="ltr">${esc(p.email)}</span>${verified}</li>`,
+    p.phone && `<li>${icon('phone')}<span dir="ltr">${esc(p.phone)}</span>${verified}</li>`,
+  ]
+    .filter(Boolean)
+    .join('');
+  const pendingEmail = sessionStorage.getItem('cs-pending-email-change') || '';
+  const canSave = firebaseEnabled && p.id;
+  const summary = `<aside class="profile-card profile-summary"><div class="profile-photo-wrap"><img class="profile-photo" src="${attr(currentPicture)}" alt="${t('profilePhoto')}"><button class="photo-edit" type="button" id="jump-to-photo" aria-label="${L('تغيير الصورة', 'Change photo')}" title="${L('تغيير الصورة', 'Change photo')}">${icon('user')}</button></div><h2>${esc(p.name)}</h2><p class="profile-summary-note">${t('emailPrivate')}</p>${contacts ? `<ul class="profile-contacts">${contacts}</ul>` : ''}${p.id ? `<div class="account-id-row"><small class="account-id" dir="ltr">ID · ${esc(p.id)}</small><button class="icon-btn" id="copy-account-id" type="button" aria-label="${L('نسخ رقم الحساب', 'Copy account ID')}" title="${L('نسخ', 'Copy')}">${icon('file')}</button></div>` : `<p class="profile-private-note">${t('legacyProfile')}</p>`}<button class="button ghost" id="logout">${icon('logout')} ${t('logout')}</button></aside>`;
+  const details = `<form id="profile-form" class="profile-form"><input type="hidden" name="picture" id="profile-picture" value="${attr(currentPicture)}"><section class="profile-card" id="profile-details-section"><div class="profile-section-head"><span class="section-index">${L('٠١ · بياناتك', '01 · DETAILS')}</span><h2>${L('البيانات الأساسية', 'Your details')}</h2></div><div class="profile-fields"><label>${L('الاسم الأول', 'First name')}<input name="firstName" value="${attr(profileNames[0])}" required maxlength="50" autocomplete="given-name"></label><label>${L('اسم الوالد', 'Father’s name')}<input name="fatherName" value="${attr(profileNames[1])}" required maxlength="50" autocomplete="additional-name"></label><label>${L('اسم العائلة', 'Family name')}<input name="lastName" value="${attr(profileNames[2])}" required maxlength="50" autocomplete="family-name"></label><label>${t('gender')}<select name="gender" required><option value="male" ${p.gender === 'male' ? 'selected' : ''}>${t('male')}</option><option value="female" ${p.gender === 'female' ? 'selected' : ''}>${t('female')}</option><option value="other" ${p.gender === 'other' ? 'selected' : ''}>${t('other')}</option></select></label></div></section><section class="profile-card" id="profile-photo-section"><div class="profile-section-head"><span class="section-index">${L('٠٢ · صورتك', '02 · PHOTO')}</span><h2>${L('الصورة الشخصية', 'Profile photo')}</h2></div>${avatarGallery(currentAvatar)}<label class="upload-photo">${icon('folder')} ${t('uploadPhoto')}<input type="file" id="profile-upload" accept="image/png,image/jpeg,image/webp"></label></section><div class="profile-save-bar"><p id="profile-error" class="form-error" aria-live="polite"></p><p class="profile-save-note">${p.id ? t('registeredEmail') : t('legacyProfile')}</p><button class="button primary" type="submit" ${canSave ? '' : 'disabled'}>${t('saveProfile')} ${icon('arrow')}</button></div></form>`;
+  const contactCard = p.id
+    ? `<section class="profile-card contact-change-card"><div class="profile-section-head"><span class="section-index">${L('٠٣ · التواصل', '03 · CONTACT')}</span><h2>${phoneAuthEnabled ? L('تغيير البريد أو الهاتف', 'Change email or phone') : L('تغيير البريد الإلكتروني', 'Change email')}</h2><p>${L('لا يعتمد أي تغيير قبل تأكيد ملكية وسيلة التواصل الجديدة.', 'A new contact method is not saved until you verify it.')}</p></div><div class="contact-change-row"><label>${L('البريد الجديد', 'New email')}<input id="new-contact-email" type="email" inputmode="email" autocomplete="email" placeholder="name@example.com" dir="ltr"></label><button class="button ghost" id="send-email-change" type="button" hidden disabled>${L('إرسال رابط التحقق', 'Send verification link')}</button></div><p id="email-change-status" class="contact-status" aria-live="polite">${pendingEmail ? esc(L(`مستني تأكيد ${pendingEmail}. افتح الرابط اللي وصلك وبعدين دوس الزرار.`, `Waiting for ${pendingEmail}. Open the link you received, then press the button.`)) : ''}</p><button class="button ghost" id="refresh-email-change" type="button" ${pendingEmail ? '' : 'hidden'}>${L('تحققت من الرابط · تحديث الملف', 'I verified the link · Refresh profile')}</button>${
+        phoneAuthEnabled
+          ? `<div class="contact-change-row phone-change-row"><label>${L('مفتاح الدولة', 'Country code')}<select id="new-phone-country"><option value="+20" selected>مصر (+20)</option><option value="+966">السعودية (+966)</option><option value="+971">الإمارات (+971)</option><option value="+965">الكويت (+965)</option><option value="+974">قطر (+974)</option><option value="+962">الأردن (+962)</option><option value="+1">United States (+1)</option><option value="+44">United Kingdom (+44)</option></select></label><label>${L('رقم الهاتف الجديد', 'New phone number')}<input id="new-contact-phone" type="tel" inputmode="tel" autocomplete="tel-national" placeholder="01012345678" dir="ltr"></label><button class="button ghost" id="send-phone-change" type="button" hidden disabled>${L('إرسال كود SMS', 'Send SMS code')}</button></div><div id="firebase-phone-update-recaptcha"></div><div id="phone-change-code-area" hidden><label>${L('كود SMS', 'SMS code')}<input id="phone-change-code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="000000" dir="ltr"></label><button class="button ghost" id="confirm-phone-change" type="button">${L('تأكيد الرقم', 'Verify phone')}</button></div><p id="phone-change-status" class="contact-status" aria-live="polite"></p>`
+          : ''
+      }</section>`
+    : '';
+  const inbox = p.id
+    ? `<section class="profile-card mailbox-card"><div class="profile-section-head with-action"><div><span class="section-index">${L('٠٤ · خاص', '04 · PRIVATE')}</span><h2>${L('صندوق الرسائل', 'Inbox')}</h2><p>${L('رسائلك الخاصة من إدارة الموقع', 'Private messages from site administration')}</p></div><button class="button ghost" id="refresh-mailbox">${icon('refresh')} ${L('تحديث', 'Refresh')}</button></div><div id="mailbox-list" aria-live="polite"><p class="mailbox-loading">${L('جارٍ تحميل الرسائل…', 'Loading messages…')}</p></div></section>`
+    : `<section class="profile-card mailbox-card"><h2>${L('صندوق الرسائل', 'Inbox')}</h2><p>${t('legacyProfile')}</p><button class="button primary" id="link-existing-account">${L('تسجيل الدخول وربط الملف', 'Sign in and link profile')} ${icon('arrow')}</button></section>`;
+  return `<main class="page profile-page">${pageHeading('profile', t('profile'), t('profileIntro'))}<div class="profile-layout">${summary}<div class="profile-main">${details}${contactCard}${inbox}</div></div></main>`;
 }
 function wireAvatarPicker(root) {
   const hidden = root.querySelector('[name="picture"]'),
     upload = root.querySelector('input[type="file"]'),
-    preview = root.querySelector('.profile-photo,.avatar-preview');
+    preview =
+      root.querySelector('.profile-photo,.avatar-preview') || document.querySelector('.profile-photo');
   root.querySelectorAll('[name="avatar-choice"]').forEach((r) =>
     r.addEventListener('change', () => {
       if (r.checked) {
@@ -774,7 +800,8 @@ async function loadMailbox() {
       }),
     );
   } catch (error) {
-    list.innerHTML = `<p class="mailbox-loading">${esc(error.message || 'Could not load messages.')}</p>`;
+    console.error('Inbox load failed:', error);
+    list.innerHTML = `<p class="mailbox-loading">${lang === 'ar' ? 'تعذر تحميل الرسائل دلوقتي. جرّب تاني بعد شوية.' : 'Could not load messages right now. Try again shortly.'}</p>`;
   }
 }
 function wireProfile() {
@@ -794,6 +821,23 @@ function wireProfile() {
     showToast(t('loggedOut'));
   });
   if (!form) return;
+  document
+    .querySelector('#jump-to-photo')
+    ?.addEventListener('click', () =>
+      document
+        .querySelector('#profile-photo-section')
+        ?.scrollIntoView({ behavior: reduceMotion() ? 'auto' : 'smooth', block: 'start' }),
+    );
+  document.querySelector('#copy-account-id')?.addEventListener('click', async () => {
+    try {
+      await navigator.clipboard.writeText(String(getProfile()?.id || ''));
+      showToast(L('اتنسخ رقم الحساب.', 'Account ID copied.'));
+    } catch {
+      showToast(
+        L('تعذر النسخ. حدّد الرقم وانسخه يدويًا.', 'Could not copy. Select the ID and copy it manually.'),
+      );
+    }
+  });
   loadMailbox();
   document.querySelector('#refresh-mailbox')?.addEventListener('click', loadMailbox);
   wireAvatarPicker(form);
@@ -839,6 +883,7 @@ function wireProfile() {
       await auth.requestEmailChange(value);
       pendingEmailChange = value;
       sessionStorage.setItem('cs-pending-email-change', value);
+      document.querySelector('#refresh-email-change').hidden = false;
       emailStatus.textContent = L(
         'أرسلنا رابط التأكيد إلى البريد الجديد. لن يتغير بريد الحساب قبل فتح الرابط.',
         'A verification link was sent to the new email. Your account will keep the current email until the link is opened.',
@@ -1405,6 +1450,10 @@ function onboarding(force = false, legacyProfile = null) {
         'تعذر الاتصال. تحقق من الإنترنت وحاول مجددًا.',
         'Could not connect. Check your internet and try again.',
       ),
+      'auth/billing-not-enabled': L(
+        'التسجيل برقم الهاتف مش متاح حاليًا. سجّل بالبريد الإلكتروني أو حساب Google.',
+        'Phone sign-in is not available right now. Use your email or Google account.',
+      ),
       'auth/operation-not-allowed': L(
         'تسجيل الدخول بالبريد وكلمة المرور غير مفعّل في Firebase.',
         'Email and password sign-in is disabled in Firebase.',
@@ -1425,7 +1474,7 @@ function onboarding(force = false, legacyProfile = null) {
     phoneConfirmation = null;
     authUser = null;
     await fadeTo(
-      `<span class="section-index">${L('خطوة ١ · طريقة الدخول', 'STEP 1 · SIGN-IN METHOD')}</span><h1>${L('اختار طريقة التسجيل', 'Choose how to continue')}</h1><p>${L('اكتب بريدك أو رقمك، أو استخدم حساب Google. كل مرة هنطلب منك خطوة واحدة.', 'Use your email, phone number, or Google. We will guide you one step at a time.')}</p><p class="form-error" aria-live="polite">${firebaseEnabled ? '' : t('firebaseNotice')}</p><div class="auth-choice-grid"><button class="auth-choice" data-method="email" ${firebaseEnabled ? '' : 'disabled'}><span>${icon('mail')}</span><b>${L('البريد الإلكتروني', 'Email')}</b><small>${L('رابط تأكيد آمن من Firebase', 'Secure Firebase verification link')}</small></button><button class="auth-choice" data-method="phone" ${firebaseEnabled ? '' : 'disabled'}><span>${icon('phone')}</span><b>${L('رقم الهاتف', 'Phone number')}</b><small>${L('تحقق برسالة SMS', 'Verify by SMS')}</small></button><button class="auth-choice" data-method="google" ${firebaseEnabled ? '' : 'disabled'}><span>G</span><b>${L('حساب Google', 'Google account')}</b><small>${L('الاسم والبريد من حسابك', 'Use your Google name and email')}</small></button></div><p class="form-error" id="form-error" aria-live="polite"></p><button class="skip-link" id="back-welcome">${L('رجوع', 'Back')}</button>`,
+      `<span class="section-index">${L('خطوة ١ · طريقة الدخول', 'STEP 1 · SIGN-IN METHOD')}</span><h1>${L('اختار طريقة التسجيل', 'Choose how to continue')}</h1><p>${phoneAuthEnabled ? L('اكتب بريدك أو رقمك، أو استخدم حساب Google. كل مرة هنطلب منك خطوة واحدة.', 'Use your email, phone number, or Google. We will guide you one step at a time.') : L('سجّل ببريدك الإلكتروني أو بحساب Google. كل مرة هنطلب منك خطوة واحدة.', 'Use your email or Google account. We will guide you one step at a time.')}</p><p class="form-error" aria-live="polite">${firebaseEnabled ? '' : t('firebaseNotice')}</p><div class="auth-choice-grid"><button class="auth-choice" data-method="email" ${firebaseEnabled ? '' : 'disabled'}><span>${icon('mail')}</span><b>${L('البريد الإلكتروني', 'Email')}</b><small>${L('رابط تأكيد آمن من Firebase', 'Secure Firebase verification link')}</small></button>${phoneAuthEnabled ? `<button class="auth-choice" data-method="phone" ${firebaseEnabled ? '' : 'disabled'}><span>${icon('phone')}</span><b>${L('رقم الهاتف', 'Phone number')}</b><small>${L('تحقق برسالة SMS', 'Verify by SMS')}</small></button>` : ''}<button class="auth-choice" data-method="google" ${firebaseEnabled ? '' : 'disabled'}><span>G</span><b>${L('حساب Google', 'Google account')}</b><small>${L('الاسم والبريد من حسابك', 'Use your Google name and email')}</small></button></div><p class="form-error" id="form-error" aria-live="polite"></p><button class="skip-link" id="back-welcome">${L('رجوع', 'Back')}</button>`,
     );
     step.querySelectorAll('[data-method]').forEach(
       (button) =>
@@ -1481,12 +1530,16 @@ function onboarding(force = false, legacyProfile = null) {
     step.querySelector('#back-method').onclick = showMethod;
     step.querySelector('#login-form').onsubmit = async (e) => {
       e.preventDefault();
-      const button = e.currentTarget.querySelector('[type=submit]');
+      // Read the form before any await: e.currentTarget is null once the event has finished dispatching.
+      const form = e.currentTarget,
+        button = form.querySelector('[type=submit]'),
+        password = form.elements.password.value;
       button.disabled = true;
       try {
         const auth = await import('/firebase-auth.js'),
-          user = await auth.signInEmail(email, e.currentTarget.elements.password.value);
-        await completeExisting(user);
+          user = await auth.signInEmail(email, password);
+        // A verified account without a saved profile continues to the details step instead of failing.
+        await completeExisting(user, true);
       } catch (error) {
         showError(readableAuthError(error));
         button.disabled = false;
@@ -1692,7 +1745,12 @@ function onboarding(force = false, legacyProfile = null) {
       } catch (error) {
         const code = error.code || '';
         let message = error.message || L('تعذر إرسال رسالة التحقق.', 'Could not send the SMS code.');
-        if (code === 'auth/argument-error')
+        if (code === 'auth/billing-not-enabled')
+          message = L(
+            'التسجيل برقم الهاتف مش متاح حاليًا. ارجع واختار البريد الإلكتروني أو حساب Google.',
+            'Phone sign-in is not available right now. Go back and use email or Google.',
+          );
+        else if (code === 'auth/argument-error')
           message = L(
             'تعذر تهيئة اختبار الأمان. أعد تحميل الصفحة ثم حاول مرة أخرى.',
             'Security verification could not initialize. Reload the page and try again.',
@@ -1937,6 +1995,7 @@ function onboarding(force = false, legacyProfile = null) {
     db = JSON.parse(siteSnapshot);
     emailConfigured = db.emailNotificationsEnabled === true;
     firebaseEnabled = db.firebaseAuthEnabled === true;
+    phoneAuthEnabled = db.phoneAuthEnabled === true;
   } catch {}
   render();
   verifyProfilePersistence();

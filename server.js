@@ -534,6 +534,8 @@ async function api(req, res, url) {
       emailNotificationsEnabled: emailNotificationsEnabled(),
       firebaseAuthEnabled: firebaseConfigured(),
       contentStoragePersistent: firebaseConfigured(),
+      // Firebase SMS needs the paid Blaze plan; keep phone sign-in hidden unless explicitly enabled.
+      phoneAuthEnabled: firebaseConfigured() && process.env.PHONE_AUTH_ENABLED === 'true',
     });
   }
   if (url.pathname.startsWith('/api/firebase/')) {

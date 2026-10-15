@@ -445,7 +445,8 @@ async function syncDashboard() {
   document.querySelector('#sync-run').onclick = (e) => dispatch(false, e.currentTarget);
   document.querySelector('#sync-dry').onclick = (e) => dispatch(true, e.currentTarget);
   document.querySelector('#sync-pause').onclick = async (e) => {
-    e.currentTarget.disabled = true;
+    const button = e.currentTarget;
+    button.disabled = true;
     try {
       await req('/api/admin/sync/pause', {
         method: 'POST',
@@ -455,7 +456,7 @@ async function syncDashboard() {
       syncDashboard();
     } catch (error) {
       toast(error.message);
-      e.currentTarget.disabled = false;
+      button.disabled = false;
     }
   };
 }
