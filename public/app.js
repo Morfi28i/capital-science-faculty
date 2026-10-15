@@ -1155,7 +1155,17 @@ function driveHierarchy(items) {
     String(s || '')
       .trim()
       .toLocaleLowerCase();
+  // Catalog rows crawled from Drive carry the parent folder ID; use it directly when present.
+  const folderById = new Map(
+    folders.map((f) => [f.item.id || String(f.item.url || '').match(/folders\/([\w-]+)/)?.[1], f]),
+  );
   for (const node of nodes) {
+    const byId = node.item.parentId && folderById.get(node.item.parentId);
+    if (byId && byId !== node) {
+      node.parent = byId;
+      byId.children.push(node);
+      continue;
+    }
     const raw = node.item.note || '';
     if (!raw || raw === 'المجلد الرئيسي' || raw === 'Year root') continue;
     const parts = drivePath(node.item),
@@ -1185,7 +1195,7 @@ function driveHierarchy(items) {
 function driveFolderCard(node) {
   const item = node.item,
     title = driveTitle(item);
-  return `<button class="drive-entry drive-folder-entry reveal" type="button" data-folder-index="${node.index}"><span class="drive-entry-icon">${icon('folder')}</span><span class="drive-entry-copy"><b>${esc(title)}</b><small>${node.children.length} ${lang === 'ar' ? 'عنصر داخل المجلد' : 'items inside'}</small></span>${icon('chevron', 'drive-entry-arrow')}</button>`;
+  return `<button class="drive-entry drive-folder-entry reveal" type="button" data-folder-index="${node.index}"><span class="drive-entry-icon">${icon('folder')}</span><span class="drive-entry-copy"><b>${esc(title)}</b><small>${fmt(node.children.length)} ${lang === 'ar' ? 'عنصر داخل المجلد' : 'items inside'}</small></span>${icon('chevron', 'drive-entry-arrow')}</button>`;
 }
 function driveCrumbs(node, nodes) {
   const chain = [];
@@ -1208,7 +1218,10 @@ function wireLectureFilters() {
       parent = null;
       current = 'root';
     }
-    let entries = parent ? parent.children : selected.filter((n) => !n.parent);
+    // Folders first, then files, keeping Drive's own order inside each group.
+    let entries = (parent ? parent.children : selected.filter((n) => !n.parent))
+      .slice()
+      .sort((x, y) => (y.item.type === 'folder') - (x.item.type === 'folder'));
     if (q)
       entries = hierarchy.nodes.filter(
         (n) =>

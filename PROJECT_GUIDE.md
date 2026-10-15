@@ -40,7 +40,8 @@ The global banner and footer navigation are rendered from `public/app.js`. Langu
 - `public/index.html`, `public/app.js`, `public/style.css`: student site and onboarding/profile interactions.
 - `public/admin.html`, `public/admin.js`: current admin interface.
 - `data/site.json`: subject groups, lecture root links, advising groups, official links, coordinator contacts.
-- `data/drive-catalog.json`: flattened Google Drive folders/files. `note` encodes the parent path with `›`; a root has `note: "المجلد الرئيسي"` (or `Year root`).
+- `data/drive-catalog.json`: flattened Google Drive folders/files. Each row has `id` and `parentId` (the containing folder), which the lecture browser uses to build the tree; `note` keeps the readable parent path with `›`. A year root has `note: "المجلد الرئيسي"`.
+- `scripts/update-drive-catalog.py`: re-crawls every year root's public Drive folders (following shortcuts) and rewrites the catalog, keeping curated `titleAr`/`titleEn`. Run `python3 scripts/update-drive-catalog.py` after material is added on Drive, review the printed counts, then commit.
 - `public/avatars/`: profile illustration choices.
 - `.env.example`: environment variable names; never put actual credentials there.
 - `render.yaml`: Render service declaration.
@@ -49,9 +50,15 @@ The global banner and footer navigation are rendered from `public/app.js`. Langu
 
 ### Drive inventory reviewed
 
-The 2024/25 folder is `1hvZIcXA4Xc45X_YXJXnK9V0q5CC6Ye1W`; the current catalog contains 2,179 entries for this source. The 2026/27 folder is `10egV3LBAs9fEo3HjghyjnsQBuzcdnvgX`; the current catalog contains 68 entries for this source.
+Full crawl on 2026-10-15 with `scripts/update-drive-catalog.py`:
 
-The replacement 2025/26 URL from the owner is `1WhpUU4jCUmcOwdapwVRDK5UIK5b7xuU4` (Drive title: “Group B 2026”). Its two semester folders were confirmed as `14Smihcd2LAzqTmcC7OgSc7xyKrXVUlh0` and `1fZIaJ9brBUZvyzj30OrtOASx9hwMiFuV`. The first semester's visible top-level subjects were captured, and the second semester's top-level subjects were captured. This Drive folder is a replacement for the older 2025 source `1_xmVYVlPbaf_iJqcYlGJnPR-ROMUY-FD`; its old 643 catalog entries were removed so users are not sent to stale material. **The replacement's per-course nested folders and file URLs have not yet been fully crawled.** The catalog now includes the verified root, both semesters, and 10 course folders whose links were opened and confirmed. Many other course folders and the files nested within these folders are not yet imported. Do not describe this year's course files as fully imported until all remaining branches and files are enumerated and checked.
+| Year | Root folder | Entries before | Entries now |
+|---|---|---|---|
+| 2024/25 | `1hvZIcXA4Xc45X_YXJXnK9V0q5CC6Ye1W` | 2,179 | 2,108 (470 folders, 1,638 files) |
+| 2025/26 | `1WhpUU4jCUmcOwdapwVRDK5UIK5b7xuU4` (“Group B 2026”) | 13 | 619 (148 folders, 471 files) |
+| 2026/27 | `10egV3LBAs9fEo3HjghyjnsQBuzcdnvgX` | 68 | 91 (50 folders, 41 files) |
+
+2025/26 was previously only the root, both semesters and 10 course folders with no files; it is now fully imported. Entries that disappeared were checked: 26 no longer open publicly (deleted or unshared by their owners) and 3 were moved out of the course folders, so they were dropped instead of being shown as broken links. The crawler retries a folder once if Drive returns a page without its listing. Known gap: two video shortcuts under `Mechanics I › ♥︎Videos` (2024/25) point to removed targets.
 
 ### RTF group links
 
