@@ -247,14 +247,78 @@ Object.assign(dict.en, {
   avatarAlt: 'Illustrated portrait',
   profilePhoto: 'Profile photo',
 });
-let lang = localStorage.getItem('cs-lang') || 'ar',
-  theme = localStorage.getItem('cs-theme') || 'light',
+Object.assign(dict.ar, {
+  filesSub: 'ملفات Drive منظّمة بالمجلدات',
+  advisingSub: 'مجموعة مرشدك الأكاديمي',
+  heroLead: 'كل ما تحتاجه',
+  heroAccent: 'في مكان واحد',
+  heroKicker: 'دليل طلاب كلية العلوم',
+  statGroups: 'جروب مادة',
+  statFiles: 'ملف ومجلد',
+  statAdvising: 'مرشد أكاديمي',
+  statOfficial: 'رابط رسمي',
+  sectionsTitle: 'اختر عنصرك',
+  sectionsCopy: 'أربعة أقسام تجمع كل روابط الكلية. اضغط على أي عنصر لتبدأ.',
+  ideaTitle: 'عندك فكرة تفيد الدفعة؟',
+  ideaCopy: 'الموقع مبني بإيد طالب لزمايله، وبيكبر باقتراحاتكم. ابعت فكرتك لـ Morfi.',
+  ideaCta: 'تواصل مع المطور',
+  menu: 'القائمة',
+  closeMenu: 'إغلاق القائمة',
+  toDark: 'التبديل إلى الوضع الداكن',
+  toLight: 'التبديل إلى الوضع الفاتح',
+  notFoundTitle: 'هذا العنصر غير موجود في الجدول',
+  notFoundCopy: 'الصفحة اللي بتدور عليها مش موجودة أو اتنقلت. ارجع للرئيسية وكمل من هناك.',
+  backHome: 'العودة للرئيسية',
+  results: 'نتيجة',
+  noResults: 'لا توجد نتائج مطابقة.',
+  skip: 'المتابعة كزائر',
+  subjectsDesc: 'جروبات واتساب لكل مادة وسكشن. ادخل جروب مادتك وشعبتك بس.',
+  lecturesDesc: 'ماتيريال المحاضرات من Drive لكل دفعة، مرتبة بنفس مجلداتها الأصلية.',
+  officialDesc: 'الجروبات والصفحات الرسمية للدفعة والشعب والكلية، في مكان واحد موثوق.',
+  devDesc: 'الشخص اللي ورا المساحة دي، وطرق التواصل.',
+});
+Object.assign(dict.en, {
+  filesSub: 'Drive files, organized by folder',
+  advisingSub: 'Your academic adviser’s group',
+  heroLead: 'Everything you need,',
+  heroAccent: 'in one place',
+  heroKicker: 'The Faculty of Science student guide',
+  statGroups: 'subject groups',
+  statFiles: 'files & folders',
+  statAdvising: 'academic advisers',
+  statOfficial: 'official links',
+  sectionsTitle: 'Pick your element',
+  sectionsCopy: 'Four sections hold every faculty link. Tap any element to begin.',
+  ideaTitle: 'Have an idea that helps the cohort?',
+  ideaCopy:
+    'This site is built by a student for fellow students, and it grows with your suggestions. Send your idea to Morfi.',
+  ideaCta: 'Contact the developer',
+  menu: 'Menu',
+  closeMenu: 'Close menu',
+  toDark: 'Switch to dark theme',
+  toLight: 'Switch to light theme',
+  notFoundTitle: 'This element is not on the table',
+  notFoundCopy:
+    'The page you are looking for does not exist or has moved. Head back home and continue from there.',
+  backHome: 'Back to home',
+  results: 'results',
+  noResults: 'No matching items.',
+  subjectsDesc: 'WhatsApp groups for every course and section. Join only your own course and group.',
+  lecturesDesc: 'Lecture materials from Drive for every cohort, kept in their original folders.',
+  officialDesc: 'Official cohort, department and faculty groups and pages, in one trusted place.',
+  devDesc: 'The person behind this space, and how to get in touch.',
+});
+let lang = localStorage.getItem('cs-lang') === 'en' ? 'en' : 'ar',
+  // No stored value means "follow the system"; a stored value is an explicit override.
+  themeOverride = ['light', 'dark'].includes(localStorage.getItem('cs-theme'))
+    ? localStorage.getItem('cs-theme')
+    : '',
   db = { subjects: [], lectures: [], advising: [], official: [], contacts: [] },
   emailConfigured = false,
   firebaseEnabled = false;
 const t = (k) => dict[lang][k] || k;
 document.addEventListener('click', (e) => {
-  const target = e.target.closest('.button,.quick-card,.group-card,.icon-btn,.filter,.card-link');
+  const target = e.target.closest('.button,.quick-card,.group-card,.icon-btn,.filter');
   if (!target) return;
   const r = target.getBoundingClientRect(),
     dot = document.createElement('i');
@@ -265,13 +329,21 @@ document.addEventListener('click', (e) => {
   setTimeout(() => dot.remove(), 650);
 });
 const paths = ['/', '/subjects', '/lectures', '/advising', '/official', '/developer', '/profile'];
+let siteSnapshot = '';
 async function refreshSiteData() {
   try {
     const response = await fetch(`/api/site?fresh=${Date.now()}`, { cache: 'no-store' });
     if (!response.ok) return;
-    db = await response.json();
+    const text = await response.text();
+    // Re-render only when content actually changed, and never while a visitor is typing in a form,
+    // otherwise returning to the tab would wipe half-filled profile fields or the open Drive folder.
+    if (text === siteSnapshot) return;
+    siteSnapshot = text;
+    db = JSON.parse(text);
     emailConfigured = db.emailNotificationsEnabled === true;
     firebaseEnabled = db.firebaseAuthEnabled === true;
+    if (document.activeElement?.matches('input,select,textarea') || document.querySelector('.onboarding'))
+      return;
     render();
   } catch {}
 }
@@ -286,31 +358,123 @@ window.addEventListener('storage', (event) => {
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'visible') refreshSiteData();
 });
+const reduceMotion = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
+// Swap pages through the View Transitions API where supported, then move focus to the new heading
+// so keyboard and screen-reader users land on the page they just opened.
+function transition(update) {
+  const done = () => {
+    window.scrollTo({ top: 0 });
+    document.querySelector('#page h1')?.focus({ preventScroll: true });
+  };
+  if (!document.startViewTransition || reduceMotion() || document.visibilityState !== 'visible') {
+    update();
+    done();
+    return;
+  }
+  const viewTransition = document.startViewTransition(update);
+  // A quick second click skips the running transition; that rejection is expected, not an error.
+  viewTransition.ready.catch(() => {});
+  viewTransition.finished.finally(done);
+}
 function navigate(p) {
   if (!paths.includes(p)) p = '/';
+  if (p === currentPath()) {
+    window.scrollTo({ top: 0, behavior: reduceMotion() ? 'auto' : 'smooth' });
+    return;
+  }
   history.pushState({}, '', p);
-  render();
-  window.scrollTo({ top: 0, behavior: 'smooth' });
+  transition(render);
 }
-window.addEventListener('popstate', render);
+window.addEventListener('popstate', () => transition(render));
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+  if (!themeOverride) render();
+});
+window.addEventListener('storage', (event) => {
+  if (event.key !== 'cs-theme') return;
+  themeOverride = ['light', 'dark'].includes(event.newValue) ? event.newValue : '';
+  applyTheme();
+  render();
+});
 function link(p, label, cl = '') {
   return `<a class="${cl}" href="${p}" data-route="${p}">${label}</a>`;
 }
-function icon(name) {
-  return (
-    {
-      arrow: '↗',
-      moon: '◐',
-      sun: '☼',
-      search: '⌕',
-      group: '✳',
-      file: '▤',
-      cap: '⌂',
-      person: '◉',
-      spark: '✳',
-    }[name] || '✳'
-  );
+// Stroke icons drawn on a 24px grid; they inherit currentColor so they follow the theme.
+const iconPaths = {
+  arrow: '<path d="M7 17 17 7M8 7h9v9"/>',
+  search: '<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>',
+  moon: '<path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5Z"/>',
+  sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
+  menu: '<path d="M4 7h16M4 12h16M4 17h10"/>',
+  close: '<path d="M6 6l12 12M18 6 6 18"/>',
+  users:
+    '<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.6-3.6 3.2-5.5 6.5-5.5s5.9 1.9 6.5 5.5"/><path d="M15.5 4.8a3.5 3.5 0 0 1 0 6.4M18 14.7c2 .7 3.2 2.5 3.5 5.3"/>',
+  folder:
+    '<path d="M3 7.5A1.5 1.5 0 0 1 4.5 6H9l2 2.5h8.5A1.5 1.5 0 0 1 21 10v8.5a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 18.5Z"/>',
+  file: '<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8Z"/><path d="M14 3v5h5M9 13h6M9 17h4"/>',
+  compass: '<circle cx="12" cy="12" r="9"/><path d="m15.5 8.5-2 5-5 2 2-5Z"/>',
+  shield:
+    '<path d="M12 3 4.5 6v5.5c0 4.5 3.2 8.4 7.5 9.5 4.3-1.1 7.5-5 7.5-9.5V6Z"/><path d="m9 12 2 2 4-4"/>',
+  user: '<circle cx="12" cy="8" r="4"/><path d="M4 21c.8-4.2 4-6.5 8-6.5s7.2 2.3 8 6.5"/>',
+  chat: '<path d="M20 11.5a8 8 0 0 1-11.6 7.1L4 20l1.4-4.2A8 8 0 1 1 20 11.5Z"/>',
+  facebook:
+    '<path d="M14 8h2.5V4.5H14A3.5 3.5 0 0 0 10.5 8v2.5H8V14h2.5v6.5H14V14h2.5l.5-3.5h-3V8.5A.5.5 0 0 1 14 8Z"/>',
+  drive: '<path d="M8.5 3.5h7l6 10.5-3.5 6h-12l-3.5-6Z"/><path d="M8.5 3.5 12 10l-6 10M15.5 3.5 9.5 14h12"/>',
+  mail: '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m4 7 8 6 8-6"/>',
+  phone:
+    '<path d="M5 4h3.5l1.5 4.5-2 1.5a11 11 0 0 0 6 6l1.5-2 4.5 1.5V19a1.5 1.5 0 0 1-1.5 1.5A16.5 16.5 0 0 1 3.5 5.5 1.5 1.5 0 0 1 5 4Z"/>',
+  globe: '<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/>',
+  instagram:
+    '<rect x="3.5" y="3.5" width="17" height="17" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.2" cy="6.8" r=".6" fill="currentColor"/>',
+  spark:
+    '<path d="M12 3v4M12 17v4M3 12h4M17 12h4M5.6 5.6l2.8 2.8M15.6 15.6l2.8 2.8M5.6 18.4l2.8-2.8M15.6 8.4l2.8-2.8"/>',
+  info: '<circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/>',
+  alert: '<path d="M12 3.5 2.5 20h19Z"/><path d="M12 10v4M12 17h.01"/>',
+  chevron: '<path d="m9 6 6 6-6 6"/>',
+  atom: '<circle cx="12" cy="12" r="1.6" fill="currentColor"/><ellipse cx="12" cy="12" rx="9.5" ry="3.8"/><ellipse cx="12" cy="12" rx="9.5" ry="3.8" transform="rotate(60 12 12)"/><ellipse cx="12" cy="12" rx="9.5" ry="3.8" transform="rotate(120 12 12)"/>',
+  refresh: '<path d="M20 12a8 8 0 1 1-2.3-5.7M20 4v5h-5"/>',
+  logout: '<path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3M10 16l-4-4 4-4M6 12h10"/>',
+};
+function icon(name, cls = '') {
+  return `<svg class="ico ${cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${iconPaths[name] || iconPaths.spark}</svg>`;
 }
+// The logo: a "C" drawn as an open orbit with a gold electron.
+const brandMark = `<svg class="brand-logo" viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="16" class="brand-logo-bg"/><ellipse cx="32" cy="32" rx="22" ry="9" fill="none" class="brand-logo-orbit" stroke-width="2.5" transform="rotate(-32 32 32)"/><path d="M41.5 22.5A13.5 13.5 0 1 0 41.5 41.5" fill="none" class="brand-logo-c" stroke-width="5.5" stroke-linecap="round"/><circle cx="47" cy="17" r="4.5" class="brand-logo-dot"/></svg>`;
+function brand(sub = 'STUDENT COMMONS') {
+  return `<a class="brand" href="/" data-route="/" aria-label="Capital Science">${brandMark}<span class="brand-text"><span>CAPITAL <b>SCIENCE</b></span><small>${sub}</small></span></a>`;
+}
+// Each section is presented as an element tile, like a periodic table cell.
+const sections = [
+  { key: 'subjects', path: '/subjects', num: '01', sym: 'Sg', icon: 'users', sub: 'groups' },
+  { key: 'lectures', path: '/lectures', num: '02', sym: 'Lf', icon: 'folder', sub: 'filesSub' },
+  { key: 'advising', path: '/advising', num: '03', sym: 'Ad', icon: 'compass', sub: 'advisingSub' },
+  { key: 'official', path: '/official', num: '04', sym: 'Og', icon: 'shield', sub: 'officialLabel' },
+];
+function elementBadge(key) {
+  const s = sections.find((x) => x.key === key) || {
+    num: key === 'developer' ? '05' : key === 'profile' ? '06' : '00',
+    sym: key === 'developer' ? 'Mf' : key === 'profile' ? 'Me' : 'Nf',
+  };
+  return `<span class="element-badge" aria-hidden="true"><small>${s.num}</small><b>${s.sym}</b></span>`;
+}
+// Content items store the Arabic title in `title` (and English in `titleEn`), except subject groups,
+// which store English in `title` and Arabic in `titleAr`. Resolve both shapes per language.
+function itemTitle(item) {
+  if (lang === 'ar') return item.titleAr || item.title || item.titleEn || '';
+  return item.titleEn || item.title || item.titleAr || '';
+}
+const categoryEnglish = {
+  'مواد عامة': 'Core courses',
+  سكاشن: 'Sections',
+  موارد: 'Resources',
+  'الإرشاد الأكاديمي': 'Academic advising',
+  'جروبات الدفعة الرسمية': 'Official cohort groups',
+  'جروبات الشعب': 'Department groups',
+  'صفحات رسمية': 'Official pages',
+  'دفعة 2024/2025': 'Class of 2024/25',
+  'دفعة 2025/2026': 'Class of 2025/26',
+  'دفعة 2026/2027': 'Class of 2026/27',
+};
+const fmt = (n) => Number(n || 0).toLocaleString(lang === 'ar' ? 'ar-EG' : 'en-US');
 const avatars = Array.from({ length: 10 }, (_, i) => ({
   id: `art-${String(i + 1).padStart(2, '0')}`,
   src: `/avatars/art-${String(i + 1).padStart(2, '0')}.svg`,
@@ -362,38 +526,71 @@ async function resetOldProfileSession() {
 function avatarGallery(selected = '') {
   return `<fieldset class="avatar-picker"><legend>${t('chooseAvatar')}</legend><div class="avatar-grid">${avatars.map((a, i) => `<label class="avatar-option"><input type="radio" name="avatar-choice" value="${a.src}" ${selected === a.src ? 'checked' : ''}><img src="${a.src}" alt="${t('avatarAlt')} ${i + 1}" loading="lazy"><span>${esc(lang === 'ar' ? a.name : dict.en.avatarNames[i])}</span></label>`).join('')}</div></fieldset>`;
 }
+const systemDark = () => matchMedia('(prefers-color-scheme: dark)').matches;
+const renderedTheme = () => themeOverride || (systemDark() ? 'dark' : 'light');
+function applyTheme() {
+  if (themeOverride) document.documentElement.dataset.theme = themeOverride;
+  else delete document.documentElement.dataset.theme;
+}
+function toggleTheme() {
+  // Pick the opposite of what is on screen; if that equals the system preference, return to "system".
+  const target = renderedTheme() === 'dark' ? 'light' : 'dark';
+  themeOverride = target === (systemDark() ? 'dark' : 'light') ? '' : target;
+  try {
+    if (themeOverride) localStorage.setItem('cs-theme', themeOverride);
+    else localStorage.removeItem('cs-theme');
+  } catch {}
+  applyTheme();
+}
+const currentPath = () => (location.pathname.length > 1 ? location.pathname.replace(/\/+$/, '') : '/');
+function navLink(p, label) {
+  return `<a href="${p}" data-route="${p}" ${currentPath() === p ? 'aria-current="page"' : ''}>${label}</a>`;
+}
 function header() {
   const profile = getProfile(),
     avatar = profile?.picture
-      ? `<img src="${attr(profile.picture)}" alt="${t('profilePhoto')}">`
+      ? `<img src="${attr(profile.picture)}" alt="">`
       : profile?.name
         ? esc(profile.name.slice(0, 1).toLocaleUpperCase())
-        : icon('person');
-  return `<header class="topbar"><a class="brand" href="/" data-route="/"><span class="brand-mark">C<span>·</span></span><span>CAPITAL <b>SCIENCE</b><small>STUDENT COMMONS</small></span></a><nav class="nav">${link('/', t('home'))}${link('/subjects', t('subjects'))}${link('/lectures', t('lectures'))}${link('/advising', t('advising'))}${link('/official', t('official'))}${link('/developer', t('developer'))}</nav><div class="tools"><button class="icon-btn" id="lang" aria-label="${t('language')}">${t('language')}</button><button class="icon-btn theme" id="theme" aria-label="${t('theme')}">${theme === 'light' ? icon('moon') : icon('sun')}</button><a class="avatar-mini" href="/profile" data-route="/profile" aria-label="${t('profile')}" title="${t('profile')}">${avatar}</a><button class="mobile-menu" id="mobile-menu">☰</button></div></header>`;
+        : icon('user');
+  const dark = renderedTheme() === 'dark';
+  return `<header class="topbar"><div class="topbar-inner">${brand()}<nav class="nav" id="site-nav" aria-label="${lang === 'ar' ? 'التنقل الرئيسي' : 'Main'}">${navLink('/', t('home'))}${navLink('/subjects', t('subjects'))}${navLink('/lectures', t('lectures'))}${navLink('/advising', t('advising'))}${navLink('/official', t('official'))}${navLink('/developer', t('developer'))}</nav><div class="tools"><button class="icon-btn lang-btn" id="lang" lang="${lang === 'ar' ? 'en' : 'ar'}">${t('language')}</button><button class="icon-btn" id="theme" aria-label="${dark ? t('toLight') : t('toDark')}" title="${dark ? t('toLight') : t('toDark')}">${dark ? icon('sun') : icon('moon')}</button><a class="avatar-mini" href="/profile" data-route="/profile" aria-label="${t('profile')}" title="${t('profile')}" ${currentPath() === '/profile' ? 'aria-current="page"' : ''}>${avatar}</a><button class="icon-btn mobile-menu" id="mobile-menu" aria-controls="site-nav" aria-expanded="false" aria-label="${t('menu')}">${icon('menu')}</button></div></div></header>`;
 }
 function banner() {
-  return `<a class="dev-banner" href="/developer" data-route="/developer"><span class="banner-dot"></span><span>${t('banner')}</span><span class="banner-arrow">↗</span></a>`;
+  return `<a class="dev-banner" href="/developer" data-route="/developer"><span class="banner-dot" aria-hidden="true"></span><span>${t('banner')}</span>${icon('arrow', 'banner-arrow')}</a>`;
 }
 function footer() {
-  return `<footer class="footer"><div class="foot-main"><a class="brand" href="/" data-route="/"><span class="brand-mark">C<span>·</span></span><span>CAPITAL <b>SCIENCE</b><small>STUDENT COMMONS</small></span></a><p>${t('made')}</p></div><div class="foot-links">${link('/subjects', t('subjects'))}${link('/advising', t('advising'))}${link('/official', t('official'))}${link('/developer', 'Morfi ↗')}</div><div class="foot-bottom"><span>© 2026 Capital Science · Student made</span><a href="/admin">${t('admin')}</a></div></footer>`;
+  return `<footer class="footer"><div class="footer-inner"><div class="foot-main">${brand()}<p>${t('made')}</p></div><nav class="foot-links" aria-label="${lang === 'ar' ? 'روابط الموقع' : 'Site links'}">${sections.map((s) => navLink(s.path, t(s.key))).join('')}${navLink('/developer', t('developer'))}</nav><div class="foot-bottom"><span>© 2026 Capital Science · ${lang === 'ar' ? 'صُنع بإيد طالب' : 'Student made'}</span><a href="/admin">${t('admin')}</a></div></div></footer>`;
 }
 function categoryTitle(item) {
   return lang === 'ar'
     ? item.categoryAr || item.category || t('all')
-    : item.categoryEn || item.category || t('all');
+    : item.categoryEn ||
+        categoryEnglish[item.category] ||
+        categoryEnglish[item.categoryAr] ||
+        item.category ||
+        t('all');
 }
 function cardNote(item) {
-  if (!item.note) return '';
-  if (item.note === 'المجلد الرئيسي' || item.note === 'Year root')
+  const note = lang === 'en' && item.noteEn ? item.noteEn : item.note;
+  if (!note) return '';
+  if (note === 'المجلد الرئيسي' || note === 'Year root')
     return lang === 'ar' ? 'المجلد الرئيسي' : 'Year root';
-  return `${lang === 'ar' ? 'داخل: ' : 'In: '}${item.note}`;
+  // Drive catalog notes are folder paths; notes on regular groups are plain descriptions.
+  return item.type ? `${lang === 'ar' ? 'داخل: ' : 'In: '}${note}` : note;
 }
+function kindIcon(item) {
+  if (item.type === 'folder') return 'folder';
+  if (item.kind === 'facebook') return 'facebook';
+  if (item.kind === 'drive' || item.file) return item.kind === 'drive' && !item.type ? 'drive' : 'file';
+  return 'chat';
+}
+const safeHref = (u) => (/^https?:\/\//i.test(String(u || '')) ? attr(u) : '#');
 function card(item, i) {
-  const title =
-      lang === 'ar' ? item.title || item.titleAr || item.titleEn : item.titleEn || item.title || item.titleAr,
+  const title = itemTitle(item),
     isFolder = item.type === 'folder',
     note = cardNote(item);
-  return `<article class="group-card reveal" data-category="${attr(item.category || '')}" style="--delay:${Math.min(i % 6, 5) * 55}ms"><div class="card-top"><span class="card-icon">${item.kind === 'facebook' ? 'f' : isFolder ? '▱' : '▤'}</span><span class="card-category">${esc(categoryTitle(item))}</span></div><h3>${esc(title)}</h3>${note ? `<p>${esc(note)}</p>` : ''}<a class="card-link" href="${attr(item.url)}" target="_blank" rel="noopener">${item.file ? t('download') : isFolder ? t('browseDrive') : t('open')} <span>↗</span></a></article>`;
+  return `<article class="group-card reveal kind-${attr(item.kind || 'link')}" data-category="${attr(item.category || '')}" style="--delay:${Math.min(i % 6, 5) * 50}ms"><div class="card-top"><span class="card-icon">${icon(kindIcon(item))}</span><span class="card-category">${esc(categoryTitle(item))}</span></div><h3>${esc(title)}</h3>${note ? `<p>${esc(note)}</p>` : ''}<a class="card-link" href="${safeHref(item.url)}" target="_blank" rel="noopener noreferrer">${item.file ? t('download') : isFolder ? t('browseDrive') : t('open')} ${icon('arrow')}<span class="visually-hidden"> · ${esc(title)}</span></a></article>`;
 }
 function esc(s = '') {
   return String(s).replace(
@@ -404,49 +601,72 @@ function esc(s = '') {
 function attr(s = '') {
   return esc(s);
 }
+// Three tilted orbits with electrons travelling along them (SVG motion paths), and the brand letter as nucleus.
+function atom(size = '') {
+  const orbit = 'M20 200a180 66 0 1 0 360 0a180 66 0 1 0-360 0';
+  const ring = (deg, dur, cls) =>
+    `<g transform="rotate(${deg} 200 200)"><ellipse cx="200" cy="200" rx="180" ry="66" class="atom-ring"/><circle r="7" class="atom-electron ${cls}"><animateMotion dur="${dur}s" repeatCount="indefinite" path="${orbit}"/></circle></g>`;
+  return `<div class="atom ${size}"><svg viewBox="0 0 400 400" aria-hidden="true">${ring(0, 7, 'gold')}${ring(60, 9, 'mint')}${ring(120, 11, 'gold')}</svg><div class="atom-nucleus"><span>C</span></div></div>`;
+}
+function atomArt() {
+  // Three tilted orbits with electrons; the nucleus carries the brand letter.
+  return `<div class="hero-art" aria-hidden="true">${atom()}<div class="float-card float-one"><span class="float-icon">${icon('users')}</span><span><b>${fmt(db.subjects?.length)} ${t('statGroups')}</b><small>${t('latest')}</small></span></div><div class="float-card float-two"><span class="float-icon gold">${icon('shield')}</span><span><b>${t('officialLabel')}</b><small>2026 — 2030</small></span></div></div>`;
+}
 function home() {
-  return `<main class="home"><section class="hero"><div class="hero-copy"><div class="eyebrow"><span></span>${t('heroTag')}</div><h1>${t('heroTitle').replace('\n', '<br>')}</h1><p>${t('heroCopy')}</p><a class="button primary" href="/subjects" data-route="/subjects">${t('explore')} <span>↗</span></a><div class="hero-note"><div class="note-avatars"><span>م</span><span>S</span><span>ع</span><b>+</b></div><span>${t('made')}</span></div></div><div class="hero-art"><div class="orbit orbit-one"></div><div class="orbit orbit-two"></div><div class="art-center"><div class="art-arch"><span> C </span></div><div class="art-leaf leaf-a">✳</div><div class="art-leaf leaf-b">✦</div></div><div class="float-card float-one"><span class="float-icon">✳</span><span><b>${db.subjects.length}+ ${t('groups')}</b><small>${t('latest')}</small></span></div><div class="float-card float-two"><span class="float-icon green">↗</span><span><b>${t('officialLabel')}</b><small>2026 — 2030</small></span></div><div class="art-caption">01 — 04 <i></i> STAY CURIOUS</div></div></section><section class="home-bottom"><div class="bottom-heading"><span class="section-index">01 / THE SPACE</span><h2>${t('latest')}</h2></div><div class="quick-grid">${[
-    ['✳', '/subjects', 'subjects', 'groups'],
-    ['▤', '/lectures', 'lectures', 'filesTitle'],
-    ['⌂', '/advising', 'advising', 'advisory'],
-    ['↗', '/official', 'official', 'officialLabel'],
-  ]
+  const stats = [
+    [db.subjects?.length, 'statGroups'],
+    [db.driveFiles?.length || db.lectures?.length, 'statFiles'],
+    [db.advising?.length, 'statAdvising'],
+    [db.official?.length, 'statOfficial'],
+  ];
+  return `<main class="home"><section class="hero"><div class="hero-copy"><div class="eyebrow"><span class="eyebrow-dot"></span>${t('heroTag')}</div><h1 tabindex="-1">${t('heroLead')}<br><span class="hero-accent">${t('heroAccent')}<svg viewBox="0 0 300 18" preserveAspectRatio="none" aria-hidden="true"><path d="M3 13C60 5 140 3 297 9"/></svg></span>.</h1><p>${t('heroCopy')}</p><div class="hero-actions"><a class="button primary" href="/subjects" data-route="/subjects">${t('explore')} ${icon('arrow')}</a><a class="button ghost" href="/lectures" data-route="/lectures">${icon('folder')} ${t('lectures')}</a></div></div>${atomArt()}</section><section class="stats" aria-label="${lang === 'ar' ? 'أرقام الموقع' : 'Site numbers'}">${stats.map(([n, k]) => `<div class="stat reveal"><b>${fmt(n)}</b><span>${t(k)}</span></div>`).join('')}</section><section class="home-bottom"><div class="bottom-heading"><span class="section-index">${t('heroKicker')}</span><h2>${t('sectionsTitle')}</h2><p>${t('sectionsCopy')}</p></div><div class="quick-grid">${sections
     .map(
-      ([ic, p, k, sub]) =>
-        `<a class="quick-card" href="${p}" data-route="${p}"><span class="quick-icon">${ic}</span><span class="quick-name">${t(k)}<small>${t(sub)}</small></span><span class="quick-arrow">↗</span></a>`,
+      (s, i) =>
+        `<a class="quick-card element-tile reveal" href="${s.path}" data-route="${s.path}" style="--delay:${i * 70}ms"><span class="tile-num">${s.num}</span><span class="tile-icon">${icon(s.icon)}</span><span class="tile-symbol" aria-hidden="true">${s.sym}</span><span class="quick-name">${t(s.key)}<small>${t(s.sub)}</small></span>${icon('arrow', 'quick-arrow')}</a>`,
     )
-    .join('')}</div></section></main>`;
+    .join(
+      '',
+    )}</div></section><section class="idea-band reveal"><div><span class="section-index">${t('made')}</span><h2>${t('ideaTitle')}</h2><p>${t('ideaCopy')}</p></div><a class="button primary" href="/developer" data-route="/developer">${t('ideaCta')} ${icon('arrow')}</a></section></main>`;
+}
+function notFound() {
+  return `<main class="page not-found"><div class="nf-tile" aria-hidden="true"><small>404</small><b>Nf</b><span>Not found</span></div><h1 tabindex="-1">${t('notFoundTitle')}</h1><p>${t('notFoundCopy')}</p><a class="button primary" href="/" data-route="/">${t('backHome')} ${icon('arrow')}</a></main>`;
 }
 function collection(key, title, desc = '', files = false) {
   const items = db[key] || [],
-    categories = [...new Set(items.map((x) => x.category).filter(Boolean))],
-    sectionNumber = key === 'subjects' ? '02' : key === 'lectures' ? '03' : key === 'advising' ? '04' : '05';
+    categories = [...new Set(items.map((x) => x.category).filter(Boolean))];
   if (key === 'lectures') return lectureLibrary(title, desc);
-  return `<main class="page"><div class="page-heading"><span class="section-index">${sectionNumber} / ${key.toUpperCase()}</span><h1>${title}</h1><p>${desc}</p></div>${key === 'advising' ? `<div class="notice"><span>✳</span><p>${t('advisory')}</p></div>` : ''}${key === 'official' ? `<div class="notice warning"><span>!</span><p>${t('cohortwarn')}</p></div>` : ''}${items.length ? `<div class="filter-row"><div class="filters"><button class="filter active" data-filter="all">${t('all')}</button>${categories.map((c) => `<button class="filter" data-filter="${attr(c)}">${esc(c)}</button>`).join('')}</div><label class="search"><span>${icon('search')}</span><input id="search" placeholder="${t('search')}"></label></div><div class="card-grid" id="cards">${items.map(card).join('')}</div>` : `<div class="empty-state"><span>${files ? '▤' : '✳'}</span><h2>${files ? t('emptyFiles') : t('empty')}</h2><p>${files ? '' : t('made')}</p></div>`}${key === 'official' && db.contacts?.length ? `<section class="contacts"><span class="section-index">STUDENT SUPPORT</span><h2>${t('contacts')}</h2><div class="contact-row">${db.contacts.map((c) => `<a href="tel:${attr(c.phone)}" class="contact-chip"><span>${esc(c.name)}</span><small>${esc(c.phone)}</small></a>`).join('')}</div></section>` : ''}</main>`;
+  return `<main class="page section-${key}">${pageHeading(key, title, desc)}${key === 'advising' ? `<div class="notice">${icon('info')}<p>${t('advisory')}</p></div>` : ''}${key === 'official' ? `<div class="notice warning">${icon('alert')}<p>${t('cohortwarn')}</p></div>` : ''}${items.length ? `${filterRow(categories, items, t('search'))}<div class="card-grid" id="cards">${items.map(card).join('')}</div><p class="empty-state compact" id="no-results" hidden>${t('noResults')}</p>` : `<div class="empty-state">${icon(files ? 'folder' : 'spark')}<h2>${files ? t('emptyFiles') : t('empty')}</h2><p>${files ? '' : t('made')}</p></div>`}${key === 'official' && db.contacts?.length ? `<section class="contacts"><span class="section-index">STUDENT SUPPORT</span><h2>${t('contacts')}</h2><div class="contact-row">${db.contacts.map((c) => `<a href="tel:${attr(c.phone)}" class="contact-chip"><span class="contact-icon">${icon('phone')}</span><span><b>${esc(c.name)}</b><small dir="ltr">${esc(c.phone)}</small></span></a>`).join('')}</div></section>` : ''}</main>`;
+}
+function pageHeading(key, title, desc, extra = '') {
+  return `<div class="page-heading">${elementBadge(key)}<div><h1 tabindex="-1">${title}</h1><p>${desc}</p>${extra}</div></div>`;
+}
+function filterRow(categories, items, placeholder) {
+  return `<div class="filter-row"><div class="filters" role="group" aria-label="${lang === 'ar' ? 'تصفية حسب التصنيف' : 'Filter by category'}"><button class="filter active" data-filter="all" aria-pressed="true">${t('all')}</button>${categories
+    .map((c) => {
+      const sample = items.find((x) => x.category === c);
+      return `<button class="filter" data-filter="${attr(c)}" aria-pressed="false">${esc(categoryTitle(sample || { category: c }))}</button>`;
+    })
+    .join(
+      '',
+    )}</div><label class="search">${icon('search')}<input id="search" type="search" placeholder="${placeholder}" aria-label="${placeholder}"></label></div>`;
 }
 function lectureLibrary(title, desc) {
   const items = db.driveFiles || db.lectures || [],
     categories = [...new Set(items.map((x) => x.category).filter(Boolean))];
-  return `<main class="page lecture-library"><div class="page-heading"><span class="section-index">03 / LECTURE FILES</span><h1>${title}</h1><p>${desc}</p><p class="drive-path-note">${items.length.toLocaleString(lang === 'ar' ? 'ar-EG' : 'en-US')} ${t('indexedItems')} · ${t('flatLibrary')}</p></div>${
+  return `<main class="page lecture-library">${pageHeading('lectures', title, desc, `<p class="drive-path-note">${icon('drive')} <span>${fmt(items.length)} ${t('indexedItems')} · ${t('flatLibrary')}</span></p>`)}${
     items.length
-      ? `<div class="filter-row"><div class="filters"><button class="filter active" data-filter="all">${t('all')}</button>${categories
-          .map((c) => {
-            const sample = items.find((x) => x.category === c);
-            return `<button class="filter" data-filter="${attr(c)}">${esc(categoryTitle(sample || { category: c }))}</button>`;
-          })
-          .join(
-            '',
-          )}</div><label class="search"><span>${icon('search')}</span><input id="search" placeholder="${t('searchFiles')}"></label></div><div id="drive-tree" class="drive-tree"></div>`
-      : `<div class="empty-state"><span>▤</span><h2>${t('emptyFiles')}</h2></div>`
+      ? `${filterRow(categories, items, t('searchFiles'))}<div id="drive-tree" class="drive-tree"></div>`
+      : `<div class="empty-state">${icon('folder')}<h2>${t('emptyFiles')}</h2></div>`
   }</main>`;
 }
 function developer() {
-  return `<main class="page developer-page"><div class="page-heading"><span class="section-index">06 / THE MAKER</span><h1>${t('devTitle')}</h1><p>${t('devCopy')}</p></div><div class="dev-card"><div class="dev-monogram">M<span>·</span></div><div class="dev-details"><span class="section-index">${t('role')}</span><h2>${t('devName')} · Morfi</h2><div class="dev-meta"><span><b>${t('brandLabel')}:</b> Morphine</span><span><b>${t('locationLabel')}:</b> ${t('location')}</span><span>${t('experience')}</span></div><p>${t('specialty')}</p><p class="dev-tools"><b>${t('tools')}:</b> After Effects · Premiere Pro · Photoshop · Canva</p><div class="dev-links"><a href="https://morfi28i.github.io/portfolio/" target="_blank" rel="noopener">${t('portfolio')} ↗</a><a href="https://wa.me/201009088676" target="_blank" rel="noopener">${t('whatsapp')} ↗</a><a href="https://instagram.com/Morfi.28i" target="_blank" rel="noopener">${t('instagram')} ↗</a><a href="mailto:sdyqs0437@gmail.com">${t('email')}: ${t('emailValue')}</a></div><p>${t('about')}</p></div><div class="dev-lines">✳</div></div><div class="dev-quote"><span>“</span><p>${t('banner')}</p></div></main>`;
+  const tools = ['After Effects', 'Premiere Pro', 'Photoshop', 'Canva'];
+  return `<main class="page developer-page">${pageHeading('developer', t('devTitle'), t('devDesc'))}<div class="dev-card"><div class="dev-monogram" aria-hidden="true"><span>M</span><i></i></div><div class="dev-details"><span class="section-index">${t('role')}</span><h2>${t('devName')} · Morfi</h2><p class="dev-lead">${t('devCopy')}</p><dl class="dev-meta"><div><dt>${t('brandLabel')}</dt><dd>Morphine</dd></div><div><dt>${t('locationLabel')}</dt><dd>${t('location')}</dd></div><div><dt>${lang === 'ar' ? 'الخبرة' : 'Experience'}</dt><dd>${t('experience')}</dd></div></dl><p>${t('about')}</p><div class="dev-tools" aria-label="${t('tools')}">${tools.map((x) => `<span>${x}</span>`).join('')}</div><div class="dev-links"><a href="https://morfi28i.github.io/portfolio/" target="_blank" rel="noopener noreferrer">${icon('globe')} ${t('portfolio')}</a><a href="https://wa.me/201009088676" target="_blank" rel="noopener noreferrer">${icon('chat')} ${t('whatsapp')}</a><a href="https://instagram.com/Morfi.28i" target="_blank" rel="noopener noreferrer">${icon('instagram')} ${t('instagram')}</a><a href="mailto:sdyqs0437@gmail.com">${icon('mail')} <span dir="ltr">${t('emailValue')}</span></a></div></div></div><figure class="dev-quote"><span aria-hidden="true">“</span><blockquote>${t('banner')}</blockquote></figure></main>`;
 }
 function profilePage() {
   const p = getProfile();
   if (!p)
-    return `<main class="page profile-page"><div class="page-heading"><span class="section-index">07 / STUDENT PROFILE</span><h1>${t('profile')}</h1><p>${t('signedOut')}</p></div><section class="profile-signed-out"><span class="profile-empty-icon">◉</span><h2>${t('signedOut')}</h2><p>${firebaseEnabled ? t('privacy') : t('firebaseNotice')}</p><button class="button primary" id="create-profile" ${firebaseEnabled ? '' : 'disabled'}>${t('createProfile')} <span>↗</span></button></section></main>`;
+    return `<main class="page profile-page">${pageHeading('profile', t('profile'), t('signedOut'))}<section class="profile-signed-out"><span class="profile-empty-icon">${icon('user')}</span><h2>${t('signedOut')}</h2><p>${firebaseEnabled ? t('privacy') : t('firebaseNotice')}</p><button class="button primary" id="create-profile" ${firebaseEnabled ? '' : 'disabled'}>${t('createProfile')} ${icon('arrow')}</button></section></main>`;
   const profileNames = [p.firstName || '', p.fatherName || '', p.lastName || ''];
   if (!profileNames.some(Boolean)) {
     const parts = String(p.name || '')
@@ -460,10 +680,12 @@ function profilePage() {
       avatars.find((a) => p.picture === a.src || String(p.picture || '').endsWith(a.src))?.src ||
       avatarForGender(p.gender),
     currentPicture =
-      /\/uploads\//.test(p.picture || '') || /^data:image\/(png|jpeg|webp);base64,/.test(p.picture || '')
+      /\/uploads\//.test(p.picture || '') ||
+      /^data:image\/(png|jpeg|webp);base64,/.test(p.picture || '') ||
+      /^https:\/\//.test(p.picture || '')
         ? p.picture
         : currentAvatar;
-  return `<main class="page profile-page"><div class="page-heading"><span class="section-index">07 / STUDENT PROFILE</span><h1>${t('profile')}</h1><p>${t('profileIntro')}</p></div><section class="profile-card"><div class="profile-card-head"><img class="profile-photo" src="${attr(currentPicture)}" alt="${t('profilePhoto')}"><div><span class="section-index">${t('editProfile')}</span><h2>${esc(p.name)}</h2><p>${t('emailPrivate')}</p><small class="account-id">${p.id ? `ID · ${esc(p.id)}` : t('legacyProfile')}</small></div><button class="button ghost" id="logout">${t('logout')} ↗</button></div><form id="profile-form" class="profile-form"><input type="hidden" name="picture" id="profile-picture" value="${attr(currentPicture)}"><div class="profile-fields"><label>${lang === 'ar' ? 'الاسم الأول' : 'First name'}<input name="firstName" value="${attr(profileNames[0])}" required maxlength="50" autocomplete="given-name"></label><label>${lang === 'ar' ? 'اسم الوالد' : 'Father’s name'}<input name="fatherName" value="${attr(profileNames[1])}" required maxlength="50" autocomplete="additional-name"></label><label>${lang === 'ar' ? 'اسم العائلة' : 'Family name'}<input name="lastName" value="${attr(profileNames[2])}" required maxlength="50" autocomplete="family-name"></label><label>${t('gender')}<select name="gender" required><option value="male" ${p.gender === 'male' ? 'selected' : ''}>${t('male')}</option><option value="female" ${p.gender === 'female' ? 'selected' : ''}>${t('female')}</option><option value="other" ${p.gender === 'other' ? 'selected' : ''}>${t('other')}</option></select></label><label class="profile-email">${p.email ? t('gmail') : lang === 'ar' ? 'رقم الهاتف الموثق' : 'Verified phone'}<input name="email" type="${p.email ? 'email' : 'text'}" value="${attr(p.email || p.phone || '')}" readonly ${p.email ? 'required' : 'disabled'}></label></div><p class="profile-private-note">${p.id ? t('profileLocalOnly') : t('legacyProfile')} ${p.id ? t('registeredEmail') : ''}</p>${p.id ? `<section class="contact-change-card"><h3>${lang === 'ar' ? 'تغيير البريد أو الهاتف' : 'Change email or phone'}</h3><p>${lang === 'ar' ? 'لا يعتمد أي تغيير قبل تأكيد ملكية وسيلة التواصل الجديدة.' : 'A new contact method is not saved until you verify it.'}</p><div class="contact-change-row"><label>${lang === 'ar' ? 'البريد الجديد' : 'New email'}<input id="new-contact-email" type="email" inputmode="email" autocomplete="email" placeholder="name@example.com"></label><button class="button ghost" id="send-email-change" type="button" hidden disabled>${lang === 'ar' ? 'إرسال رابط التحقق' : 'Send verification link'}</button></div><p id="email-change-status" class="contact-status" aria-live="polite"></p><button class="button ghost" id="refresh-email-change" type="button">${lang === 'ar' ? 'تحققت من الرابط · تحديث الملف' : 'I verified the link · Refresh profile'}</button><div class="contact-change-row phone-change-row"><label>${lang === 'ar' ? 'مفتاح الدولة' : 'Country code'}<select id="new-phone-country"><option value="+20" selected>مصر (+20)</option><option value="+966">السعودية (+966)</option><option value="+971">الإمارات (+971)</option><option value="+965">الكويت (+965)</option><option value="+974">قطر (+974)</option><option value="+962">الأردن (+962)</option><option value="+1">United States (+1)</option><option value="+44">United Kingdom (+44)</option></select></label><label>${lang === 'ar' ? 'رقم الهاتف الجديد' : 'New phone number'}<input id="new-contact-phone" type="tel" inputmode="tel" autocomplete="tel-national" placeholder="01012345678"></label><button class="button ghost" id="send-phone-change" type="button" hidden disabled>${lang === 'ar' ? 'إرسال كود SMS' : 'Send SMS code'}</button></div><div id="firebase-phone-update-recaptcha"></div><div id="phone-change-code-area" hidden><label>${lang === 'ar' ? 'كود SMS' : 'SMS code'}<input id="phone-change-code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="000000"></label><button class="button ghost" id="confirm-phone-change" type="button">${lang === 'ar' ? 'تأكيد الرقم' : 'Verify phone'}</button></div><p id="phone-change-status" class="contact-status" aria-live="polite"></p></section>` : ''}${avatarGallery(currentAvatar)}<label class="upload-photo">${t('uploadPhoto')}<input type="file" id="profile-upload" accept="image/png,image/jpeg,image/webp"></label><p id="profile-error" class="form-error" aria-live="polite"></p><div class="profile-actions"><button class="button primary" type="submit" ${firebaseEnabled && p.id ? '' : 'disabled'}>${t('saveProfile')} <span>↗</span></button></div></form></section>${p.id ? `<section class="profile-card mailbox-card"><div class="profile-card-head"><div><span class="section-index">PRIVATE · INBOX</span><h2>${lang === 'ar' ? 'صندوق البريد' : 'Inbox'}</h2><p>${lang === 'ar' ? 'رسائلك الخاصة من إدارة الموقع' : 'Private messages from site administration'}</p></div><button class="button ghost" id="refresh-mailbox">${lang === 'ar' ? 'تحديث' : 'Refresh'} ↻</button></div><div id="mailbox-list" aria-live="polite"><p class="mailbox-loading">${lang === 'ar' ? 'جارٍ تحميل الرسائل…' : 'Loading messages…'}</p></div></section>` : `<section class="profile-card mailbox-card"><h2>${lang === 'ar' ? 'صندوق البريد' : 'Inbox'}</h2><p>${t('legacyProfile')}</p><button class="button primary" id="link-existing-account">${lang === 'ar' ? 'تسجيل الدخول وربط الملف' : 'Sign in and link profile'} ↗</button></section>`}</main>`;
+  return `<main class="page profile-page">${pageHeading('profile', t('profile'), t('profileIntro'))}<section class="profile-card"><div class="profile-card-head"><img class="profile-photo" src="${attr(currentPicture)}" alt="${t('profilePhoto')}"><div><span class="section-index">${t('editProfile')}</span><h2>${esc(p.name)}</h2><p>${t('emailPrivate')}</p><small class="account-id">${p.id ? `ID · ${esc(p.id)}` : t('legacyProfile')}</small></div><button class="button ghost" id="logout">${icon('logout')} ${t('logout')}</button></div><form id="profile-form" class="profile-form"><input type="hidden" name="picture" id="profile-picture" value="${attr(currentPicture)}"><div class="profile-fields"><label>${lang === 'ar' ? 'الاسم الأول' : 'First name'}<input name="firstName" value="${attr(profileNames[0])}" required maxlength="50" autocomplete="given-name"></label><label>${lang === 'ar' ? 'اسم الوالد' : 'Father’s name'}<input name="fatherName" value="${attr(profileNames[1])}" required maxlength="50" autocomplete="additional-name"></label><label>${lang === 'ar' ? 'اسم العائلة' : 'Family name'}<input name="lastName" value="${attr(profileNames[2])}" required maxlength="50" autocomplete="family-name"></label><label>${t('gender')}<select name="gender" required><option value="male" ${p.gender === 'male' ? 'selected' : ''}>${t('male')}</option><option value="female" ${p.gender === 'female' ? 'selected' : ''}>${t('female')}</option><option value="other" ${p.gender === 'other' ? 'selected' : ''}>${t('other')}</option></select></label><label class="profile-email">${p.email ? t('gmail') : lang === 'ar' ? 'رقم الهاتف الموثق' : 'Verified phone'}<input name="email" type="${p.email ? 'email' : 'text'}" value="${attr(p.email || p.phone || '')}" readonly ${p.email ? 'required' : 'disabled'}></label></div><p class="profile-private-note">${p.id ? t('profileLocalOnly') : t('legacyProfile')} ${p.id ? t('registeredEmail') : ''}</p>${p.id ? `<section class="contact-change-card"><h3>${lang === 'ar' ? 'تغيير البريد أو الهاتف' : 'Change email or phone'}</h3><p>${lang === 'ar' ? 'لا يعتمد أي تغيير قبل تأكيد ملكية وسيلة التواصل الجديدة.' : 'A new contact method is not saved until you verify it.'}</p><div class="contact-change-row"><label>${lang === 'ar' ? 'البريد الجديد' : 'New email'}<input id="new-contact-email" type="email" inputmode="email" autocomplete="email" placeholder="name@example.com"></label><button class="button ghost" id="send-email-change" type="button" hidden disabled>${lang === 'ar' ? 'إرسال رابط التحقق' : 'Send verification link'}</button></div><p id="email-change-status" class="contact-status" aria-live="polite"></p><button class="button ghost" id="refresh-email-change" type="button">${lang === 'ar' ? 'تحققت من الرابط · تحديث الملف' : 'I verified the link · Refresh profile'}</button><div class="contact-change-row phone-change-row"><label>${lang === 'ar' ? 'مفتاح الدولة' : 'Country code'}<select id="new-phone-country"><option value="+20" selected>مصر (+20)</option><option value="+966">السعودية (+966)</option><option value="+971">الإمارات (+971)</option><option value="+965">الكويت (+965)</option><option value="+974">قطر (+974)</option><option value="+962">الأردن (+962)</option><option value="+1">United States (+1)</option><option value="+44">United Kingdom (+44)</option></select></label><label>${lang === 'ar' ? 'رقم الهاتف الجديد' : 'New phone number'}<input id="new-contact-phone" type="tel" inputmode="tel" autocomplete="tel-national" placeholder="01012345678"></label><button class="button ghost" id="send-phone-change" type="button" hidden disabled>${lang === 'ar' ? 'إرسال كود SMS' : 'Send SMS code'}</button></div><div id="firebase-phone-update-recaptcha"></div><div id="phone-change-code-area" hidden><label>${lang === 'ar' ? 'كود SMS' : 'SMS code'}<input id="phone-change-code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="000000"></label><button class="button ghost" id="confirm-phone-change" type="button">${lang === 'ar' ? 'تأكيد الرقم' : 'Verify phone'}</button></div><p id="phone-change-status" class="contact-status" aria-live="polite"></p></section>` : ''}${avatarGallery(currentAvatar)}<label class="upload-photo">${t('uploadPhoto')}<input type="file" id="profile-upload" accept="image/png,image/jpeg,image/webp"></label><p id="profile-error" class="form-error" aria-live="polite"></p><div class="profile-actions"><button class="button primary" type="submit" ${firebaseEnabled && p.id ? '' : 'disabled'}>${t('saveProfile')} ${icon('arrow')}</button></div></form></section>${p.id ? `<section class="profile-card mailbox-card"><div class="profile-card-head"><div><span class="section-index">PRIVATE · INBOX</span><h2>${lang === 'ar' ? 'صندوق البريد' : 'Inbox'}</h2><p>${lang === 'ar' ? 'رسائلك الخاصة من إدارة الموقع' : 'Private messages from site administration'}</p></div><button class="button ghost" id="refresh-mailbox">${icon('refresh')} ${lang === 'ar' ? 'تحديث' : 'Refresh'}</button></div><div id="mailbox-list" aria-live="polite"><p class="mailbox-loading">${lang === 'ar' ? 'جارٍ تحميل الرسائل…' : 'Loading messages…'}</p></div></section>` : `<section class="profile-card mailbox-card"><h2>${lang === 'ar' ? 'صندوق البريد' : 'Inbox'}</h2><p>${t('legacyProfile')}</p><button class="button primary" id="link-existing-account">${lang === 'ar' ? 'تسجيل الدخول وربط الملف' : 'Sign in and link profile'} ${icon('arrow')}</button></section>`}</main>`;
 }
 function wireAvatarPicker(root) {
   const hidden = root.querySelector('[name="picture"]'),
@@ -808,31 +1030,47 @@ function showToast(message) {
   setTimeout(() => node.remove(), 3200);
 }
 function shell(content) {
-  return `<div class="shell">${header()}<div class="content">${banner()}<div id="page" class="page-transition">${content}</div></div>${footer()}</div>`;
+  return `<div class="shell">${header()}<div class="content">${banner()}<div id="page" class="page-transition" tabindex="-1">${content}</div></div>${footer()}</div>`;
 }
 function render() {
   document.documentElement.lang = lang;
   document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
-  document.body.dataset.theme = theme;
-  const p = location.pathname;
-  let content =
-    p === '/subjects'
-      ? collection('subjects', t('subjectsTitle'), t('heroCopy'))
-      : p === '/lectures'
-        ? collection('lectures', t('filesTitle'), t('heroCopy'), true)
-        : p === '/advising'
-          ? collection('advising', t('advisingTitle'), t('advisory'))
-          : p === '/official'
-            ? collection('official', t('officialTitle'), t('heroCopy'))
-            : p === '/developer'
-              ? developer()
-              : p === '/profile'
-                ? profilePage()
-                : home();
-  if (p === '/admin' || p === '/admin/') return;
+  applyTheme();
+  const p = currentPath();
+  if (p === '/admin') return;
+  const content =
+    p === '/'
+      ? home()
+      : p === '/subjects'
+        ? collection('subjects', t('subjectsTitle'), t('subjectsDesc'))
+        : p === '/lectures'
+          ? collection('lectures', t('filesTitle'), t('lecturesDesc'), true)
+          : p === '/advising'
+            ? collection('advising', t('advisingTitle'), t('advisory'))
+            : p === '/official'
+              ? collection('official', t('officialTitle'), t('officialDesc'))
+              : p === '/developer'
+                ? developer()
+                : p === '/profile'
+                  ? profilePage()
+                  : notFound();
+  const titles = {
+    '/': '',
+    '/subjects': t('subjectsTitle'),
+    '/lectures': t('filesTitle'),
+    '/advising': t('advisingTitle'),
+    '/official': t('officialTitle'),
+    '/developer': t('developer'),
+    '/profile': t('profile'),
+  };
+  const pageTitle = p in titles ? titles[p] : t('pageMissing');
+  document.title = `${pageTitle ? `${pageTitle} · ` : ''}Capital Science — ${lang === 'ar' ? 'كلية العلوم' : 'Faculty of Science'}`;
+  const skip = document.querySelector('.skip-to-content');
+  if (skip) skip.textContent = lang === 'ar' ? 'تخطي إلى المحتوى' : 'Skip to content';
   app.innerHTML = shell(content);
   document.querySelectorAll('[data-route]').forEach((a) =>
     a.addEventListener('click', (e) => {
+      if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
       e.preventDefault();
       navigate(a.dataset.route);
     }),
@@ -840,37 +1078,61 @@ function render() {
   document.querySelector('#lang').onclick = () => {
     lang = lang === 'ar' ? 'en' : 'ar';
     localStorage.setItem('cs-lang', lang);
-    render();
+    transition(render);
   };
   document.querySelector('#theme').onclick = () => {
-    theme = theme === 'light' ? 'dark' : 'light';
-    localStorage.setItem('cs-theme', theme);
+    toggleTheme();
     render();
+    document.querySelector('#theme')?.focus();
   };
-  document.querySelector('#mobile-menu').onclick = () =>
-    document.querySelector('.nav').classList.toggle('nav-open');
+  const menuButton = document.querySelector('#mobile-menu'),
+    nav = document.querySelector('.nav');
+  const setMenu = (open) => {
+    nav.classList.toggle('nav-open', open);
+    document.body.classList.toggle('menu-open', open);
+    menuButton.setAttribute('aria-expanded', String(open));
+    menuButton.setAttribute('aria-label', open ? t('closeMenu') : t('menu'));
+    menuButton.innerHTML = icon(open ? 'close' : 'menu');
+  };
+  menuButton.onclick = () => setMenu(!nav.classList.contains('nav-open'));
+  nav.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      setMenu(false);
+      menuButton.focus();
+    }
+  });
   if (p === '/profile') wireProfile();
   else if (p === '/lectures') wireLectureFilters();
   else wireFilters();
   observe();
 }
+function setActiveFilter(button) {
+  document.querySelectorAll('.filter').forEach((b) => {
+    b.classList.toggle('active', b === button);
+    b.setAttribute('aria-pressed', String(b === button));
+  });
+}
 function wireFilters() {
   const search = document.querySelector('#search'),
-    cards = document.querySelectorAll('.group-card');
+    cards = document.querySelectorAll('.group-card'),
+    empty = document.querySelector('#no-results');
   let filter = 'all';
   function apply() {
-    const q = (search?.value || '').toLowerCase();
+    const q = (search?.value || '').trim().toLocaleLowerCase();
+    let shown = 0;
     cards.forEach((c) => {
-      const category = c.querySelector('.card-category')?.textContent || '';
-      const match = (filter === 'all' || category === filter) && c.textContent.toLowerCase().includes(q);
+      // Compare the raw category stored on the card, not its translated label, so filters work in both languages.
+      const match =
+        (filter === 'all' || c.dataset.category === filter) && c.textContent.toLocaleLowerCase().includes(q);
       c.classList.toggle('hidden', !match);
+      if (match) shown++;
     });
+    if (empty) empty.hidden = shown > 0;
   }
   document.querySelectorAll('.filter').forEach(
     (b) =>
       (b.onclick = () => {
-        document.querySelector('.filter.active')?.classList.remove('active');
-        b.classList.add('active');
+        setActiveFilter(b);
         filter = b.dataset.filter;
         apply();
       }),
@@ -923,12 +1185,12 @@ function driveHierarchy(items) {
 function driveFolderCard(node) {
   const item = node.item,
     title = driveTitle(item);
-  return `<button class="drive-entry drive-folder-entry reveal" type="button" data-folder-index="${node.index}"><span class="drive-entry-icon">▱</span><span class="drive-entry-copy"><b>${esc(title)}</b><small>${node.children.length} ${lang === 'ar' ? 'عنصر داخل المجلد' : 'items inside'}</small></span><span class="drive-entry-arrow">${lang === 'ar' ? '←' : '→'}</span></button>`;
+  return `<button class="drive-entry drive-folder-entry reveal" type="button" data-folder-index="${node.index}"><span class="drive-entry-icon">${icon('folder')}</span><span class="drive-entry-copy"><b>${esc(title)}</b><small>${node.children.length} ${lang === 'ar' ? 'عنصر داخل المجلد' : 'items inside'}</small></span>${icon('chevron', 'drive-entry-arrow')}</button>`;
 }
 function driveCrumbs(node, nodes) {
   const chain = [];
   for (let n = node; n; n = n.parent) chain.unshift(n);
-  return `<div class="drive-breadcrumbs"><button type="button" data-folder-index="root">${lang === 'ar' ? 'كل السنوات' : 'All years'}</button>${chain.map((n) => `<span>›</span><button type="button" data-folder-index="${n.index}">${esc(driveTitle(n.item))}</button>`).join('')}</div>`;
+  return `<div class="drive-breadcrumbs"><button type="button" data-folder-index="root">${lang === 'ar' ? 'كل السنوات' : 'All years'}</button>${chain.map((n) => `${icon('chevron', 'crumb-sep')}<button type="button" data-folder-index="${n.index}">${esc(driveTitle(n.item))}</button>`).join('')}</div>`;
 }
 function wireLectureFilters() {
   const items = db.driveFiles || db.lectures || [],
@@ -955,8 +1217,15 @@ function wireLectureFilters() {
             .toLocaleLowerCase()
             .includes(q),
       );
-    const crumb = parent ? driveCrumbs(parent, hierarchy.nodes) : '';
-    tree.innerHTML = `${crumb}${parent ? `<div class="drive-current"><span>${lang === 'ar' ? 'محتويات المجلد' : 'Folder contents'}</span><a href="${attr(parent.item.url)}" target="_blank" rel="noopener">${t('browseDrive')} ↗</a></div>` : ''}<div class="drive-browser-grid">${entries.map((n) => (n.item.type === 'folder' ? driveFolderCard(n) : card(n.item, n.index))).join('') || `<div class="empty-state">${q ? (lang === 'ar' ? 'لا توجد نتائج مطابقة.' : 'No matching items.') : lang === 'ar' ? 'هذا المجلد فارغ.' : 'This folder is empty.'}</div>`}</div>`;
+    // Searching 2,000+ catalog rows can match hundreds of cards; render the first batch to stay responsive.
+    const total = entries.length,
+      limit = 120;
+    if (q && total > limit) entries = entries.slice(0, limit);
+    const searchNote = q
+      ? `<p class="search-count" role="status">${lang === 'ar' ? `${fmt(total)} نتيجة${total > limit ? ` · يظهر أول ${fmt(limit)}، دقّق البحث للمزيد` : ''}` : `${fmt(total)} results${total > limit ? ` · showing the first ${fmt(limit)}, refine your search` : ''}`}</p>`
+      : '';
+    const crumb = (parent ? driveCrumbs(parent, hierarchy.nodes) : '') + searchNote;
+    tree.innerHTML = `${crumb}${parent ? `<div class="drive-current"><span>${lang === 'ar' ? 'محتويات المجلد' : 'Folder contents'}</span><a href="${safeHref(parent.item.url)}" target="_blank" rel="noopener noreferrer">${t('browseDrive')} ${icon('arrow')}</a></div>` : ''}<div class="drive-browser-grid">${entries.map((n) => (n.item.type === 'folder' ? driveFolderCard(n) : card(n.item, n.index))).join('') || `<div class="empty-state compact">${q ? t('noResults') : lang === 'ar' ? 'هذا المجلد فارغ.' : 'This folder is empty.'}</div>`}</div>`;
     observe();
   }
   tree.addEventListener('click', (e) => {
@@ -972,20 +1241,24 @@ function wireLectureFilters() {
   document.querySelectorAll('.filter').forEach(
     (b) =>
       (b.onclick = () => {
-        document.querySelector('.filter.active')?.classList.remove('active');
-        b.classList.add('active');
+        setActiveFilter(b);
         filter = b.dataset.filter;
         current = 'root';
         draw();
       }),
   );
+  let searchTimer;
   search?.addEventListener('input', () => {
-    query = search.value;
-    draw();
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(() => {
+      query = search.value;
+      draw();
+    }, 140);
   });
   draw();
 }
 function observe() {
+  document.documentElement.classList.toggle('can-animate', document.visibilityState === 'visible');
   const io = new IntersectionObserver(
     (es) =>
       es.forEach((e) => {
@@ -997,6 +1270,8 @@ function observe() {
     { threshold: 0.08 },
   );
   document.querySelectorAll('.reveal').forEach((e) => io.observe(e));
+  // SVG motion paths ignore CSS media queries, so stop the orbiting electrons explicitly.
+  if (reduceMotion()) document.querySelectorAll('.atom svg').forEach((svg) => svg.pauseAnimations?.());
 }
 function verifyProfilePersistence() {
   try {
@@ -1029,10 +1304,15 @@ function generatedAvatar(gender) {
   return 'data:image/svg+xml,' + encodeURIComponent(svg);
 }
 function onboarding(force = false, legacyProfile = null) {
-  if (!force && (getProfile() || sessionStorage.getItem('cs-guest'))) return;
+  // An email sign-in link must always reopen the flow, even for a visitor who chose guest mode earlier.
+  const signInLink = new URLSearchParams(location.search).get('mode') === 'signIn';
+  if (!force && !signInLink && (getProfile() || sessionStorage.getItem('cs-guest'))) return;
   const ov = document.createElement('div');
   ov.className = 'onboarding';
-  ov.innerHTML = `<div class="onboard-left"><a class="brand"><span class="brand-mark">C<span>·</span></span><span>CAPITAL <b>SCIENCE</b><small>STUDENT COMMONS</small></span></a><div class="onboard-decoration"><div class="onboard-ring"></div><span>✳</span><p>كل يوم بداية<br>اكتشاف جديد</p></div><span class="onboard-foot">A STUDENT COMMONS · EST 2026</span></div><div class="onboard-main"><button class="onboard-close" id="skip" aria-label="${lang === 'ar' ? 'إغلاق' : 'Close'}">×</button><div class="onboard-step" id="step"><span class="section-index">A SPACE FOR YOUR NEXT CHAPTER</span><h1>${t('welcome')},<br><em>curious mind.</em></h1><p>${t('intro')}</p><button class="button primary" id="begin">${t('continue')} <span>↗</span></button><button class="skip-link" id="guest">${t('skip')}</button></div></div>`;
+  ov.setAttribute('role', 'dialog');
+  ov.setAttribute('aria-modal', 'true');
+  ov.setAttribute('aria-label', lang === 'ar' ? 'الدخول إلى Capital Science' : 'Join Capital Science');
+  ov.innerHTML = `<div class="onboard-left">${brand()}<div class="onboard-decoration" aria-hidden="true">${atom('small')}<p>${lang === 'ar' ? 'كل يوم بداية<br>اكتشاف جديد' : 'Every day, a new<br>discovery begins'}</p></div><span class="onboard-foot">A STUDENT COMMONS · EST 2026</span></div><div class="onboard-main"><button class="onboard-close" id="skip" aria-label="${lang === 'ar' ? 'إغلاق' : 'Close'}">${icon('close')}</button><div class="onboard-step" id="step"><span class="section-index">A SPACE FOR YOUR NEXT CHAPTER</span><h1>${t('welcome')},<br><em>curious mind.</em></h1><p>${t('intro')}</p><button class="button primary" id="begin">${t('continue')} ${icon('arrow')}</button><button class="skip-link" id="guest">${t('skip')}</button></div></div>`;
   document.body.append(ov);
   const step = ov.querySelector('#step'),
     L = (ar, en) => (lang === 'ar' ? ar : en),
@@ -1120,7 +1400,7 @@ function onboarding(force = false, legacyProfile = null) {
     phoneConfirmation = null;
     authUser = null;
     await fadeTo(
-      `<span class="section-index">${L('خطوة ١ · طريقة الدخول', 'STEP 1 · SIGN-IN METHOD')}</span><h1>${L('اختار طريقة التسجيل', 'Choose how to continue')}</h1><p>${L('اكتب بريدك أو رقمك، أو استخدم حساب Google. كل مرة هنطلب منك خطوة واحدة.', 'Use your email, phone number, or Google. We will guide you one step at a time.')}</p><p class="form-error" aria-live="polite">${firebaseEnabled ? '' : t('firebaseNotice')}</p><div class="auth-choice-grid"><button class="auth-choice" data-method="email" ${firebaseEnabled ? '' : 'disabled'}><span>✉</span><b>${L('البريد الإلكتروني', 'Email')}</b><small>${L('رابط تأكيد آمن من Firebase', 'Secure Firebase verification link')}</small></button><button class="auth-choice" data-method="phone" ${firebaseEnabled ? '' : 'disabled'}><span>☎</span><b>${L('رقم الهاتف', 'Phone number')}</b><small>${L('تحقق برسالة SMS', 'Verify by SMS')}</small></button><button class="auth-choice" data-method="google" ${firebaseEnabled ? '' : 'disabled'}><span>G</span><b>${L('حساب Google', 'Google account')}</b><small>${L('الاسم والبريد من حسابك', 'Use your Google name and email')}</small></button></div><p class="form-error" id="form-error" aria-live="polite"></p><button class="skip-link" id="back-welcome">${L('رجوع', 'Back')}</button>`,
+      `<span class="section-index">${L('خطوة ١ · طريقة الدخول', 'STEP 1 · SIGN-IN METHOD')}</span><h1>${L('اختار طريقة التسجيل', 'Choose how to continue')}</h1><p>${L('اكتب بريدك أو رقمك، أو استخدم حساب Google. كل مرة هنطلب منك خطوة واحدة.', 'Use your email, phone number, or Google. We will guide you one step at a time.')}</p><p class="form-error" aria-live="polite">${firebaseEnabled ? '' : t('firebaseNotice')}</p><div class="auth-choice-grid"><button class="auth-choice" data-method="email" ${firebaseEnabled ? '' : 'disabled'}><span>${icon('mail')}</span><b>${L('البريد الإلكتروني', 'Email')}</b><small>${L('رابط تأكيد آمن من Firebase', 'Secure Firebase verification link')}</small></button><button class="auth-choice" data-method="phone" ${firebaseEnabled ? '' : 'disabled'}><span>${icon('phone')}</span><b>${L('رقم الهاتف', 'Phone number')}</b><small>${L('تحقق برسالة SMS', 'Verify by SMS')}</small></button><button class="auth-choice" data-method="google" ${firebaseEnabled ? '' : 'disabled'}><span>G</span><b>${L('حساب Google', 'Google account')}</b><small>${L('الاسم والبريد من حسابك', 'Use your Google name and email')}</small></button></div><p class="form-error" id="form-error" aria-live="polite"></p><button class="skip-link" id="back-welcome">${L('رجوع', 'Back')}</button>`,
     );
     step.querySelectorAll('[data-method]').forEach(
       (button) =>
@@ -1134,14 +1414,14 @@ function onboarding(force = false, legacyProfile = null) {
   };
   const showIntro = async () => {
     await fadeTo(
-      `<span class="section-index">A SPACE FOR YOUR NEXT CHAPTER</span><h1>${t('welcome')},<br><em>curious mind.</em></h1><p>${t('intro')}</p><button class="button primary" id="begin">${t('continue')} <span>↗</span></button><button class="skip-link" id="guest">${t('skip')}</button>`,
+      `<span class="section-index">A SPACE FOR YOUR NEXT CHAPTER</span><h1>${t('welcome')},<br><em>curious mind.</em></h1><p>${t('intro')}</p><button class="button primary" id="begin">${t('continue')} ${icon('arrow')}</button><button class="skip-link" id="guest">${t('skip')}</button>`,
     );
     step.querySelector('#begin').onclick = showMethod;
     step.querySelector('#guest').onclick = guest;
   };
   const showExistingPassword = async () => {
     await fadeTo(
-      `<span class="section-index">${L('حساب موجود', 'EXISTING ACCOUNT')}</span><h1>${L('أهلًا بعودتك', 'Welcome back')}</h1><p>${L('هذا البريد مرتبط بحساب بالفعل. سجّل الدخول بكلمة المرور أو استعدها من بريدك.', 'This email already has an account. Sign in with your password or reset it using your email.')}</p><form id="login-form"><label>${L('البريد الإلكتروني', 'Email')}<input name="email" type="email" value="${attr(email)}" readonly></label><label>${t('authPassword')}<input name="password" type="password" required autocomplete="current-password"></label><p class="form-error" id="form-error" aria-live="polite"></p><button class="button primary" type="submit">${L('تسجيل الدخول', 'Sign in')} ↗</button></form><button class="skip-link" id="reset-password">${L('نسيت كلمة المرور؟ أرسل رابط استعادة', 'Forgot your password? Send a reset link')}</button><button class="skip-link" id="email-link-login">${L('الدخول برابط البريد بدل كلمة المرور', 'Sign in with an email link instead')}</button><button class="skip-link" id="back-method">${L('استخدم بريدًا أو طريقة أخرى', 'Use another email or method')}</button>`,
+      `<span class="section-index">${L('حساب موجود', 'EXISTING ACCOUNT')}</span><h1>${L('أهلًا بعودتك', 'Welcome back')}</h1><p>${L('هذا البريد مرتبط بحساب بالفعل. سجّل الدخول بكلمة المرور أو استعدها من بريدك.', 'This email already has an account. Sign in with your password or reset it using your email.')}</p><form id="login-form"><label>${L('البريد الإلكتروني', 'Email')}<input name="email" type="email" value="${attr(email)}" readonly></label><label>${t('authPassword')}<input name="password" type="password" required autocomplete="current-password"></label><p class="form-error" id="form-error" aria-live="polite"></p><button class="button primary" type="submit">${L('تسجيل الدخول', 'Sign in')} ${icon('arrow')}</button></form><button class="skip-link" id="reset-password">${L('نسيت كلمة المرور؟ أرسل رابط استعادة', 'Forgot your password? Send a reset link')}</button><button class="skip-link" id="email-link-login">${L('الدخول برابط البريد بدل كلمة المرور', 'Sign in with an email link instead')}</button><button class="skip-link" id="back-method">${L('استخدم بريدًا أو طريقة أخرى', 'Use another email or method')}</button>`,
     );
     step.querySelector('#email-link-login').onclick = async () => {
       const button = step.querySelector('#email-link-login');
@@ -1220,7 +1500,7 @@ function onboarding(force = false, legacyProfile = null) {
   const showEmail = async () => {
     method = 'email';
     await fadeTo(
-      `<span class="section-index">${L('البريد · تحقق ١/٢', 'EMAIL · VERIFY 1/2')}</span><h1>${L('اكتب بريدك', 'Enter your email')}</h1><p>${L('هنرسل رابط تأكيد آمن من Firebase. افتحه لإثبات ملكية بريدك، وبعدها أنشئ كلمة المرور. البريد المرتبط بحساب سيحوّلك لتسجيل الدخول.', 'Firebase will send a secure sign-in link. Open it to verify your email, then create a password. Existing accounts will be sent to sign in.')}</p><form id="email-form"><label>${L('البريد الإلكتروني', 'Email address')}<input name="email" type="email" inputmode="email" autocomplete="email" required placeholder="name@example.com" value="${attr(email)}"></label><p class="form-error" id="form-error" aria-live="polite"></p><button id="email-continue" class="button primary" type="submit">${t('continue')} ↗</button></form><button class="skip-link" id="back-method">${L('رجوع لطرق التسجيل', 'Back to sign-in options')}</button>`,
+      `<span class="section-index">${L('البريد · تحقق ١/٢', 'EMAIL · VERIFY 1/2')}</span><h1>${L('اكتب بريدك', 'Enter your email')}</h1><p>${L('هنرسل رابط تأكيد آمن من Firebase. افتحه لإثبات ملكية بريدك، وبعدها أنشئ كلمة المرور. البريد المرتبط بحساب سيحوّلك لتسجيل الدخول.', 'Firebase will send a secure sign-in link. Open it to verify your email, then create a password. Existing accounts will be sent to sign in.')}</p><form id="email-form"><label>${L('البريد الإلكتروني', 'Email address')}<input name="email" type="email" inputmode="email" autocomplete="email" required placeholder="name@example.com" value="${attr(email)}"></label><p class="form-error" id="form-error" aria-live="polite"></p><button id="email-continue" class="button primary" type="submit">${t('continue')} ${icon('arrow')}</button></form><button class="skip-link" id="back-method">${L('رجوع لطرق التسجيل', 'Back to sign-in options')}</button>`,
     );
     step.querySelector('#email-form').onsubmit = (e) => {
       e.preventDefault();
@@ -1230,7 +1510,7 @@ function onboarding(force = false, legacyProfile = null) {
   };
   const showEmailLinkSent = async () => {
     await fadeTo(
-      `<span class="section-index">${L('تحقق من بريدك', 'CHECK YOUR EMAIL')}</span><h1>${L('افتح رابط التأكيد', 'Open the verification link')}</h1><p>${L('أرسلنا رابط تسجيل آمن إلى', 'A secure sign-in link was sent to')} <b>${esc(email)}</b>. ${L('افتحه في هذا المتصفح؛ ستنتقل تلقائيًا لإكمال التسجيل.', 'Open it in this browser to continue your registration.')}</p><button class="button primary" id="resend-link">${L('إعادة إرسال الرابط', 'Resend link')} ↗</button><p class="form-error" id="form-error" aria-live="polite"></p><button class="skip-link" id="change-email">${L('استخدم بريدًا آخر', 'Use another email')}</button>`,
+      `<span class="section-index">${L('تحقق من بريدك', 'CHECK YOUR EMAIL')}</span><h1>${L('افتح رابط التأكيد', 'Open the verification link')}</h1><p>${L('أرسلنا رابط تسجيل آمن إلى', 'A secure sign-in link was sent to')} <b>${esc(email)}</b>. ${L('افتحه في هذا المتصفح؛ ستنتقل تلقائيًا لإكمال التسجيل.', 'Open it in this browser to continue your registration.')}</p><button class="button primary" id="resend-link">${L('إعادة إرسال الرابط', 'Resend link')} ${icon('arrow')}</button><p class="form-error" id="form-error" aria-live="polite"></p><button class="skip-link" id="change-email">${L('استخدم بريدًا آخر', 'Use another email')}</button>`,
     );
     step.querySelector('#resend-link').onclick = () => {
       showEmail().then(() => {
@@ -1245,7 +1525,7 @@ function onboarding(force = false, legacyProfile = null) {
     const savedEmail = sessionStorage.getItem('cs-pending-email-link') || '';
     email = savedEmail;
     await fadeTo(
-      `<span class="section-index">${L('تأكيد البريد', 'VERIFY YOUR EMAIL')}</span><h1>${L('أكمل تسجيل الدخول', 'Complete sign-in')}</h1><p>${L('لأمان حسابك، اكتب نفس البريد الذي طلبت عليه رابط التأكيد.', 'For account security, enter the same email address that received the link.')}</p><form id="email-link-form"><label>${L('البريد الإلكتروني', 'Email address')}<input name="email" type="email" inputmode="email" autocomplete="email" required value="${attr(email)}" placeholder="name@example.com"></label><p class="form-error" id="form-error" aria-live="polite"></p><button class="button primary" type="submit">${L('تأكيد ومتابعة', 'Verify and continue')} ↗</button></form>`,
+      `<span class="section-index">${L('تأكيد البريد', 'VERIFY YOUR EMAIL')}</span><h1>${L('أكمل تسجيل الدخول', 'Complete sign-in')}</h1><p>${L('لأمان حسابك، اكتب نفس البريد الذي طلبت عليه رابط التأكيد.', 'For account security, enter the same email address that received the link.')}</p><form id="email-link-form"><label>${L('البريد الإلكتروني', 'Email address')}<input name="email" type="email" inputmode="email" autocomplete="email" required value="${attr(email)}" placeholder="name@example.com"></label><p class="form-error" id="form-error" aria-live="polite"></p><button class="button primary" type="submit">${L('تأكيد ومتابعة', 'Verify and continue')} ${icon('arrow')}</button></form>`,
     );
     step.querySelector('#email-link-form').onsubmit = async (e) => {
       e.preventDefault();
@@ -1292,7 +1572,7 @@ function onboarding(force = false, legacyProfile = null) {
   };
   const showPassword = async () => {
     await fadeTo(
-      `<span class="section-index">${L('تم التحقق · كلمة المرور', 'VERIFIED · PASSWORD')}</span><h1>${L('أنشئ كلمة مرور', 'Create a password')}</h1><p>${L('اختر كلمة مرور لحماية حسابك. المثال للتوضيح فقط؛ لا تستخدمه كما هو.', 'Choose a password for your account. The example is only a reference; do not use it as-is.')}</p><form id="password-form"><label>${L('كلمة المرور', 'Password')}<input name="password" type="password" minlength="8" autocomplete="new-password" required placeholder="${L('مثال: Ahmed1234', 'Example: Ahmed1234')}"></label><label>${L('تأكيد كلمة المرور', 'Confirm password')}<input name="confirmPassword" type="password" minlength="8" autocomplete="new-password" required></label><p class="form-error" id="form-error" aria-live="polite"></p><button class="button primary" type="submit">${L('متابعة', 'Continue')} ↗</button></form>`,
+      `<span class="section-index">${L('تم التحقق · كلمة المرور', 'VERIFIED · PASSWORD')}</span><h1>${L('أنشئ كلمة مرور', 'Create a password')}</h1><p>${L('اختر كلمة مرور لحماية حسابك. المثال للتوضيح فقط؛ لا تستخدمه كما هو.', 'Choose a password for your account. The example is only a reference; do not use it as-is.')}</p><form id="password-form"><label>${L('كلمة المرور', 'Password')}<input name="password" type="password" minlength="8" autocomplete="new-password" required placeholder="${L('مثال: Ahmed1234', 'Example: Ahmed1234')}"></label><label>${L('تأكيد كلمة المرور', 'Confirm password')}<input name="confirmPassword" type="password" minlength="8" autocomplete="new-password" required></label><p class="form-error" id="form-error" aria-live="polite"></p><button class="button primary" type="submit">${L('متابعة', 'Continue')} ${icon('arrow')}</button></form>`,
     );
     step.querySelector('#password-form').onsubmit = (e) => {
       e.preventDefault();
@@ -1342,7 +1622,7 @@ function onboarding(force = false, legacyProfile = null) {
   const showPhone = async () => {
     method = 'phone';
     await fadeTo(
-      `<span class="section-index">${L('الهاتف · تحقق برسالة', 'PHONE · SMS VERIFICATION')}</span><h1>${L('اكتب رقم هاتفك', 'Enter your phone number')}</h1><p>${L('مفتاح مصر +20 محدد تلقائيًا. لن يظهر زر إرسال الكود إلا بعد إدخال رقم صحيح.', 'Egypt +20 is selected by default. The verification button appears only after a valid number is entered.')}</p><form id="phone-form"><label>${L('الدولة ومفتاح الاتصال', 'Country calling code')}<select name="country" autocomplete="tel-country-code">${phoneCountries.map(([name, code]) => `<option value="${code}" ${code === '+20' ? 'selected' : ''}>${lang === 'ar' ? name : { '+20': 'Egypt', '+966': 'Saudi Arabia', '+971': 'UAE', '+965': 'Kuwait', '+974': 'Qatar', '+962': 'Jordan', '+961': 'Lebanon', '+212': 'Morocco', '+216': 'Tunisia', '+213': 'Algeria', '+249': 'Sudan', '+1': 'United States', '+44': 'United Kingdom', '+90': 'Turkey' }[code] || name} (${code})</option>`).join('')}</select></label><label>${L('رقم الهاتف', 'Phone number')}<input name="phone" type="tel" inputmode="tel" autocomplete="tel-national" placeholder="01012345678" required></label><small id="phone-hint" aria-live="polite">${L('أرقام مصر: 010 أو 011 أو 012 أو 015.', 'Egyptian mobile numbers start with 010, 011, 012, or 015.')}</small><div id="firebase-recaptcha"></div><button id="send-phone-code" class="button primary" type="button" hidden disabled>${L('إرسال كود SMS', 'Send SMS code')} ↗</button><div id="phone-code-area" hidden><label>${L('كود SMS', 'SMS code')}<input name="code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" placeholder="000000"></label><button id="confirm-phone" class="button primary" type="button">${L('تأكيد الرقم', 'Verify phone')} ↗</button></div><p class="form-error" id="form-error" aria-live="polite"></p></form><button class="skip-link" id="back-method">${L('رجوع لطرق التسجيل', 'Back to sign-in options')}</button>`,
+      `<span class="section-index">${L('الهاتف · تحقق برسالة', 'PHONE · SMS VERIFICATION')}</span><h1>${L('اكتب رقم هاتفك', 'Enter your phone number')}</h1><p>${L('مفتاح مصر +20 محدد تلقائيًا. لن يظهر زر إرسال الكود إلا بعد إدخال رقم صحيح.', 'Egypt +20 is selected by default. The verification button appears only after a valid number is entered.')}</p><form id="phone-form"><label>${L('الدولة ومفتاح الاتصال', 'Country calling code')}<select name="country" autocomplete="tel-country-code">${phoneCountries.map(([name, code]) => `<option value="${code}" ${code === '+20' ? 'selected' : ''}>${lang === 'ar' ? name : { '+20': 'Egypt', '+966': 'Saudi Arabia', '+971': 'UAE', '+965': 'Kuwait', '+974': 'Qatar', '+962': 'Jordan', '+961': 'Lebanon', '+212': 'Morocco', '+216': 'Tunisia', '+213': 'Algeria', '+249': 'Sudan', '+1': 'United States', '+44': 'United Kingdom', '+90': 'Turkey' }[code] || name} (${code})</option>`).join('')}</select></label><label>${L('رقم الهاتف', 'Phone number')}<input name="phone" type="tel" inputmode="tel" autocomplete="tel-national" placeholder="01012345678" required></label><small id="phone-hint" aria-live="polite">${L('أرقام مصر: 010 أو 011 أو 012 أو 015.', 'Egyptian mobile numbers start with 010, 011, 012, or 015.')}</small><div id="firebase-recaptcha"></div><button id="send-phone-code" class="button primary" type="button" hidden disabled>${L('إرسال كود SMS', 'Send SMS code')} ${icon('arrow')}</button><div id="phone-code-area" hidden><label>${L('كود SMS', 'SMS code')}<input name="code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" placeholder="000000"></label><button id="confirm-phone" class="button primary" type="button">${L('تأكيد الرقم', 'Verify phone')} ${icon('arrow')}</button></div><p class="form-error" id="form-error" aria-live="polite"></p></form><button class="skip-link" id="back-method">${L('رجوع لطرق التسجيل', 'Back to sign-in options')}</button>`,
     );
     const form = step.querySelector('#phone-form'),
       input = form.elements.phone,
@@ -1504,7 +1784,7 @@ function onboarding(force = false, legacyProfile = null) {
       passwordNeeded: method === 'email',
     };
     await fadeTo(
-      `<span class="section-index">${L('الخطوة التالية · بياناتك', 'NEXT · YOUR DETAILS')}</span><h1>${L('عرّفنا بنفسك', 'Tell us about you')}</h1><p>${L('اكتب اسمك الأول واسم الوالد واسم العائلة. كل الأسماء مطلوبة.', 'Enter your first name, father’s name, and family name. All are required.')}</p><form id="details-form"><div class="profile-name-fields"><label>${L('الاسم الأول', 'First name')}<input name="firstName" required maxlength="50" autocomplete="given-name" value="${attr(d.firstName)}"></label><label>${L('اسم الوالد', 'Father’s name')}<input name="fatherName" required maxlength="50" autocomplete="additional-name" value="${attr(d.fatherName)}"></label><label>${L('اسم العائلة', 'Family name')}<input name="lastName" required maxlength="50" autocomplete="family-name" value="${attr(d.lastName)}"></label></div><label>${L('الجنس', 'Gender')}<select name="gender" required><option value="">${L('اختر', 'Select')}</option><option value="male">${L('ذكر', 'Male')}</option><option value="female">${L('أنثى', 'Female')}</option><option value="other">${L('أفضل عدم الإجابة', 'Prefer not to say')}</option></select></label><p class="form-error" id="form-error" aria-live="polite"></p><button class="button primary" type="submit">${L('متابعة إلى الصورة', 'Continue to photo')} ↗</button></form>`,
+      `<span class="section-index">${L('الخطوة التالية · بياناتك', 'NEXT · YOUR DETAILS')}</span><h1>${L('عرّفنا بنفسك', 'Tell us about you')}</h1><p>${L('اكتب اسمك الأول واسم الوالد واسم العائلة. كل الأسماء مطلوبة.', 'Enter your first name, father’s name, and family name. All are required.')}</p><form id="details-form"><div class="profile-name-fields"><label>${L('الاسم الأول', 'First name')}<input name="firstName" required maxlength="50" autocomplete="given-name" value="${attr(d.firstName)}"></label><label>${L('اسم الوالد', 'Father’s name')}<input name="fatherName" required maxlength="50" autocomplete="additional-name" value="${attr(d.fatherName)}"></label><label>${L('اسم العائلة', 'Family name')}<input name="lastName" required maxlength="50" autocomplete="family-name" value="${attr(d.lastName)}"></label></div><label>${L('الجنس', 'Gender')}<select name="gender" required><option value="">${L('اختر', 'Select')}</option><option value="male">${L('ذكر', 'Male')}</option><option value="female">${L('أنثى', 'Female')}</option><option value="other">${L('أفضل عدم الإجابة', 'Prefer not to say')}</option></select></label><p class="form-error" id="form-error" aria-live="polite"></p><button class="button primary" type="submit">${L('متابعة إلى الصورة', 'Continue to photo')} ${icon('arrow')}</button></form>`,
     );
     step.querySelector('#details-form').onsubmit = (e) => {
       e.preventDefault();
@@ -1529,7 +1809,7 @@ function onboarding(force = false, legacyProfile = null) {
   const showPhoto = async () => {
     const initial = avatarForGender(profileDraft?.gender || 'other');
     await fadeTo(
-      `<span class="section-index">${L('الخطوة الأخيرة · صورتك', 'LAST STEP · YOUR PHOTO')}</span><h1>${L('اختر صورتك', 'Choose a profile photo')}</h1><p>${L('اختر رسمة من المجموعة أو ارفع صورة من جهازك. الصورة اختيارية.', 'Choose an illustration or upload a photo. Adding a photo is optional.')}</p><form id="photo-form"><div class="avatar-preview-wrap"><img class="avatar-preview" src="${attr(initial)}" alt="${t('profilePhoto')}"></div><input type="hidden" name="picture" value="${attr(initial)}">${avatarGallery(initial)}<label class="upload-photo">${t('uploadPhoto')}<input name="profileFile" type="file" accept="image/png,image/jpeg,image/webp"></label><p class="form-error" id="form-error" aria-live="polite"></p><button class="button primary" type="submit">${L('إنشاء الحساب', 'Create account')} ↗</button></form><button class="skip-link" id="skip-photo">${L('المتابعة بدون صورة', 'Continue without a photo')}</button>`,
+      `<span class="section-index">${L('الخطوة الأخيرة · صورتك', 'LAST STEP · YOUR PHOTO')}</span><h1>${L('اختر صورتك', 'Choose a profile photo')}</h1><p>${L('اختر رسمة من المجموعة أو ارفع صورة من جهازك. الصورة اختيارية.', 'Choose an illustration or upload a photo. Adding a photo is optional.')}</p><form id="photo-form"><div class="avatar-preview-wrap"><img class="avatar-preview" src="${attr(initial)}" alt="${t('profilePhoto')}"></div><input type="hidden" name="picture" value="${attr(initial)}">${avatarGallery(initial)}<label class="upload-photo">${t('uploadPhoto')}<input name="profileFile" type="file" accept="image/png,image/jpeg,image/webp"></label><p class="form-error" id="form-error" aria-live="polite"></p><button class="button primary" type="submit">${L('إنشاء الحساب', 'Create account')} ${icon('arrow')}</button></form><button class="skip-link" id="skip-photo">${L('المتابعة بدون صورة', 'Continue without a photo')}</button>`,
     );
     const form = step.querySelector('#photo-form');
     wireAvatarPicker(form);
@@ -1602,12 +1882,12 @@ function onboarding(force = false, legacyProfile = null) {
       showError(error.message || t('updateError'));
       button.disabled = false;
       button.classList.remove('is-loading');
-      button.textContent = L('إنشاء الحساب', 'Create account') + ' ↗';
+      button.innerHTML = `${L('إنشاء الحساب', 'Create account')} ${icon('arrow')}`;
     }
   };
   const showSuccess = async (title, copy) => {
     await fadeTo(
-      `<div class="signup-success"><span class="success-mark">✓</span><span class="section-index">CAPITAL SCIENCE · COMMUNITY</span><h1>${title}</h1><p>${copy}</p><button id="enter-site" class="button primary">${L('ادخل للموقع', 'Enter the site')} ↗</button></div>`,
+      `<div class="signup-success"><span class="success-mark">✓</span><span class="section-index">CAPITAL SCIENCE · COMMUNITY</span><h1>${title}</h1><p>${copy}</p><button id="enter-site" class="button primary">${L('ادخل للموقع', 'Enter the site')} ${icon('arrow')}</button></div>`,
     );
     step.querySelector('#enter-site').onclick = closeOverlay;
   };
@@ -1628,7 +1908,8 @@ function onboarding(force = false, legacyProfile = null) {
 (async () => {
   await resetOldProfileSession();
   try {
-    db = await fetch('/api/site').then((r) => r.json());
+    siteSnapshot = await fetch('/api/site').then((r) => r.text());
+    db = JSON.parse(siteSnapshot);
     emailConfigured = db.emailNotificationsEnabled === true;
     firebaseEnabled = db.firebaseAuthEnabled === true;
   } catch {}

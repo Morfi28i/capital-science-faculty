@@ -1,0 +1,9 @@
+{
+  "name": "Capital Science — Student Commons",
+  "short_name": "Capital Science",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f6f4ec",
+  "theme_color": "#1d4632",
+  "icons": [{ "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }]
+}

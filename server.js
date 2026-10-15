@@ -1,5 +1,5 @@
 import http from 'node:http';
-import { readFile, writeFile, appendFile, mkdir } from 'node:fs/promises';
+import { readFile, writeFile, mkdir, stat } from 'node:fs/promises';
 import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
@@ -11,7 +11,18 @@ const root = process.cwd(),
   dbPath = path.join(root, 'data/site.json'),
   driveCatalogPath = path.join(root, 'data/drive-catalog.json');
 const emailCheckRate = new Map(),
-  contactCheckRate = new Map();
+  contactCheckRate = new Map(),
+  adminLoginRate = new Map();
+// Rate-limit buckets live in memory; prune expired entries so they cannot grow without bound.
+setInterval(() => {
+  const now = Date.now();
+  for (const bucket of [emailCheckRate, contactCheckRate, adminLoginRate])
+    for (const [key, times] of bucket) {
+      const recent = times.filter((time) => now - time < 60 * 60_000);
+      if (recent.length) bucket.set(key, recent);
+      else bucket.delete(key);
+    }
+}, 10 * 60_000).unref();
 await mkdir(path.join(root, 'uploads'), { recursive: true });
 await mkdir(path.join(root, 'public', 'uploads'), { recursive: true });
 const mime = {
@@ -20,15 +31,28 @@ const mime = {
   '.js': 'text/javascript; charset=utf-8',
   '.json': 'application/json; charset=utf-8',
   '.svg': 'image/svg+xml',
+  '.ico': 'image/svg+xml',
   '.png': 'image/png',
   '.jpg': 'image/jpeg',
   '.webp': 'image/webp',
   '.pdf': 'application/pdf',
+  '.webmanifest': 'application/manifest+json',
+};
+const securityHeaders = {
+  'X-Content-Type-Options': 'nosniff',
+  'Referrer-Policy': 'strict-origin-when-cross-origin',
+  'X-Frame-Options': 'DENY',
+  'Permissions-Policy': 'camera=(), microphone=(), geolocation=()',
 };
 const json = (res, code, obj) => {
-  res.writeHead(code, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' });
+  res.writeHead(code, {
+    ...securityHeaders,
+    'Content-Type': 'application/json; charset=utf-8',
+    'Cache-Control': 'no-store',
+  });
   res.end(JSON.stringify(obj));
 };
+const httpError = (status, message) => Object.assign(new Error(message), { status });
 async function body(req, limit = 2_000_000) {
   let b = [];
   let n = 0;
@@ -37,7 +61,37 @@ async function body(req, limit = 2_000_000) {
     if (n > limit) throw Error('Request too large');
     b.push(c);
   }
-  return JSON.parse(Buffer.concat(b).toString() || '{}');
+  try {
+    const parsed = JSON.parse(Buffer.concat(b).toString() || '{}');
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) throw new Error();
+    return parsed;
+  } catch {
+    throw httpError(400, 'Request body must be a JSON object.');
+  }
+}
+const clientIp = (req) =>
+  String(req.headers['x-forwarded-for'] || req.socket.remoteAddress || '')
+    .split(',')[0]
+    .trim();
+// Allow a request only when its rolling one-hour window still has room.
+function withinRate(bucket, key, max, windowMs = 60 * 60_000) {
+  const now = Date.now(),
+    times = (bucket.get(key) || []).filter((time) => now - time < windowMs);
+  if (times.length >= max) return false;
+  times.push(now);
+  bucket.set(key, times);
+  return true;
+}
+// Browsers send Origin on cross-site POST/PUT/DELETE. Rejecting a foreign Origin blocks CSRF
+// even if a SameSite cookie is relaxed by an older browser.
+function sameOrigin(req) {
+  const origin = req.headers.origin;
+  if (!origin) return true;
+  try {
+    return new URL(origin).host === req.headers.host;
+  } catch {
+    return false;
+  }
 }
 const readLocalDB = async () => JSON.parse(await readFile(dbPath, 'utf8'));
 const siteContentRef = () => firebase().db.collection('site').doc('content');
@@ -64,11 +118,19 @@ async function saveDB(d) {
   await writeFile(dbPath, JSON.stringify(d, null, 2));
 }
 const emailNotificationsEnabled = () => Boolean(process.env.RESEND_API_KEY);
+// The generated config only changes at build time, so read it once instead of on every request.
+let generatedWebConfig;
 function firebaseWebConfig() {
-  let generated = {};
-  try {
-    generated = JSON.parse(readFileSync(path.join(root, 'public', 'firebase-config.json'), 'utf8'));
-  } catch {}
+  if (generatedWebConfig === undefined) {
+    try {
+      generatedWebConfig = JSON.parse(
+        readFileSync(path.join(root, 'public', 'firebase-config.json'), 'utf8'),
+      );
+    } catch {
+      generatedWebConfig = {};
+    }
+  }
+  const generated = generatedWebConfig;
   let appHosting = {};
   try {
     appHosting = JSON.parse(process.env.FIREBASE_WEBAPP_CONFIG || '{}');
@@ -179,22 +241,47 @@ async function sendManagedEmail(to, subject, message) {
   if (!response.ok) throw new Error(`Email provider returned HTTP ${response.status}`);
   return response.json();
 }
+const ADMIN_SESSION_MS = 8 * 60 * 60_000;
+// A dedicated secret lets the admin password rotate without being the signing key.
+const adminSigningKey = () => process.env.ADMIN_SESSION_SECRET || process.env.ADMIN_PASSWORD || '';
 function signAdminToken(token) {
-  return crypto
-    .createHmac('sha256', process.env.ADMIN_PASSWORD || '')
-    .update(token)
-    .digest('hex');
+  return crypto.createHmac('sha256', adminSigningKey()).update(token).digest('hex');
 }
 function session(req) {
   const c = req.headers.cookie || '';
   const m = c.match(/(?:^|; )admin_session=([^;]+)/);
   if (!m || !process.env.ADMIN_PASSWORD) return null;
-  const [token, signature] = m[1].split('.');
-  if (!token || !signature) return null;
-  const expected = signAdminToken(token);
+  const [token, issued, signature] = m[1].split('.');
+  if (!token || !issued || !signature) return null;
+  if (!(Date.now() - Number(issued) < ADMIN_SESSION_MS)) return null;
+  const expected = signAdminToken(`${token}.${issued}`);
   const a = Buffer.from(signature),
     b = Buffer.from(expected);
   return a.length === b.length && crypto.timingSafeEqual(a, b) ? token : null;
+}
+const secureCookie = () => (process.env.NODE_ENV === 'production' || process.env.K_SERVICE ? '; Secure' : '');
+const contentFields = [
+  'title',
+  'titleAr',
+  'titleEn',
+  'url',
+  'category',
+  'categoryEn',
+  'note',
+  'noteEn',
+  'kind',
+];
+// Store only known content fields so a dashboard edit cannot smuggle arbitrary data into the site JSON.
+function cleanContentItem(item, existing = {}) {
+  const clean = { ...existing };
+  for (const key of contentFields) {
+    if (!(key in item)) continue;
+    const value = String(item[key] ?? '').trim();
+    if (value) clean[key] = value.slice(0, key === 'url' ? 2000 : key.startsWith('note') ? 600 : 180);
+    else delete clean[key];
+  }
+  if (!['whatsapp', 'facebook', 'telegram', 'drive', 'link'].includes(clean.kind)) clean.kind = 'link';
+  return clean;
 }
 function safeUrl(u) {
   try {
@@ -449,26 +536,34 @@ async function api(req, res, url) {
     return json(res, 503, { error: 'Verified registration is available only through Firebase Auth.' });
   }
   if (url.pathname.startsWith('/api/admin')) {
+    if (req.method !== 'GET' && !sameOrigin(req))
+      return json(res, 403, { error: 'Cross-site request blocked.' });
     if (req.method === 'POST' && url.pathname === '/api/admin/login') {
-      const d = await body(req);
       if (!process.env.ADMIN_PASSWORD)
         return json(res, 503, {
           error: 'Admin password is not configured. Set ADMIN_PASSWORD before starting the server.',
         });
-      const a = Buffer.from(String(d.password || '')),
-        b = Buffer.from(process.env.ADMIN_PASSWORD);
-      if (a.length !== b.length || !crypto.timingSafeEqual(a, b))
+      if (!withinRate(adminLoginRate, clientIp(req), 8, 15 * 60_000))
+        return json(res, 429, { error: 'Too many sign-in attempts. Wait 15 minutes and try again.' });
+      const d = await body(req, 4000);
+      // Compare fixed-length digests so the comparison time does not reveal the password length.
+      const digest = (value) => crypto.createHash('sha256').update(String(value)).digest();
+      if (!crypto.timingSafeEqual(digest(d.password || ''), digest(process.env.ADMIN_PASSWORD)))
         return json(res, 401, { error: 'Incorrect password' });
       const token = crypto.randomBytes(32).toString('hex'),
-        signed = `${token}.${signAdminToken(token)}`;
+        issued = String(Date.now()),
+        signed = `${token}.${issued}.${signAdminToken(`${token}.${issued}`)}`;
       res.setHeader(
         'Set-Cookie',
-        `admin_session=${signed}; HttpOnly; SameSite=Strict; Path=/${process.env.NODE_ENV === 'production' || process.env.K_SERVICE ? '; Secure' : ''}`,
+        `admin_session=${signed}; HttpOnly; SameSite=Strict; Path=/${secureCookie()}`,
       );
       return json(res, 200, { ok: true });
     }
     if (req.method === 'POST' && url.pathname === '/api/admin/logout') {
-      res.setHeader('Set-Cookie', 'admin_session=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0');
+      res.setHeader(
+        'Set-Cookie',
+        `admin_session=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0${secureCookie()}`,
+      );
       return json(res, 200, { ok: true });
     }
     if (req.method === 'GET' && url.pathname === '/api/admin/session')
@@ -479,17 +574,24 @@ async function api(req, res, url) {
         return json(res, 503, { error: 'Firebase must be configured before accounts can be managed.' });
       const query = (url.searchParams.get('q') || '').trim().toLocaleLowerCase(),
         { auth, db } = firebase(),
-        result = await auth.listUsers(1000),
-        profiles = await db.collection('users').get();
+        accounts = [];
+      // listUsers returns at most 1,000 accounts per page; follow the page token so search covers everyone.
+      let pageToken;
+      do {
+        const page = await auth.listUsers(1000, pageToken);
+        accounts.push(...page.users);
+        pageToken = page.pageToken;
+      } while (pageToken && accounts.length < 20_000);
+      const profiles = await db.collection('users').get();
       const byId = new Map(profiles.docs.map((x) => [x.id, x.data()]));
-      const users = result.users
+      const matches = accounts
         .map((u) => {
           const p = byId.get(u.uid) || {};
           return {
             id: u.uid,
             name: p.name || u.displayName || '',
             email: u.email || '',
-            phone: u.phone_number || '',
+            phone: u.phoneNumber || '',
             gender: p.gender || '',
             picture: p.picture || '',
             createdAt: u.metadata.creationTime || '',
@@ -499,9 +601,17 @@ async function api(req, res, url) {
           (u) =>
             !query ||
             [u.id, u.name, u.email, u.phone].some((v) => String(v).toLocaleLowerCase().includes(query)),
-        )
-        .slice(0, 500);
-      return json(res, 200, { users, nextPageToken: result.pageToken || null });
+        );
+      return json(res, 200, {
+        users: matches.slice(0, 200),
+        total: accounts.length,
+        matched: matches.length,
+      });
+    }
+    if (req.method === 'GET' && url.pathname === '/api/admin/audience') {
+      if (!firebaseConfigured()) return json(res, 503, { error: 'Firebase is not configured.' });
+      const count = await firebase().db.collection('users').count().get();
+      return json(res, 200, { profiles: count.data().count, broadcastLimit: 500 });
     }
     if (req.method === 'POST' && url.pathname === '/api/admin/email') {
       if (!emailNotificationsEnabled()) return json(res, 503, { error: 'Resend email is not configured.' });
@@ -572,26 +682,27 @@ async function api(req, res, url) {
     if (match) {
       const [, key, id] = match,
         db = await readDB();
+      db[key] = Array.isArray(db[key]) ? db[key] : [];
       if (req.method === 'GET') return json(res, 200, db[key]);
       if (req.method === 'POST' || req.method === 'PUT') {
-        const item = await body(req);
-        if (!item.title || !item.url || !safeUrl(item.url))
+        const item = await body(req),
+          index = id ? db[key].findIndex((x) => x.id === id) : -1;
+        if (id && index < 0) return json(res, 404, { error: 'Not found' });
+        const obj = { ...cleanContentItem(item, id ? db[key][index] : {}), id: id || crypto.randomUUID() };
+        if (!obj.title || !obj.url || !safeUrl(obj.url))
           return json(res, 400, { error: 'A title and valid http(s) URL are required' });
-        const obj = {
-          ...item,
-          id: id || crypto.randomUUID(),
-          title: String(item.title).slice(0, 180),
-          url: String(item.url).slice(0, 2000),
-        };
-        if (id) {
-          const i = db[key].findIndex((x) => x.id === id);
-          if (i < 0) return json(res, 404, { error: 'Not found' });
-          db[key][i] = obj;
-        } else db[key].unshift(obj);
+        // Reject a link that another item already uses, but only when the link is new or being changed,
+        // so older items that already share a link can still be edited.
+        const previousUrl = id ? db[key][index].url : null;
+        if (obj.url !== previousUrl && db[key].some((x) => x.id !== obj.id && x.url === obj.url))
+          return json(res, 409, { error: 'This link already exists in this section.' });
+        if (id) db[key][index] = obj;
+        else db[key].unshift(obj);
         await saveDB(db);
         return json(res, 200, obj);
       }
       if (req.method === 'DELETE' && id) {
+        if (!db[key].some((x) => x.id === id)) return json(res, 404, { error: 'Not found' });
         db[key] = db[key].filter((x) => x.id !== id);
         await saveDB(db);
         return json(res, 200, { ok: true });
@@ -600,34 +711,52 @@ async function api(req, res, url) {
   }
   return json(res, 404, { error: 'Not found' });
 }
+const appRoutes = ['/', '/subjects', '/lectures', '/advising', '/official', '/developer', '/profile'];
+const publicRoot = path.join(root, 'public');
+async function sendFile(res, file, status = 200, extraHeaders = {}) {
+  const ext = path.extname(file);
+  // Code and pages must revalidate so a new deploy shows up at once; images rarely change and can be cached.
+  const cache = ['.svg', '.png', '.jpg', '.webp'].includes(ext) ? 'public, max-age=86400' : 'no-cache';
+  res.writeHead(status, {
+    ...securityHeaders,
+    'Content-Type': mime[ext] || 'application/octet-stream',
+    'Cache-Control': cache,
+    ...extraHeaders,
+  });
+  res.end(await readFile(file));
+}
 const server = http.createServer(async (req, res) => {
   try {
     const url = new URL(req.url, 'http://localhost');
     if (url.pathname.startsWith('/api/')) return await api(req, res, url);
-    const route = url.pathname;
-    if (route === '/admin' || route === '/admin/') {
+    if (!['GET', 'HEAD'].includes(req.method)) return json(res, 405, { error: 'Method not allowed' });
+    const route = url.pathname.length > 1 ? url.pathname.replace(/\/+$/, '') : url.pathname;
+    if (route === '/admin') {
       res.setHeader(
         'Set-Cookie',
-        `admin_session=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0${process.env.NODE_ENV === 'production' || process.env.K_SERVICE ? '; Secure' : ''}`,
+        `admin_session=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0${secureCookie()}`,
       );
-      res.setHeader('Cache-Control', 'no-store');
+      return sendFile(res, path.join(publicRoot, 'admin.html'), 200, { 'Cache-Control': 'no-store' });
     }
-    const rel =
-      route === '/admin' || route === '/admin/'
-        ? '/admin.html'
-        : ['/', '/subjects', '/lectures', '/advising', '/official', '/developer', '/profile'].includes(route)
-          ? '/index.html'
-          : decodeURIComponent(route);
-    const file = path.resolve(root, 'public', `.${rel}`);
-    if (!file.startsWith(path.join(root, 'public') + path.sep) || !existsSync(file)) {
-      res.writeHead(404);
-      return res.end('Not found');
+    if (appRoutes.includes(route)) return sendFile(res, path.join(publicRoot, 'index.html'));
+    if (route === '/favicon.ico') return sendFile(res, path.join(publicRoot, 'favicon.svg'));
+    let rel;
+    try {
+      rel = decodeURIComponent(route);
+    } catch {
+      return json(res, 400, { error: 'Malformed URL' });
     }
-    res.writeHead(200, { 'Content-Type': mime[path.extname(file)] || 'application/octet-stream' });
-    res.end(await readFile(file));
+    const file = path.resolve(publicRoot, `.${rel}`);
+    const info = file.startsWith(publicRoot + path.sep) ? await stat(file).catch(() => null) : null;
+    if (info?.isFile()) return sendFile(res, file);
+    // Unknown pages get the app shell with a 404 status so the browser shows the designed not-found page.
+    if (!path.extname(rel)) return sendFile(res, path.join(publicRoot, 'index.html'), 404);
+    res.writeHead(404, { ...securityHeaders, 'Content-Type': 'text/plain; charset=utf-8' });
+    res.end('Not found');
   } catch (e) {
-    json(res, e.message === 'Request too large' ? 413 : 500, {
-      error: e.message === 'Request too large' ? 'Request too large' : 'Server error',
+    if (res.headersSent) return res.end();
+    json(res, e.message === 'Request too large' ? 413 : e.status || 500, {
+      error: e.message === 'Request too large' ? 'Request too large' : e.status ? e.message : 'Server error',
     });
   }
 });

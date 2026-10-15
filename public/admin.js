@@ -1,16 +1,21 @@
 const app = document.querySelector('#app');
 let kind = 'subjects',
-  items = [];
+  items = [],
+  editingId = null;
 const labels = {
   subjects: 'جروبات المواد',
   lectures: 'ملفات المحاضرات',
   advising: 'الإرشاد الأكاديمي',
   official: 'الجروبات الرسمية',
 };
-document.body.dataset.theme = localStorage.getItem('cs-theme') || 'light';
+const brand = `<a class="brand" href="/"><svg class="brand-logo" viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="16" class="brand-logo-bg"/><ellipse cx="32" cy="32" rx="22" ry="9" fill="none" class="brand-logo-orbit" stroke-width="2.5" transform="rotate(-32 32 32)"/><path d="M41.5 22.5A13.5 13.5 0 1 0 41.5 41.5" fill="none" class="brand-logo-c" stroke-width="5.5" stroke-linecap="round"/><circle cx="47" cy="17" r="4.5" class="brand-logo-dot"/></svg><span class="brand-text"><span>CAPITAL <b>SCIENCE</b></span><small>ADMIN CONSOLE</small></span></a>`;
+try {
+  const theme = localStorage.getItem('cs-theme');
+  if (theme === 'light' || theme === 'dark') document.documentElement.dataset.theme = theme;
+} catch {}
 function esc(value = '') {
   return String(value).replace(
-    /[&<>\"']/g,
+    /[&<>"']/g,
     (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c],
   );
 }
@@ -19,7 +24,11 @@ async function req(url, opt = {}) {
     ...opt,
     headers: { 'Content-Type': 'application/json', ...(opt.headers || {}) },
   });
-  const d = await r.json();
+  const d = await r.json().catch(() => ({}));
+  if (r.status === 401 && !url.endsWith('/login')) {
+    login('انتهت الجلسة. سجّل الدخول مرة أخرى.');
+    throw Error('Sign in required');
+  }
   if (!r.ok) throw Error(d.error || 'Request failed');
   return d;
 }
@@ -35,11 +44,13 @@ function publishSiteUpdate() {
   } catch {}
 }
 function toast(s) {
+  document.querySelector('.toast')?.remove();
   const e = document.createElement('div');
   e.className = 'toast';
+  e.setAttribute('role', 'status');
   e.textContent = s;
   document.body.append(e);
-  setTimeout(() => e.remove(), 2500);
+  setTimeout(() => e.remove(), 3200);
 }
 async function check() {
   try {
@@ -51,9 +62,11 @@ async function check() {
   }
 }
 function login(error = '') {
-  app.innerHTML = `<div class="login-box"><a class="brand" href="/"><span class="brand-mark">C<span>·</span></span><span>CAPITAL <b>SCIENCE</b><small>ADMIN CONSOLE</small></span></a><h1>تسجيل دخول المطور</h1><p style="color:var(--muted);font-size:12px">منطقة إدارة محتوى الموقع</p><form id="login"><input type="password" name="password" placeholder="كلمة المرور" required autofocus><div style="color:#b84d43;font-size:11px">${esc(error)}</div><button class="button primary">دخول <span>↗</span></button></form></div>`;
+  app.innerHTML = `<div class="login-box">${brand}<div><span class="section-index">DEVELOPER ACCESS</span><h1>تسجيل دخول المطور</h1><p class="admin-muted">منطقة إدارة محتوى الموقع</p></div><form id="login"><label>كلمة المرور<input type="password" name="password" required autofocus autocomplete="current-password"></label><p class="login-error" role="alert">${esc(error)}</p><button class="button primary">دخول</button></form></div>`;
   document.querySelector('#login').onsubmit = async (e) => {
     e.preventDefault();
+    const button = e.currentTarget.querySelector('button');
+    button.disabled = true;
     try {
       await req('/api/admin/login', {
         method: 'POST',
@@ -61,18 +74,25 @@ function login(error = '') {
       });
       dashboard();
     } catch (err) {
-      login(err.message);
+      login(err.message === 'Incorrect password' ? 'كلمة المرور غير صحيحة.' : err.message);
     }
   };
 }
+function itemFormFields() {
+  return `<label>الاسم بالعربية<input name="title" required maxlength="180" placeholder="اسم المجموعة أو الملف"></label><label class="advanced">الاسم بالإنجليزية<input name="titleEn" maxlength="180" placeholder="English title"></label><label class="wide">الرابط<input name="url" type="url" required placeholder="https://…" dir="ltr"></label><label>التصنيف<input name="category" maxlength="180" placeholder="مثال: مواد عامة" list="category-options"></label><label class="advanced">التصنيف بالإنجليزية<input name="categoryEn" maxlength="180" placeholder="e.g. Core courses"></label><label class="wide advanced">ملاحظة تظهر على البطاقة<textarea name="note" maxlength="600" rows="2"></textarea></label>`;
+}
 function dashboard() {
-  app.innerHTML = `<div class="admin-layout"><aside class="admin-side"><a class="brand" href="/"><span class="brand-mark">C<span>·</span></span><span>CAPITAL <b>SCIENCE</b><small>ADMIN CONSOLE</small></span></a><nav class="admin-nav">${Object.entries(
+  editingId = null;
+  app.innerHTML = `<div class="admin-layout"><aside class="admin-side">${brand}<nav class="admin-nav" aria-label="الأقسام">${Object.entries(
     labels,
   )
-    .map(([k, v]) => `<button data-kind="${k}" class="${kind === k ? 'active' : ''}">${v}</button>`)
+    .map(
+      ([k, v]) =>
+        `<button data-kind="${k}" class="${kind === k ? 'active' : ''}" ${kind === k ? 'aria-current="page"' : ''}>${v}</button>`,
+    )
     .join(
       '',
-    )}</nav></aside><main class="admin-main"><div class="admin-head"><div><span class="section-index">CONTENT MANAGEMENT</span><h1>${labels[kind]}</h1></div><button class="button ghost" id="mode-toggle">الوضع البسيط</button><button class="button" id="logout">تسجيل الخروج</button></div><div id="storage-status" class="storage-status" role="status"></div><section class="admin-box"><h2 style="font-size:14px;font-weight:500">إضافة عنصر</h2><form class="admin-form" id="item-form"><label>الاسم<input name="title" required placeholder="اسم المجموعة أو الملف"></label><label>الاسم بالإنجليزية (اختياري)<input name="titleEn"></label><label>الرابط<input name="url" type="url" required placeholder="https://…"></label><label>التصنيف<input name="category" placeholder="مثال: الإرشاد الأكاديمي"></label><label>ملاحظة (اختياري)<input name="note"></label><button class="button primary">إضافة عنصر <span>＋</span></button></form><div class="admin-list" id="list"></div></section><section class="admin-box"><h2 style="font-size:14px;font-weight:500">البريد وصندوق رسائل المستخدمين</h2><form class="admin-form" id="email-form"><label>نوع الإرسال<select name="mode"><option value="private">شخص محدد</option><option value="all">كل المستخدمين</option></select></label><label>المستلم: ID أو Gmail أو هاتف<input name="target" placeholder="معرّف الحساب أو البريد أو +20…"></label><label>عنوان الرسالة<input name="subject" maxlength="180" required></label><label>نص الرسالة<input name="message" maxlength="10000" required></label><button class="button primary">إرسال الرسالة</button></form><div class="admin-list" id="users-list"><button class="button ghost" id="load-users">بحث في حسابات المستخدمين</button><input id="user-search" placeholder="بحث بالاسم أو ID أو بريد أو هاتف"><div id="user-results"></div></div></section></main></div>`;
+    )}</nav></aside><main class="admin-main"><div class="admin-head"><div><span class="section-index">CONTENT MANAGEMENT</span><h1>${labels[kind]}</h1></div><button class="button ghost" id="mode-toggle">الوضع البسيط</button><a class="button ghost" href="/" target="_blank" rel="noopener">عرض الموقع</a><button class="button" id="logout">تسجيل الخروج</button></div><div id="storage-status" class="storage-status" role="status"></div><section class="admin-box"><h2 id="item-form-title">إضافة عنصر</h2><form class="admin-form" id="item-form">${itemFormFields()}<datalist id="category-options"></datalist><div class="admin-form-actions"><button class="button primary" id="item-submit">إضافة العنصر</button><button class="button ghost" type="button" id="cancel-edit" hidden>إلغاء التعديل</button></div></form></section><section class="admin-box"><div class="admin-toolbar"><h2>العناصر الحالية</h2><input id="item-search" type="search" placeholder="ابحث في العناصر…"></div><div class="admin-list" id="list"><p class="admin-muted">جارٍ التحميل…</p></div></section><section class="admin-box"><h2>الرسائل للمستخدمين</h2><p>تصل الرسالة إلى صندوق بريد الحساب داخل الموقع، وتُرسل بالبريد أيضًا لمن لديه بريد موثّق.</p><form class="admin-form" id="email-form"><label>نوع الإرسال<select name="mode"><option value="private">شخص محدد</option><option value="all">كل المستخدمين</option></select></label><label>المستلم: ID أو بريد أو هاتف<input name="target" placeholder="معرّف الحساب أو البريد أو +20…" dir="ltr"></label><label class="wide">عنوان الرسالة<input name="subject" maxlength="180" required></label><label class="wide">نص الرسالة<textarea name="message" maxlength="10000" rows="5" required></textarea></label><div class="admin-form-actions"><button class="button primary">إرسال الرسالة</button></div></form><div class="admin-toolbar"><input id="user-search" type="search" placeholder="ابحث عن حساب بالاسم أو ID أو البريد أو الهاتف"><button class="button ghost" id="load-users">بحث</button></div><div class="admin-list" id="user-results"></div></section></main></div>`;
   document.querySelectorAll('[data-kind]').forEach(
     (b) =>
       (b.onclick = () => {
@@ -81,79 +101,157 @@ function dashboard() {
       }),
   );
   document.querySelector('#logout').onclick = async () => {
-    await req('/api/admin/logout', { method: 'POST' });
+    try {
+      await req('/api/admin/logout', { method: 'POST' });
+    } catch {}
     login();
   };
-  const layout = document.querySelector('.admin-layout');
-  if (localStorage.getItem('cs-admin-mode') === 'simple') {
-    layout.classList.add('simple-mode');
-    document.querySelector('#mode-toggle').textContent = 'الوضع المتقدم';
-  }
-  document.querySelector('#mode-toggle').onclick = () => {
-    layout.classList.toggle('simple-mode');
-    const mode = layout.classList.contains('simple-mode') ? 'simple' : 'advanced';
+  const layout = document.querySelector('.admin-layout'),
+    modeButton = document.querySelector('#mode-toggle');
+  const setMode = (mode) => {
+    layout.classList.toggle('simple-mode', mode === 'simple');
+    modeButton.textContent = mode === 'simple' ? 'الوضع المتقدم' : 'الوضع البسيط';
+  };
+  setMode(localStorage.getItem('cs-admin-mode') === 'simple' ? 'simple' : 'advanced');
+  modeButton.onclick = () => {
+    const mode = layout.classList.contains('simple-mode') ? 'advanced' : 'simple';
     localStorage.setItem('cs-admin-mode', mode);
-    document.querySelector('#mode-toggle').textContent = mode === 'simple' ? 'الوضع المتقدم' : 'الوضع البسيط';
+    setMode(mode);
   };
-  document.querySelector('[name=mode]').onchange = (e) => {
-    document.querySelector('[name=target]').disabled = e.target.value === 'all';
+  const emailForm = document.querySelector('#email-form'),
+    target = emailForm.elements.target;
+  emailForm.elements.mode.onchange = (e) => {
+    target.disabled = e.target.value === 'all';
   };
-  document.querySelector('#email-form').onsubmit = async (e) => {
+  emailForm.onsubmit = async (e) => {
     e.preventDefault();
-    if (!confirm('تأكيد إرسال البريد إلى المستلم المحدد؟')) return;
+    const data = Object.fromEntries(new FormData(emailForm));
+    let question = `إرسال الرسالة إلى ${data.target || 'المستلم المحدد'}؟`;
+    if (data.mode === 'all') {
+      try {
+        const audience = await req('/api/admin/audience');
+        question = `سيتم الإرسال إلى ${Math.min(audience.profiles, audience.broadcastLimit)} حساب (الحد الأقصى ${audience.broadcastLimit}). متابعة؟`;
+      } catch {
+        question = 'إرسال الرسالة إلى كل المستخدمين؟';
+      }
+    }
+    if (!confirm(question)) return;
+    const button = emailForm.querySelector('button');
+    button.disabled = true;
     try {
-      const result = await req('/api/admin/email', {
-        method: 'POST',
-        body: JSON.stringify(Object.fromEntries(new FormData(e.currentTarget))),
-      });
+      const result = await req('/api/admin/email', { method: 'POST', body: JSON.stringify(data) });
       toast(
         `تم التسليم داخل الموقع إلى ${result.inAppDelivered} حساب؛ البريد وصل ${result.emailSent}، وتعذر إرساله إلى ${result.emailFailed}.`,
       );
+      emailForm.reset();
+      target.disabled = false;
     } catch (error) {
       toast(error.message);
+    } finally {
+      button.disabled = false;
     }
   };
-  document.querySelector('#load-users').onclick = async () => {
+  const searchUsers = async () => {
+    const results = document.querySelector('#user-results');
+    results.innerHTML = '<p class="admin-muted">جارٍ البحث…</p>';
     try {
       const result = await req(
         `/api/admin/users?q=${encodeURIComponent(document.querySelector('#user-search').value)}`,
       );
-      document.querySelector('#user-results').innerHTML =
-        result.users
+      results.innerHTML =
+        `<p class="admin-muted">${result.matched} نتيجة من ${result.total} حساب${result.matched > result.users.length ? ` · يظهر أول ${result.users.length}` : ''}</p>` +
+        (result.users
           .map(
             (u) =>
-              `<div class="admin-row"><span>${esc(u.name)}<small>${esc(u.id)} · ${esc(u.email || u.phone)}</small></span><button type="button" class="target-user" data-id="${esc(u.id)}">استهداف</button></div>`,
+              `<div class="admin-row"><span>${esc(u.name || '—')}<small>${esc(u.id)} · ${esc(u.email || u.phone || 'بدون وسيلة تواصل')}</small></span><button type="button" class="target-user" data-id="${esc(u.id)}">استهداف</button></div>`,
           )
-          .join('') || '<p>لا توجد حسابات مطابقة</p>';
-      document.querySelectorAll('.target-user').forEach(
+          .join('') || '<p class="admin-muted">لا توجد حسابات مطابقة.</p>');
+      results.querySelectorAll('.target-user').forEach(
         (b) =>
           (b.onclick = () => {
-            document.querySelector('[name=mode]').value = 'private';
-            document.querySelector('[name=target]').disabled = false;
-            document.querySelector('[name=target]').value = b.dataset.id;
+            emailForm.elements.mode.value = 'private';
+            target.disabled = false;
+            target.value = b.dataset.id;
+            emailForm.elements.subject.focus();
           }),
       );
     } catch (error) {
-      toast(error.message);
+      results.innerHTML = `<p class="admin-muted">${esc(error.message)}</p>`;
     }
   };
-  document.querySelector('#item-form').onsubmit = async (e) => {
+  document.querySelector('#load-users').onclick = searchUsers;
+  document.querySelector('#user-search').onkeydown = (e) => {
+    if (e.key === 'Enter') searchUsers();
+  };
+  const itemForm = document.querySelector('#item-form');
+  itemForm.onsubmit = async (e) => {
     e.preventDefault();
-    const o = Object.fromEntries(new FormData(e.currentTarget));
+    const o = Object.fromEntries(new FormData(itemForm));
+    // Save every item in one shape (Arabic in title, English in titleEn); clear the older titleAr field.
+    o.titleAr = '';
+    const url = o.url.toLowerCase();
+    o.kind =
+      url.includes('facebook.com') || url.includes('fb.com')
+        ? 'facebook'
+        : url.includes('drive.google.com')
+          ? 'drive'
+          : url.includes('t.me/')
+            ? 'telegram'
+            : url.includes('whatsapp.com') || url.includes('wa.me')
+              ? 'whatsapp'
+              : 'link';
+    const button = document.querySelector('#item-submit');
+    button.disabled = true;
     try {
-      await req(`/api/admin/${kind}`, {
-        method: 'POST',
-        body: JSON.stringify({ ...o, kind: o.url.includes('facebook') ? 'facebook' : 'whatsapp' }),
-      });
+      if (editingId) {
+        await req(`/api/admin/${kind}/${encodeURIComponent(editingId)}`, {
+          method: 'PUT',
+          body: JSON.stringify(o),
+        });
+        toast('تم حفظ التعديل');
+      } else {
+        await req(`/api/admin/${kind}`, { method: 'POST', body: JSON.stringify(o) });
+        toast('تمت إضافة العنصر');
+      }
       publishSiteUpdate();
-      toast('تمت إضافة العنصر');
-      dashboard();
+      stopEditing();
+      loadItems();
     } catch (er) {
       toast(er.message);
+    } finally {
+      button.disabled = false;
     }
   };
+  document.querySelector('#cancel-edit').onclick = stopEditing;
+  document.querySelector('#item-search').oninput = renderItems;
   loadItems();
   loadStorageStatus();
+}
+function startEditing(item) {
+  const form = document.querySelector('#item-form');
+  editingId = item.id;
+  for (const field of ['title', 'titleEn', 'url', 'category', 'categoryEn', 'note']) {
+    // Subject groups keep the Arabic name in titleAr and the English one in title.
+    let value = item[field] || '';
+    if (field === 'title' && item.titleAr) value = item.titleAr;
+    if (field === 'titleEn' && item.titleAr && !item.titleEn) value = item.title || '';
+    form.elements[field].value = value;
+  }
+  document.querySelector('#item-form-title').textContent = `تعديل: ${item.titleAr || item.title}`;
+  document.querySelector('#item-submit').textContent = 'حفظ التعديل';
+  document.querySelector('#cancel-edit').hidden = false;
+  renderItems();
+  form.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  form.elements.title.focus({ preventScroll: true });
+}
+function stopEditing() {
+  editingId = null;
+  const form = document.querySelector('#item-form');
+  form.reset();
+  document.querySelector('#item-form-title').textContent = 'إضافة عنصر';
+  document.querySelector('#item-submit').textContent = 'إضافة العنصر';
+  document.querySelector('#cancel-edit').hidden = true;
+  renderItems();
 }
 async function loadStorageStatus() {
   const status = document.querySelector('#storage-status');
@@ -167,45 +265,52 @@ async function loadStorageStatus() {
     status.textContent = 'تعذر التحقق من حالة الحفظ.';
   }
 }
+function renderItems() {
+  const list = document.querySelector('#list');
+  if (!list) return;
+  const q = (document.querySelector('#item-search')?.value || '').trim().toLocaleLowerCase();
+  const shown = items.filter((x) =>
+    `${x.title || ''} ${x.titleAr || ''} ${x.titleEn || ''} ${x.url || ''} ${x.category || ''}`
+      .toLocaleLowerCase()
+      .includes(q),
+  );
+  list.innerHTML =
+    shown
+      .map(
+        (x) =>
+          `<div class="admin-row ${x.id === editingId ? 'editing' : ''}"><span>${esc(x.titleAr || x.title)}<small>${esc(x.category ? `${x.category} · ` : '')}${esc(x.url)}</small></span><button class="edit" data-id="${esc(x.id)}">تعديل</button><button class="delete" data-id="${esc(x.id)}">حذف</button></div>`,
+      )
+      .join('') || `<p class="admin-muted">${q ? 'لا توجد نتائج.' : 'لا توجد عناصر بعد.'}</p>`;
+  list.querySelectorAll('.delete').forEach(
+    (b) =>
+      (b.onclick = async () => {
+        const item = items.find((x) => x.id === b.dataset.id);
+        if (!confirm(`حذف «${item?.titleAr || item?.title}»؟ لا يمكن التراجع.`)) return;
+        try {
+          await req(`/api/admin/${kind}/${encodeURIComponent(b.dataset.id)}`, { method: 'DELETE' });
+          publishSiteUpdate();
+          if (editingId === b.dataset.id) stopEditing();
+          toast('تم الحذف');
+          loadItems();
+        } catch (error) {
+          toast(error.message);
+        }
+      }),
+  );
+  list
+    .querySelectorAll('.edit')
+    .forEach((b) => (b.onclick = () => startEditing(items.find((x) => x.id === b.dataset.id))));
+}
 async function loadItems() {
   try {
     items = await req(`/api/admin/${kind}`);
-    document.querySelector('#list').innerHTML =
-      items
-        .map(
-          (x) =>
-            `<div class="admin-row"><span>${esc(x.title)}<small>${esc(x.url)}</small></span><button class="edit" data-id="${esc(x.id)}">تعديل</button><button class="delete" data-id="${esc(x.id)}">حذف</button></div>`,
-        )
-        .join('') || '<p style="color:var(--muted);font-size:12px">لا توجد عناصر بعد.</p>';
-    document.querySelectorAll('.delete').forEach(
-      (b) =>
-        (b.onclick = async () => {
-          if (confirm('حذف هذا العنصر؟')) {
-            await req(`/api/admin/${kind}/${b.dataset.id}`, { method: 'DELETE' });
-            publishSiteUpdate();
-            loadItems();
-          }
-        }),
-    );
-    document
-      .querySelectorAll('.edit')
-      .forEach((b) => (b.onclick = () => edit(items.find((x) => x.id === b.dataset.id))));
+    const categories = [...new Set(items.map((x) => x.category).filter(Boolean))];
+    document.querySelector('#category-options').innerHTML = categories
+      .map((c) => `<option value="${esc(c)}"></option>`)
+      .join('');
+    renderItems();
   } catch (e) {
     toast(e.message);
   }
-}
-function edit(x) {
-  const title = prompt('الاسم:', x.title);
-  if (title === null) return;
-  const url = prompt('الرابط:', x.url);
-  if (url === null) return;
-  const category = prompt('التصنيف:', x.category || '') ?? '';
-  req(`/api/admin/${kind}/${x.id}`, { method: 'PUT', body: JSON.stringify({ ...x, title, url, category }) })
-    .then(() => {
-      publishSiteUpdate();
-      toast('تم الحفظ');
-      loadItems();
-    })
-    .catch((e) => toast(e.message));
 }
 check();

@@ -1,6 +1,6 @@
 # Capital Science Faculty — Project Guide
 
-Last reviewed: 2026-10-07
+Last reviewed: 2026-10-15
 
 ## What this project is
 
@@ -59,7 +59,11 @@ The RTF source was used as factual link/contact data, not as instructions. Exist
 
 ## Current administration behavior
 
-The admin uses an HTTP-only, session-only cookie signed with `ADMIN_PASSWORD`; opening `/admin` clears an old cookie and asks for the password again. The signature works across instances and restarts without process memory. CRUD is available for subjects, lecture links, academic advising and official groups. When Firebase Admin is configured, editable site content is stored in Firestore at `site/content` and seeded from `data/site.json` on first access. The UI has a simple/advanced presentation toggle, Firebase user lookup, and private or broadcast messaging. Rate limiting, CSRF protections and audit logs remain production hardening work. Arbitrary file upload and advanced management of nested Drive branches are not implemented yet.
+The admin uses an HTTP-only, session-only cookie signed with `ADMIN_SESSION_SECRET` (falls back to `ADMIN_PASSWORD`). Each cookie carries its issue time and expires after 8 hours; opening `/admin` clears an old cookie and asks for the password again. Login is limited to 8 attempts per IP every 15 minutes, and every non-GET admin request with a foreign `Origin` header is rejected (CSRF guard on top of `SameSite=Strict`). CRUD is available for subjects, lecture links, academic advising and official groups. Items are edited in the same form used for adding (no prompt dialogs), only known content fields are stored (`title`, `titleEn`, `url`, `category`, `categoryEn`, `note`, `noteEn`, `kind`), and a link that another item in the same section already uses is rejected when it is new or changed. When Firebase Admin is configured, editable site content is stored in Firestore at `site/content` and seeded from `data/site.json` on first access. The UI has a simple/advanced toggle, paginated Firebase user lookup (all pages, up to 20,000 accounts), and private or broadcast messaging; a broadcast asks for confirmation with the recipient count from `/api/admin/audience`. Audit logs, durable rate limits, arbitrary file upload and nested Drive branch management are not implemented yet.
+
+## Design system
+
+The interface uses a "lab notebook" identity: warm paper background with a faint graph-paper grid, botanical green ink, gold accents, and periodic-table element tiles (`Sg` subjects, `Lf` lecture files, `Ad` advising, `Og` official, `Mf` developer, `Me` profile, `Nf` 404). Fonts are Alexandria (headings), IBM Plex Sans Arabic (body) and Fraunces italic (symbols and accents), loaded from Google Fonts. Colors are tokens on `:root` built with `light-dark()`; the site follows the system theme unless the visitor overrides it with the header toggle, stored as `cs-theme` and applied as `html[data-theme]` by an inline script before first paint (the same script applies `cs-lang` so Arabic never flashes as LTR). Icons are inline SVG strokes defined in `iconPaths` in `public/app.js`; the logo is the `brandMark` SVG and `public/favicon.svg`. Page changes use the View Transitions API where available and move focus to the new page heading. Entrance animations only run when the document is visible, and all motion respects `prefers-reduced-motion`. Unknown URLs return the app shell with HTTP 404 and a designed not-found page.
 
 ## Registration, profile and account status
 
@@ -89,7 +93,7 @@ The version-2 browser migration intentionally clears prior local profile/cookie 
 2. **Firebase Auth:** enable Email/Password and Email Link sign-in; authorize `capital-science-faculty.onrender.com`. Enable Google and Phone as desired; Google also needs a support email. The SMS region policy currently allows Egypt only. Real production SMS requires a Cloud Billing account and is billed per message; use fictional Firebase test numbers for no-cost flow testing.
 3. **Email delivery:** Firebase sends verification links directly. `RESEND_API_KEY` powers owner notices and dashboard mail; `RESEND_FROM` can specify a verified sender. A verified domain is needed for reliable notices to arbitrary recipients. No SMTP server is used by this app.
 4. **Firestore:** the Admin SDK stores content and account profiles. Browser reads/writes remain blocked by `firestore.rules`; keep all data access behind the authenticated server routes.
-5. **Hardening:** Email/contact lookup rate limits are in process memory and reset at deploy/restart. Move these to durable storage, add CSRF protection and audit logging for dashboard actions, monitor email failures, and define retention/account-deletion procedures before production growth. SMS and email actions need abuse monitoring.
+5. **Hardening:** Email/contact/admin-login rate limits are in process memory and reset at deploy/restart. Move these to durable storage, add audit logging for dashboard actions, monitor email failures, and define retention/account-deletion procedures before production growth. SMS and email actions need abuse monitoring.
 6. **Current deployment:** Render remains the active public host. Firebase App Hosting config is optional and would require separate billing/account setup; the project does not need to migrate hosts to use these changes.
 
 ## Checks run / follow-up

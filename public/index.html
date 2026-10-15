@@ -2,22 +2,47 @@
 <html lang="ar" dir="rtl">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <meta name="theme-color" content="#f5f6f2" />
+    <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+    <meta name="color-scheme" content="light dark" />
+    <script>
+      // Apply saved language and theme before first paint so the page never flashes the wrong direction or colors.
+      try {
+        var lang = localStorage.getItem('cs-lang') === 'en' ? 'en' : 'ar';
+        document.documentElement.lang = lang;
+        document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
+        var theme = localStorage.getItem('cs-theme');
+        if (theme === 'light' || theme === 'dark') document.documentElement.dataset.theme = theme;
+      } catch (e) {}
+    </script>
+    <meta name="theme-color" content="#f6f4ec" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#0f1612" media="(prefers-color-scheme: dark)" />
     <meta
       name="description"
-      content="A student-built home for Capital Faculty of Science groups, resources and academic support."
+      content="A student-built home for Capital Faculty of Science groups, lecture files and academic support."
     />
+    <meta property="og:title" content="Capital Science — Student Commons" />
+    <meta
+      property="og:description"
+      content="Subject groups, lecture files, academic advising and official links for Faculty of Science students."
+    />
+    <meta property="og:type" content="website" />
     <title>Capital Science — كلية العلوم</title>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="manifest" href="/site.webmanifest" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Alexandria:wght@400;500;600;700&family=Fraunces:ital,opsz,wght@1,9..144,400;1,9..144,500&family=IBM+Plex+Sans+Arabic:wght@400;500;600&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="/style.css?v=signup-flow-2" />
+    <link rel="stylesheet" href="/style.css?v=lab-1" />
   </head>
   <body>
+    <a class="skip-to-content" href="#page">تخطي إلى المحتوى</a>
     <div id="app"></div>
-    <script type="module" src="/app.js?v=signup-flow-4"></script>
+    <noscript
+      ><p class="noscript">This site needs JavaScript. · يحتاج هذا الموقع إلى تفعيل JavaScript.</p></noscript
+    >
+    <script type="module" src="/app.js?v=lab-1"></script>
   </body>
 </html>
