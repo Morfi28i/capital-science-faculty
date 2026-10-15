@@ -5,6 +5,12 @@ runConfig:
   cpu: 1
   memoryMiB: 512
 
+# This project is a plain Node HTTP app rather than Next.js or Angular.
+# App Hosting can run custom Node build and start commands for this layout.
+scripts:
+  buildCommand: npm run build
+  runCommand: npm start
+
 env:
   - variable: FIREBASE_PROJECT_ID
     value: capital-science-faculty

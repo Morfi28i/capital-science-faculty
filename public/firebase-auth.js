@@ -1,5 +1,5 @@
 let appPromise;
-const phoneVerifiers = new WeakMap();function createPhoneVerifier(auth,authSdk,container){const element=typeof container==="string"?document.getElementById(container):container;if(!(element instanceof HTMLElement)||!element.isConnected)throw new Error("Phone verification is not ready. Reopen the phone sign-in step and try again.");const previous=phoneVerifiers.get(element);if(previous){try{previous.clear()}catch{}}element.replaceChildren();const verifier=new authSdk.RecaptchaVerifier(auth,element,{size:"normal"});phoneVerifiers.set(element,verifier);return verifier}
+const phoneVerifiers = new WeakMap();
 
 async function services() {
   if (!appPromise) appPromise = (async () => {
@@ -69,12 +69,16 @@ export async function completeEmailSignInLink(email, url = window.location.href)
 export async function setEmailPassword(email, password) {
   const { auth, authSdk } = await services();
   if (!auth.currentUser) throw new Error('Sign in before setting a password.');
-  
   const passwordLinked = auth.currentUser.providerData.some(provider => provider.providerId === 'password');
   if (passwordLinked) await authSdk.updatePassword(auth.currentUser, password);
   else await authSdk.linkWithCredential(auth.currentUser, authSdk.EmailAuthProvider.credential(email, password));
   await auth.currentUser.getIdToken(true);
   return auth.currentUser;
+}
+
+export async function sendPasswordReset(email) {
+  const { auth, authSdk } = await services();
+  await authSdk.sendPasswordResetEmail(auth, email);
 }
 
 export async function requestEmailChange(newEmail) {
@@ -112,11 +116,15 @@ export async function refreshCurrentUser() {
 export async function startPhoneUpdate(phone, recaptchaContainer) {
   const { auth, authSdk } = await services();
   if (!auth.currentUser) throw new Error('Sign in before changing your phone.');
-  const verifier = createPhoneVerifier(auth, authSdk, recaptchaContainer);
-  
-  const provider = new authSdk.PhoneAuthProvider(auth);
-  const verificationId = await provider.verifyPhoneNumber(phone, verifier);
-  return { verificationId, verifier };
+  const verifier = await createPhoneVerifier(auth, authSdk, recaptchaContainer);
+  try {
+    const provider = new authSdk.PhoneAuthProvider(auth);
+    const verificationId = await provider.verifyPhoneNumber(phone, verifier);
+    return { verificationId, verifier };
+  } catch (error) {
+    clearPhoneVerifier(recaptchaContainer, verifier);
+    throw error;
+  }
 }
 
 export async function finishPhoneUpdate(verificationId, code) {
@@ -132,9 +140,10 @@ export async function signInEmail(email, password) {
   const { auth, authSdk } = await services();
   const result = await authSdk.signInWithEmailAndPassword(auth, email, password);
   if (!result.user.emailVerified) {
-    await authSdk.sendEmailVerification(result.user);
-    await authSdk.signOut(auth);
-    throw new Error('Email verification is required. A new verification link was sent.');
+    try { await authSdk.sendEmailVerification(result.user); } finally { await authSdk.signOut(auth); }
+    const error = new Error('Email verification is required. A new verification link was sent.');
+    error.code = 'auth/email-not-verified';
+    throw error;
   }
   return result.user;
 }
@@ -150,10 +159,36 @@ export async function signInGoogle() {
 
 export async function startPhoneSignIn(phone, recaptchaContainer) {
   const { auth, authSdk } = await services();
-  const verifier = createPhoneVerifier(auth, authSdk, recaptchaContainer);
-  
-  const confirmation = await authSdk.signInWithPhoneNumber(auth, phone, verifier);
-  return { confirmation, verifier };
+  const verifier = await createPhoneVerifier(auth, authSdk, recaptchaContainer);
+  try {
+    const confirmation = await authSdk.signInWithPhoneNumber(auth, phone, verifier);
+    return { confirmation, verifier };
+  } catch (error) {
+    clearPhoneVerifier(recaptchaContainer, verifier);
+    throw error;
+  }
+}
+
+async function createPhoneVerifier(auth, authSdk, container) {
+  const element = typeof container === 'string' ? document.getElementById(container) : container;
+  if (!(element instanceof HTMLElement) || !element.isConnected) {
+    throw new Error('Phone verification is not ready. Reopen the phone sign-in step and try again.');
+  }
+  const previous = phoneVerifiers.get(element);
+  if (previous) clearPhoneVerifier(element, previous);
+  element.replaceChildren();
+  const verifier = new authSdk.RecaptchaVerifier(auth, element, { size: 'normal' });
+  phoneVerifiers.set(element, verifier);
+  return verifier;
+}
+
+function clearPhoneVerifier(container, verifier) {
+  const element = typeof container === 'string' ? document.getElementById(container) : container;
+  try { verifier.clear(); } catch {}
+  if (element instanceof HTMLElement) {
+    if (phoneVerifiers.get(element) === verifier) phoneVerifiers.delete(element);
+    element.replaceChildren();
+  }
 }
 
 export async function confirmPhoneSignIn(confirmation, code) {
@@ -222,8 +257,4 @@ export async function currentFirebaseUser() {
   return new Promise(resolve => {
     const off = authSdk.onAuthStateChanged(auth, user => { off(); resolve(user); });
   });
-}
-export async function sendPasswordReset(email) {
-  const { auth, authSdk } = await services();
-  await authSdk.sendPasswordResetEmail(auth, email);
 }
