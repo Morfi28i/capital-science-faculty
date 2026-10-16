@@ -1,10 +1,11 @@
 name: Drive sync
 
 on:
-  # Three runs a day: 03:00, 11:00 and 19:00 UTC (06:00, 14:00 and 22:00 in Cairo).
-  # Pause from the dashboard ("مزامنة Drive" → إيقاف مؤقت) instead of editing this file.
   schedule:
+    # Full sync three times a day: 03:00, 11:00 and 19:00 UTC (06:00, 14:00 and 22:00 in Cairo).
     - cron: '0 3,11,19 * * *'
+    # Hourly check for a run requested from the dashboard ("تشغيل الآن"); exits in seconds when none.
+    - cron: '17 * * * *'
   workflow_dispatch:
     inputs:
       dry_run:
@@ -36,38 +37,81 @@ jobs:
     env:
       SITE_URL: ${{ vars.SITE_URL || 'https://capital-science-faculty.onrender.com' }}
       SYNC_AUDIENCE: capital-science-faculty-sync
-      # Scheduled runs write; manual runs follow the inputs (dry run by default).
-      DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run || 'false' }}
-      ALLOW_REMOVALS: ${{ github.event_name == 'workflow_dispatch' && inputs.allow_removals || 'false' }}
-      ALLOW_LARGE: ${{ github.event_name == 'workflow_dispatch' && inputs.allow_large || 'false' }}
+      DASHBOARD_CHECK_CRON: '17 * * * *'
     steps:
-      - uses: actions/checkout@v5
-
-      - uses: actions/setup-python@v6
-        with:
-          python-version: '3.12'
-
-      - name: Check pause flag
-        id: pause
+      - name: Decide what to run
+        id: plan
+        env:
+          EVENT: ${{ github.event_name }}
+          CRON: ${{ github.event.schedule }}
+          INPUT_DRY_RUN: ${{ inputs.dry_run }}
+          INPUT_ALLOW_REMOVALS: ${{ inputs.allow_removals }}
+          INPUT_ALLOW_LARGE: ${{ inputs.allow_large }}
         run: |
           token=$(curl -fsS -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
             "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=$SYNC_AUDIENCE" | python3 -c 'import json,sys; print(json.load(sys.stdin)["value"])')
           echo "::add-mask::$token"
-          # The free Render instance may need up to a minute to wake up.
+          # Evaluate a Python expression on the JSON read from stdin (bound to d); prints true/false.
+          field() { python3 -c "import json,sys; d=json.loads(sys.stdin.read() or '{}'); print('true' if ($1) else 'false')" 2>/dev/null || echo false; }
+          if [ "$EVENT" = "schedule" ] && [ "$CRON" = "$DASHBOARD_CHECK_CRON" ]; then
+            # Hourly check: take a queued dashboard request, if any. The free Render instance may need a minute to wake.
+            reply=$(curl -fsS --retry 3 --retry-all-errors --max-time 90 -X POST \
+              -H "Authorization: Bearer $token" "$SITE_URL/api/sync/claim" || echo '{}')
+            if [ "$(printf '%s' "$reply" | field 'd.get("request") is not None')" != "true" ]; then
+              echo "No run requested from the dashboard."
+              { echo "run=false"; echo "paused=false"; } >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+            echo "Starting the run requested from the dashboard."
+            {
+              echo "run=true"; echo "paused=false"; echo "trigger=dashboard"
+              echo "dry_run=$(printf '%s' "$reply" | field '(d.get("request") or {}).get("dryRun") is not False')"
+              echo "allow_removals=$(printf '%s' "$reply" | field '(d.get("request") or {}).get("allowRemovals") is True')"
+              echo "allow_large=false"
+            } >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
           state=$(curl -fsS --retry 3 --retry-all-errors --max-time 90 \
             -H "Authorization: Bearer $token" "$SITE_URL/api/sync/state" || echo '{}')
           if [ "$state" = "{}" ]; then echo "::warning::Could not read the pause flag from the site; continuing."; fi
-          paused=$(printf '%s' "$state" | python3 -c 'import json,sys; d=json.loads(sys.stdin.read() or "{}"); print("true" if isinstance(d, dict) and d.get("paused") is True else "false")' 2>/dev/null || echo false)
-          if [ "$paused" = "true" ]; then echo "::notice::Drive sync is paused from the dashboard; skipping."; fi
-          echo "paused=$paused" >> "$GITHUB_OUTPUT"
+          paused=$(printf '%s' "$state" | field 'd.get("paused") is True')
+          # Scheduled full syncs respect the dashboard pause; manual runs from GitHub always run.
+          if [ "$EVENT" = "schedule" ] && [ "$paused" = "true" ]; then
+            echo "::notice::Drive sync is paused from the dashboard; skipping."
+            { echo "run=false"; echo "paused=true"; } >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          {
+            echo "run=true"; echo "paused=false"; echo "trigger=$EVENT"
+            if [ "$EVENT" = "workflow_dispatch" ]; then
+              echo "dry_run=${INPUT_DRY_RUN:-true}"
+              echo "allow_removals=${INPUT_ALLOW_REMOVALS:-false}"
+              echo "allow_large=${INPUT_ALLOW_LARGE:-false}"
+            else
+              echo "dry_run=false"; echo "allow_removals=false"; echo "allow_large=false"
+            fi
+          } >> "$GITHUB_OUTPUT"
+
+      - uses: actions/checkout@v5
+        if: steps.plan.outputs.run == 'true'
+
+      - uses: actions/setup-python@v6
+        if: steps.plan.outputs.run == 'true'
+        with:
+          python-version: '3.12'
 
       - name: Unit tests
-        if: steps.pause.outputs.paused != 'true'
+        if: steps.plan.outputs.run == 'true'
         run: python3 -m unittest discover -s scripts/tests
 
       - name: Crawl Drive and validate
         id: sync
-        if: steps.pause.outputs.paused != 'true'
+        if: steps.plan.outputs.run == 'true'
+        env:
+          DRY_RUN: ${{ steps.plan.outputs.dry_run }}
+          ALLOW_REMOVALS: ${{ steps.plan.outputs.allow_removals }}
+          ALLOW_LARGE: ${{ steps.plan.outputs.allow_large }}
+          SYNC_TRIGGER: ${{ steps.plan.outputs.trigger }}
         run: |
           args=(--report sync-report.json --candidate drive-catalog.candidate.json)
           [ "$DRY_RUN" = "true" ] && args+=(--dry-run)
@@ -77,7 +121,7 @@ jobs:
 
       - name: Read report
         id: report
-        if: always() && steps.pause.outputs.paused != 'true'
+        if: always() && steps.plan.outputs.run == 'true'
         run: |
           if [ ! -f sync-report.json ]; then echo "wrote=false" >> "$GITHUB_OUTPUT"; exit 0; fi
           python3 - <<'PY' >> "$GITHUB_OUTPUT"
@@ -91,10 +135,12 @@ jobs:
 
       - name: Commit and push catalog
         id: commit
-        if: success() && steps.report.outputs.wrote == 'true' && env.DRY_RUN != 'true'
+        if: success() && steps.plan.outputs.run == 'true' && steps.report.outputs.wrote == 'true' && steps.plan.outputs.dry_run != 'true'
         env:
           ADDED: ${{ steps.report.outputs.added }}
           REMOVED: ${{ steps.report.outputs.removed }}
+          ALLOW_REMOVALS: ${{ steps.plan.outputs.allow_removals }}
+          ALLOW_LARGE: ${{ steps.plan.outputs.allow_large }}
         run: |
           git config user.name "drive-sync[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -112,7 +158,7 @@ jobs:
           echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 
       - name: Keep report and candidate
-        if: always() && steps.pause.outputs.paused != 'true'
+        if: always() && steps.plan.outputs.run == 'true'
         uses: actions/upload-artifact@v7
         with:
           name: drive-sync-${{ github.run_id }}-${{ github.run_attempt }}
@@ -123,22 +169,33 @@ jobs:
           retention-days: 14
 
       - name: Post report to the site
-        if: always()
+        # Quiet hourly checks with nothing to do post nothing.
+        if: always() && (steps.plan.outputs.run == 'true' || steps.plan.outputs.paused == 'true' || steps.plan.outcome == 'failure')
         env:
           COMMIT_SHA: ${{ steps.commit.outputs.sha }}
-          PAUSED: ${{ steps.pause.outputs.paused }}
+          PAUSED: ${{ steps.plan.outputs.paused }}
           JOB_STATUS: ${{ job.status }}
+          DRY_RUN: ${{ steps.plan.outputs.dry_run }}
+          SYNC_TRIGGER: ${{ steps.plan.outputs.trigger }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           if [ "$PAUSED" = "true" ]; then export SYNC_STATUS=paused
           elif [ "$JOB_STATUS" = "success" ]; then export SYNC_STATUS=success
           else export SYNC_STATUS=failure; fi
+          # The payload script is in the repository; fetch it when the checkout step was skipped.
+          if [ ! -f scripts/sync-report-payload.py ]; then
+            mkdir -p scripts
+            curl -fsS -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github.raw" \
+              "https://api.github.com/repos/$GITHUB_REPOSITORY/contents/scripts/sync-report-payload.py?ref=$GITHUB_SHA" \
+              -o scripts/sync-report-payload.py
+          fi
           python3 scripts/sync-report-payload.py sync-report.json > sync-payload.json
-          # A fresh OIDC token: the one from the pause check may have expired during the crawl.
+          # A fresh OIDC token: the one from the plan step may have expired during the crawl.
           token=$(curl -fsS -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
             "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=$SYNC_AUDIENCE" | python3 -c 'import json,sys; print(json.load(sys.stdin)["value"])')
           echo "::add-mask::$token"
           code=$(curl -sS --retry 3 --retry-all-errors --max-time 90 -o /dev/null -w "%{http_code}" \
             -X POST -H "Authorization: Bearer $token" -H "Content-Type: application/json" \
-            --data-binary @sync-payload.json "$SITE_URL/api/sync/report" || echo 000)
+            --data-binary @sync-payload.json "$SITE_URL/api/sync/report" || true)
           echo "report posted: HTTP $code"
           if [ "$code" != "200" ]; then echo "::warning::The site did not accept the sync report (HTTP $code)."; fi

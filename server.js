@@ -264,6 +264,23 @@ function nextSyncRun(now = new Date()) {
   return null;
 }
 const firestoreTime = (value) => (value?.toDate ? value.toDate().toISOString() : value || null);
+// Without a GitHub token, a dashboard "run" is queued in Firestore and picked up by the workflow's
+// hourly check at minute 17 (UTC).
+const SYNC_CHECK_MINUTE = 17;
+function nextSyncCheck(now = new Date()) {
+  const at = new Date(now);
+  at.setUTCMinutes(SYNC_CHECK_MINUTE, 0, 0);
+  if (at <= now) at.setUTCHours(at.getUTCHours() + 1);
+  return at.toISOString();
+}
+const publicRunRequest = (request) =>
+  request
+    ? {
+        dryRun: request.dryRun !== false,
+        allowRemovals: request.allowRemovals === true,
+        requestedAt: firestoreTime(request.requestedAt),
+      }
+    : null;
 // The GitHub token for the dashboard's Run buttons: GITHUB_DISPATCH_TOKEN in the environment, or one the
 // admin pasted into the dashboard (Firestore syncSecrets/github, server-only, never sent back to a browser).
 let dashboardToken = { at: 0, value: null };
@@ -751,7 +768,27 @@ async function api(req, res, url) {
     if (req.method === 'GET' && url.pathname === '/api/sync/state') {
       if (!firebaseConfigured()) return json(res, 503, { error: 'Firebase is not configured.' });
       const state = await firebase().db.collection('syncState').doc('latest').get();
-      return json(res, 200, { paused: state.exists && state.get('paused') === true });
+      return json(res, 200, {
+        paused: state.exists && state.get('paused') === true,
+        runRequest: publicRunRequest(state.exists ? state.get('runRequest') : null),
+      });
+    }
+    // The workflow's hourly check takes a queued dashboard request, exactly once.
+    if (req.method === 'POST' && url.pathname === '/api/sync/claim') {
+      if (!firebaseConfigured()) return json(res, 503, { error: 'Firebase is not configured.' });
+      const { db } = firebase(),
+        ref = db.collection('syncState').doc('latest');
+      const result = await db.runTransaction(async (tx) => {
+        const snap = await tx.get(ref),
+          request = snap.exists ? snap.get('runRequest') || null : null;
+        if (request)
+          tx.update(ref, {
+            runRequest: FieldValue.delete(),
+            runRequestClaimedAt: FieldValue.serverTimestamp(),
+          });
+        return { request, paused: snap.exists && snap.get('paused') === true };
+      });
+      return json(res, 200, { request: publicRunRequest(result.request), paused: result.paused });
     }
     return json(res, 404, { error: 'Not found' });
   }
@@ -846,6 +883,7 @@ async function api(req, res, url) {
           firebaseConfigured: firebaseConfigured(),
           schedule: '0 3,11,19 * * * (UTC)',
           nextRun: nextSyncRun(),
+          nextCheck: nextSyncCheck(),
         };
         if (!firebaseConfigured())
           return json(res, 200, { ...config, paused: false, latest: null, runs: [] });
@@ -861,16 +899,28 @@ async function api(req, res, url) {
         return json(res, 200, {
           ...config,
           paused: state.exists && state.get('paused') === true,
+          runRequest: publicRunRequest(state.exists ? state.get('runRequest') : null),
           latest: all[0] || null,
           runs: all.map(syncRunSummary),
         });
       }
       if (req.method === 'POST' && url.pathname === '/api/admin/sync/run') {
-        if (!dispatchConfigured)
-          return json(res, 503, { error: 'GitHub is not connected yet.', code: 'not_connected' });
         const d = await body(req, 2000);
         const dryRun = d.dryRun !== false,
           allowRemovals = d.allowRemovals === true;
+        if (!dispatchConfigured) {
+          // No GitHub token: queue the request; the workflow's hourly check starts it.
+          if (!firebaseConfigured()) return json(res, 503, { error: 'Firebase is not configured.' });
+          await firebase()
+            .db.collection('syncState')
+            .doc('latest')
+            .set(
+              { runRequest: { dryRun, allowRemovals, requestedAt: FieldValue.serverTimestamp() } },
+              { merge: true },
+            );
+          await audit(req, 'sync.run.queued', { dryRun, allowRemovals });
+          return json(res, 200, { ok: true, queued: true, startsBy: nextSyncCheck(), dryRun, allowRemovals });
+        }
         const response = await fetch(
           `https://api.github.com/repos/${syncRepo()}/actions/workflows/${SYNC_WORKFLOW}/dispatches`,
           {
@@ -894,6 +944,15 @@ async function api(req, res, url) {
           });
         await audit(req, 'sync.run', { dryRun, allowRemovals });
         return json(res, 200, { ok: true, dryRun, allowRemovals });
+      }
+      if (req.method === 'DELETE' && url.pathname === '/api/admin/sync/run') {
+        if (!firebaseConfigured()) return json(res, 503, { error: 'Firebase is not configured.' });
+        await firebase()
+          .db.collection('syncState')
+          .doc('latest')
+          .set({ runRequest: FieldValue.delete() }, { merge: true });
+        await audit(req, 'sync.run.cancelled');
+        return json(res, 200, { ok: true });
       }
       if (req.method === 'POST' && url.pathname === '/api/admin/sync/github-token') {
         if (!firebaseConfigured()) return json(res, 503, { error: 'Firebase is not configured.' });

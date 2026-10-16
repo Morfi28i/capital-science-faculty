@@ -340,6 +340,9 @@ const gateMessages = {
 const statusLabels = { success: 'نجح', failure: 'فشل', paused: 'اتخطى (موقوف مؤقتًا)', skipped: 'اتخطى' };
 const when = (iso) =>
   iso ? new Date(iso).toLocaleString('ar-EG', { dateStyle: 'medium', timeStyle: 'short' }) : '—';
+const clock = (iso) =>
+  iso ? new Date(iso).toLocaleTimeString('ar-EG', { hour: 'numeric', minute: '2-digit' }) : '—';
+const triggerLabels = { schedule: 'تلقائي', workflow_dispatch: 'يدوي من GitHub', dashboard: 'من اللوحة' };
 const kindLabel = (type) => (type === 'folder' ? 'مجلد' : 'ملف');
 function syncItems(run, bucket) {
   return Object.entries(run?.years || {}).flatMap(([category, year]) =>
@@ -371,7 +374,7 @@ function githubConnectBox(status) {
     return `<section class="admin-box"><h2>ربط GitHub</h2><p>زرار التشغيل متربط عن طريق إعدادات Render.</p></section>`;
   if (status.dispatchConfigured)
     return `<section class="admin-box"><h2>ربط GitHub</h2><div class="admin-row"><span>متربط ✓<small>توكن ينتهي بـ ••••${esc(status.dispatchLast4 || '')}</small></span><button class="delete" id="github-disconnect">فك الربط</button></div></section>`;
-  return `<section class="admin-box" id="github-connect"><h2>ربط GitHub (مرة واحدة)</h2><p>عشان زرار "تشغيل الآن" يشغّل المزامنة من هنا على طول:</p><ol class="admin-steps"><li>افتح <a href="${tokenUrl}" target="_blank" rel="noopener">صفحة إنشاء توكن على GitHub</a>.</li><li>في <b>Repository access</b> اختار <b>Only select repositories</b> وبعدين <b>capital-science-faculty</b>.</li><li>في <b>Permissions</b> اتأكد إن <b>Actions</b> = <b>Read and write</b>.</li><li>دوس <b>Generate token</b> وانسخ التوكن (بيبدأ بـ github_pat_).</li><li>الزقه هنا ودوس ربط.</li></ol><form class="admin-form" id="github-token-form"><label class="wide">توكن GitHub<input name="token" type="password" autocomplete="off" spellcheck="false" placeholder="github_pat_…" dir="ltr" required></label><div class="admin-form-actions"><button class="button primary">ربط</button></div></form><p class="admin-muted">التوكن بيتحفظ على السيرفر بس ومبيرجعش للمتصفح، والسيرفر بيتأكد إنه شغال قبل ما يحفظه.</p></section>`;
+  return `<section class="admin-box" id="github-connect"><h2>ربط GitHub (اختياري)</h2><p>زرار "تشغيل الآن" شغال من غير ربط، بس التشغيل بيبدأ خلال ساعة. لو عايزه يبدأ فورًا اربط GitHub مرة واحدة:</p><ol class="admin-steps"><li>افتح <a href="${tokenUrl}" target="_blank" rel="noopener">صفحة إنشاء توكن على GitHub</a>.</li><li>في <b>Repository access</b> اختار <b>Only select repositories</b> وبعدين <b>capital-science-faculty</b>.</li><li>في <b>Permissions</b> اتأكد إن <b>Actions</b> = <b>Read and write</b>.</li><li>دوس <b>Generate token</b> وانسخ التوكن (بيبدأ بـ github_pat_).</li><li>الزقه هنا ودوس ربط.</li></ol><form class="admin-form" id="github-token-form"><label class="wide">توكن GitHub<input name="token" type="password" autocomplete="off" spellcheck="false" placeholder="github_pat_…" dir="ltr" required></label><div class="admin-form-actions"><button class="button primary">ربط</button></div></form><p class="admin-muted">التوكن بيتحفظ على السيرفر بس ومبيرجعش للمتصفح، والسيرفر بيتأكد إنه شغال قبل ما يحفظه.</p></section>`;
 }
 function wireGithubConnect(status) {
   const form = document.querySelector('#github-token-form');
@@ -418,8 +421,6 @@ async function syncDashboard() {
     totals = run?.totals || {};
   const warnings = [
     !status.firebaseConfigured && 'Firebase مش متوصل، فمفيش سجل للتشغيلات ولا إيقاف مؤقت.',
-    !status.dispatchConfigured &&
-      'زرار التشغيل لسه مش متربط بـ GitHub. اربطه مرة واحدة من خانة "ربط GitHub" تحت، ولحد ما تربطه الزرار هيفتحلك صفحة GitHub.',
   ].filter(Boolean);
   const gates = (run?.gates || [])
     .map(
@@ -433,7 +434,7 @@ async function syncDashboard() {
   <section class="admin-box"><div class="admin-toolbar"><h2>آخر تشغيل</h2>${status.paused ? '<span class="storage-status">المزامنة موقوفة مؤقتًا</span>' : ''}</div>
   ${
     run
-      ? `<div class="admin-row"><span>${esc(statusLabels[run.status] || run.status)} · ${run.mode === 'dry-run' ? 'تجربة (من غير حفظ)' : 'حقيقي'}<small>${esc(when(run.finishedAt || run.receivedAt))} · ${esc(run.trigger === 'schedule' ? 'تلقائي' : run.trigger === 'workflow_dispatch' ? 'يدوي' : run.trigger)} · ${run.durationSec ? `${Math.round(run.durationSec / 60)} دقيقة` : ''}${run.commit ? ` · commit ${esc(run.commit.slice(0, 7))}` : run.changed ? ' · فيه تغييرات' : ' · مفيش تغييرات'}</small></span>${run.runUrl ? `<a class="button ghost" href="${esc(run.runUrl)}" target="_blank" rel="noopener">تفاصيل على GitHub</a>` : ''}</div>`
+      ? `<div class="admin-row"><span>${esc(statusLabels[run.status] || run.status)} · ${run.mode === 'dry-run' ? 'تجربة (من غير حفظ)' : 'حقيقي'}<small>${esc(when(run.finishedAt || run.receivedAt))} · ${esc(triggerLabels[run.trigger] || run.trigger)} · ${run.durationSec ? `${Math.round(run.durationSec / 60)} دقيقة` : ''}${run.commit ? ` · commit ${esc(run.commit.slice(0, 7))}` : run.changed ? ' · فيه تغييرات' : ' · مفيش تغييرات'}</small></span>${run.runUrl ? `<a class="button ghost" href="${esc(run.runUrl)}" target="_blank" rel="noopener">تفاصيل على GitHub</a>` : ''}</div>`
       : '<p class="admin-muted">لسه مفيش أي تشغيل وصل تقريره.</p>'
   }
   <p class="admin-muted">التشغيل التلقائي الجاي: ${esc(when(status.nextRun))} (لو الجدولة مفعّلة في GitHub) · المواعيد <bdi dir="ltr">${esc(status.schedule)}</bdi></p>
@@ -449,6 +450,11 @@ async function syncDashboard() {
     )
     .join('')}</section>
   ${gates ? `<div class="storage-status"><b>المزامنة وقفت للأمان ومحفظتش حاجة:</b><ul>${gates}</ul></div>` : ''}
+  ${
+    status.runRequest
+      ? `<div class="storage-status" data-persistent="true"><b>فيه طلب تشغيل ${status.runRequest.dryRun ? 'تجربة' : 'حقيقي'} مستني.</b> هيبدأ الساعة ${esc(clock(status.nextCheck))} تقريبًا (GitHub بيبص على الطلبات كل ساعة). <button class="button ghost" id="sync-cancel" type="button">إلغاء الطلب</button></div>`
+      : ''
+  }
   <div class="admin-form-actions"><button class="button primary" id="sync-run">تشغيل الآن</button><button class="button ghost" id="sync-dry">تجربة (Dry-run)</button><button class="button ghost" id="sync-pause">${status.paused ? 'استئناف المزامنة' : 'إيقاف مؤقت'}</button></div></section>
   ${githubConnectBox(status)}
   <section class="admin-box"><h2>أحدث الإضافات</h2><div class="admin-list">${itemRows(syncItems(run, 'added'))}</div></section>
@@ -474,27 +480,22 @@ async function syncDashboard() {
       .join('') || '<p class="admin-muted">لا يوجد.</p>'
   }</div></section>`;
   const dispatch = async (dryRun, button) => {
-    // Without a dispatch token on the server, hand over to GitHub's own Run workflow page.
-    if (!status.dispatchConfigured) {
-      window.open(status.workflowUrl, '_blank', 'noopener');
-      toast(
-        dryRun
-          ? 'اتفتحت صفحة GitHub: دوس Run workflow وسيب dry run متعلّم.'
-          : 'اتفتحت صفحة GitHub: دوس Run workflow وشيل علامة dry run.',
-      );
-      return;
-    }
     const question = dryRun
       ? 'تشغيل تجربة؟ هتقرأ Drive وتطلع تقرير من غير ما تغيّر الموقع.'
       : 'تشغيل حقيقي؟ لو فيه تغييرات هتتحفظ وتنزل على الموقع.';
     if (!confirm(question)) return;
     button.disabled = true;
     try {
-      await req('/api/admin/sync/run', {
+      const result = await req('/api/admin/sync/run', {
         method: 'POST',
         body: JSON.stringify({ dryRun, allowRemovals: false }),
       });
-      toast('اتبعت طلب التشغيل لـ GitHub. النتيجة هتظهر هنا لما يخلص (حوالي 4 دقايق).');
+      if (result.queued) {
+        toast(
+          `اتسجّل طلب التشغيل ✓ هيبدأ الساعة ${clock(result.startsBy)} تقريبًا، والنتيجة تظهر هنا بعدها بـ 4 دقايق.`,
+        );
+        syncDashboard();
+      } else toast('اتبعت طلب التشغيل لـ GitHub. النتيجة هتظهر هنا لما يخلص (حوالي 4 دقايق).');
     } catch (error) {
       toast(githubErrors[error.code] || error.message);
     } finally {
@@ -502,6 +503,19 @@ async function syncDashboard() {
     }
   };
   wireGithubConnect(status);
+  const cancel = document.querySelector('#sync-cancel');
+  if (cancel)
+    cancel.onclick = async () => {
+      cancel.disabled = true;
+      try {
+        await req('/api/admin/sync/run', { method: 'DELETE' });
+        toast('اتلغى طلب التشغيل.');
+        syncDashboard();
+      } catch (error) {
+        toast(error.message);
+        cancel.disabled = false;
+      }
+    };
   document.querySelector('#sync-run').onclick = (e) => dispatch(false, e.currentTarget);
   document.querySelector('#sync-dry').onclick = (e) => dispatch(true, e.currentTarget);
   document.querySelector('#sync-pause').onclick = async (e) => {

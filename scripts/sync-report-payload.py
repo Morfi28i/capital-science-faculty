@@ -35,7 +35,7 @@ def main():
         'schemaVersion': 1,
         'runId': report.get('runId') or (f'{run_id}-{attempt}' if run_id else f'local-{now}'),
         'runUrl': report.get('runUrl') or (f'{server}/{repo}/actions/runs/{run_id}' if run_id and server and repo else None),
-        'trigger': report.get('trigger') or os.environ.get('GITHUB_EVENT_NAME') or 'local',
+        'trigger': report.get('trigger') or os.environ.get('SYNC_TRIGGER') or os.environ.get('GITHUB_EVENT_NAME') or 'local',
         'status': os.environ.get('SYNC_STATUS', 'failure'),
         'mode': report.get('mode') or ('dry-run' if os.environ.get('DRY_RUN') == 'true' else 'write'),
         'startedAt': report.get('startedAt') or now,

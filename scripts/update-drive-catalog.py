@@ -265,7 +265,7 @@ def run_context():
     return {
         'runId': f'{run_id}-{attempt}' if run_id else f"local-{now.strftime('%Y%m%dT%H%M%SZ')}",
         'runUrl': f'{server}/{repo}/actions/runs/{run_id}' if run_id and server and repo else None,
-        'trigger': os.environ.get('GITHUB_EVENT_NAME') or 'local',
+        'trigger': os.environ.get('SYNC_TRIGGER') or os.environ.get('GITHUB_EVENT_NAME') or 'local',
     }
 
 
