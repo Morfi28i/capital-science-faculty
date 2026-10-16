@@ -47,7 +47,7 @@ Optional:
 
 | Name | Where | What it does |
 |---|---|---|
-| `GITHUB_DISPATCH_TOKEN` | Render env | Lets the dashboard's Run buttons start the workflow directly. Without it, the buttons open the workflow page on GitHub instead. Create a fine-grained token: Settings → Developer settings → Personal access tokens → Fine-grained → *Only select repositories* → `capital-science-faculty` → **Actions: Read and write**. |
+| GitHub token for the Run buttons | Dashboard → مزامنة Drive → ربط GitHub (or `GITHUB_DISPATCH_TOKEN` in Render env) | Lets the dashboard's Run buttons start the workflow directly. A token pasted in the dashboard is checked against GitHub, then stored server-side in Firestore `syncSecrets/github` and never sent back to a browser. Without one, the buttons open the workflow page on GitHub instead. Create a fine-grained token: Settings → Developer settings → Personal access tokens → Fine-grained → *Only select repositories* → `capital-science-faculty` → **Actions: Read and write**. |
 | `GITHUB_REPO` | Render env | Defaults to `Morfi28i/capital-science-faculty`; set it only if the repository moves. |
 | `SYNC_REPORT_TOKEN` | Render env + GitHub secret | An alternative shared secret the server also accepts; not needed with OIDC. |
 | `SITE_URL` | GitHub repository variable | Only if the site moves from `https://capital-science-faculty.onrender.com`. |

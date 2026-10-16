@@ -41,9 +41,9 @@ jobs:
       ALLOW_REMOVALS: ${{ github.event_name == 'workflow_dispatch' && inputs.allow_removals || 'false' }}
       ALLOW_LARGE: ${{ github.event_name == 'workflow_dispatch' && inputs.allow_large || 'false' }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: '3.12'
 

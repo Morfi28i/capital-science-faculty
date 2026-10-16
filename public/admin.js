@@ -30,7 +30,7 @@ async function req(url, opt = {}) {
     login('انتهت الجلسة. سجّل الدخول مرة أخرى.');
     throw Error('Sign in required');
   }
-  if (!r.ok) throw Error(d.error || 'Request failed');
+  if (!r.ok) throw Object.assign(Error(d.error || 'Request failed'), { code: d.code, status: r.status });
   return d;
 }
 function publishSiteUpdate() {
@@ -356,6 +356,54 @@ function itemRows(items, extra = () => '') {
       .join('') || '<p class="admin-muted">لا يوجد.</p>'
   );
 }
+const githubErrors = {
+  not_connected: 'زرار التشغيل لسه مش متربط بـ GitHub. اربطه من خانة "ربط GitHub".',
+  bad_format: 'ده مش شكل توكن GitHub. التوكن بيبدأ بـ github_pat_',
+  github_401: 'GitHub رفض التوكن: غالبًا اتنسخ غلط أو انتهت صلاحيته. اعمل واحد جديد.',
+  github_403: 'التوكن مش معاه صلاحية Actions: Read and write. عدّل صلاحياته من GitHub.',
+  github_404: 'التوكن مش شايف المستودع capital-science-faculty. اختاره في Repository access.',
+  github_422: 'GitHub رفض الطلب. جرّب تاني بعد دقيقة.',
+};
+const tokenUrl =
+  'https://github.com/settings/personal-access-tokens/new?name=capital-science-sync&description=Run+the+Drive+sync+from+the+dashboard&target_name=Morfi28i&expires_in=366&actions=write';
+function githubConnectBox(status) {
+  if (status.dispatchSource === 'env')
+    return `<section class="admin-box"><h2>ربط GitHub</h2><p>زرار التشغيل متربط عن طريق إعدادات Render.</p></section>`;
+  if (status.dispatchConfigured)
+    return `<section class="admin-box"><h2>ربط GitHub</h2><div class="admin-row"><span>متربط ✓<small>توكن ينتهي بـ ••••${esc(status.dispatchLast4 || '')}</small></span><button class="delete" id="github-disconnect">فك الربط</button></div></section>`;
+  return `<section class="admin-box" id="github-connect"><h2>ربط GitHub (مرة واحدة)</h2><p>عشان زرار "تشغيل الآن" يشغّل المزامنة من هنا على طول:</p><ol class="admin-steps"><li>افتح <a href="${tokenUrl}" target="_blank" rel="noopener">صفحة إنشاء توكن على GitHub</a>.</li><li>في <b>Repository access</b> اختار <b>Only select repositories</b> وبعدين <b>capital-science-faculty</b>.</li><li>في <b>Permissions</b> اتأكد إن <b>Actions</b> = <b>Read and write</b>.</li><li>دوس <b>Generate token</b> وانسخ التوكن (بيبدأ بـ github_pat_).</li><li>الزقه هنا ودوس ربط.</li></ol><form class="admin-form" id="github-token-form"><label class="wide">توكن GitHub<input name="token" type="password" autocomplete="off" spellcheck="false" placeholder="github_pat_…" dir="ltr" required></label><div class="admin-form-actions"><button class="button primary">ربط</button></div></form><p class="admin-muted">التوكن بيتحفظ على السيرفر بس ومبيرجعش للمتصفح، والسيرفر بيتأكد إنه شغال قبل ما يحفظه.</p></section>`;
+}
+function wireGithubConnect(status) {
+  const form = document.querySelector('#github-token-form');
+  if (form)
+    form.onsubmit = async (e) => {
+      e.preventDefault();
+      const button = form.querySelector('button'),
+        token = form.elements.token.value.trim();
+      button.disabled = true;
+      try {
+        await req('/api/admin/sync/github-token', { method: 'POST', body: JSON.stringify({ token }) });
+        form.reset();
+        toast('اتربط ✓ زرار التشغيل بقى شغال من هنا.');
+        syncDashboard();
+      } catch (error) {
+        toast(githubErrors[error.code] || error.message);
+        button.disabled = false;
+      }
+    };
+  const disconnect = document.querySelector('#github-disconnect');
+  if (disconnect)
+    disconnect.onclick = async () => {
+      if (!confirm('فك ربط GitHub؟ زرار التشغيل هيرجع يفتح صفحة GitHub بدل ما يشغّل من هنا.')) return;
+      try {
+        await req('/api/admin/sync/github-token', { method: 'DELETE' });
+        toast('اتفك الربط.');
+        syncDashboard();
+      } catch (error) {
+        toast(error.message);
+      }
+    };
+}
 async function syncDashboard() {
   app.innerHTML = `<div class="admin-layout">${sidebar()}<main class="admin-main"><div class="admin-head"><div><span class="section-index">DRIVE SYNC</span><h1>${labels.sync}</h1></div><a class="button ghost" href="/lectures" target="_blank" rel="noopener">صفحة المحاضرات</a><button class="button" id="logout">تسجيل الخروج</button></div><div id="sync-body"><p class="admin-muted">جارٍ التحميل…</p></div></main></div>`;
   wireShell();
@@ -371,7 +419,7 @@ async function syncDashboard() {
   const warnings = [
     !status.firebaseConfigured && 'Firebase مش متوصل، فمفيش سجل للتشغيلات ولا إيقاف مؤقت.',
     !status.dispatchConfigured &&
-      'أزرار التشغيل هتفتح صفحة المزامنة على GitHub، ومنها تدوس Run workflow. (عشان تشتغل من هنا مباشرة حط GITHUB_DISPATCH_TOKEN في Render.)',
+      'زرار التشغيل لسه مش متربط بـ GitHub. اربطه مرة واحدة من خانة "ربط GitHub" تحت، ولحد ما تربطه الزرار هيفتحلك صفحة GitHub.',
   ].filter(Boolean);
   const gates = (run?.gates || [])
     .map(
@@ -402,6 +450,7 @@ async function syncDashboard() {
     .join('')}</section>
   ${gates ? `<div class="storage-status"><b>المزامنة وقفت للأمان ومحفظتش حاجة:</b><ul>${gates}</ul></div>` : ''}
   <div class="admin-form-actions"><button class="button primary" id="sync-run">تشغيل الآن</button><button class="button ghost" id="sync-dry">تجربة (Dry-run)</button><button class="button ghost" id="sync-pause">${status.paused ? 'استئناف المزامنة' : 'إيقاف مؤقت'}</button></div></section>
+  ${githubConnectBox(status)}
   <section class="admin-box"><h2>أحدث الإضافات</h2><div class="admin-list">${itemRows(syncItems(run, 'added'))}</div></section>
   <section class="admin-box"><h2>اللي اتشال</h2><div class="admin-list">${itemRows(syncItems(run, 'removed'))}</div>
   <h2>اللي اتنقل أو اتغير اسمه</h2><div class="admin-list">${itemRows(
@@ -445,13 +494,14 @@ async function syncDashboard() {
         method: 'POST',
         body: JSON.stringify({ dryRun, allowRemovals: false }),
       });
-      toast('اتبعت طلب التشغيل. النتيجة هتظهر هنا لما يخلص (حوالي 10 دقايق).');
+      toast('اتبعت طلب التشغيل لـ GitHub. النتيجة هتظهر هنا لما يخلص (حوالي 4 دقايق).');
     } catch (error) {
-      toast(error.message);
+      toast(githubErrors[error.code] || error.message);
     } finally {
       button.disabled = false;
     }
   };
+  wireGithubConnect(status);
   document.querySelector('#sync-run').onclick = (e) => dispatch(false, e.currentTarget);
   document.querySelector('#sync-dry').onclick = (e) => dispatch(true, e.currentTarget);
   document.querySelector('#sync-pause').onclick = async (e) => {

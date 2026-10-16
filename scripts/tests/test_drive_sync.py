@@ -1,7 +1,9 @@
 """Tests for the Drive catalog gates and the unattended crawl. Run: python3 -m unittest discover -s scripts/tests"""
 import copy
 import importlib.util
+import io
 import json
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -19,6 +21,21 @@ def load(name, filename):
 
 
 updater = load('update_drive_catalog', 'update-drive-catalog.py')
+
+
+# The crawler prints progress and gate messages; keep them out of the test output (and CI logs),
+# where a fixture's intentional "empty_year" failure would otherwise look like a real one.
+_streams = None
+
+
+def setUpModule():
+    global _streams
+    _streams = (sys.stdout, sys.stderr)
+    sys.stdout = sys.stderr = io.StringIO()
+
+
+def tearDownModule():
+    sys.stdout, sys.stderr = _streams
 validator = load('validate_catalog', 'validate-catalog.py')
 ROOTS = updater.YEAR_ROOTS
 

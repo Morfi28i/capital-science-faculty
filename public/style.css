@@ -2501,6 +2501,17 @@ body.menu-open::after {
   margin: 8px 0 0;
   padding-inline-start: 20px;
 }
+.admin-steps {
+  margin: 0;
+  padding-inline-start: 22px;
+  display: grid;
+  gap: 6px;
+  font-size: 14px;
+}
+.admin-steps a {
+  color: var(--primary);
+  text-decoration: underline;
+}
 .admin-muted {
   color: var(--muted);
   font-size: 13px;

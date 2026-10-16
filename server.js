@@ -264,6 +264,28 @@ function nextSyncRun(now = new Date()) {
   return null;
 }
 const firestoreTime = (value) => (value?.toDate ? value.toDate().toISOString() : value || null);
+// The GitHub token for the dashboard's Run buttons: GITHUB_DISPATCH_TOKEN in the environment, or one the
+// admin pasted into the dashboard (Firestore syncSecrets/github, server-only, never sent back to a browser).
+let dashboardToken = { at: 0, value: null };
+async function dispatchToken() {
+  if (process.env.GITHUB_DISPATCH_TOKEN) return { token: process.env.GITHUB_DISPATCH_TOKEN, source: 'env' };
+  if (!firebaseConfigured()) return { token: null, source: null };
+  if (Date.now() - dashboardToken.at > 5 * 60_000) {
+    const doc = await firebase().db.collection('syncSecrets').doc('github').get();
+    dashboardToken = { at: Date.now(), value: doc.exists ? doc.data() : null };
+  }
+  const saved = dashboardToken.value;
+  return saved?.token
+    ? { token: saved.token, source: 'dashboard', last4: saved.last4 }
+    : { token: null, source: null };
+}
+const githubHeaders = (token) => ({
+  Authorization: `Bearer ${token}`,
+  Accept: 'application/vnd.github+json',
+  'X-GitHub-Api-Version': '2022-11-28',
+  'User-Agent': 'capital-science-faculty',
+  'Content-Type': 'application/json',
+});
 // Record dashboard actions that change sync behaviour. Never blocks the action itself.
 async function audit(req, action, detail = {}) {
   try {
@@ -812,10 +834,13 @@ async function api(req, res, url) {
     if (url.pathname.startsWith('/api/admin/sync/')) {
       if (req.method !== 'GET' && !strictSameOrigin(req))
         return json(res, 403, { error: 'Cross-site request blocked.' });
-      const dispatchConfigured = Boolean(process.env.GITHUB_DISPATCH_TOKEN);
+      const dispatch = await dispatchToken();
+      const dispatchConfigured = Boolean(dispatch.token);
       if (req.method === 'GET' && url.pathname === '/api/admin/sync/status') {
         const config = {
           dispatchConfigured,
+          dispatchSource: dispatch.source,
+          dispatchLast4: dispatch.last4 || null,
           reportConfigured: true,
           workflowUrl: `https://github.com/${syncRepo()}/actions/workflows/${SYNC_WORKFLOW}`,
           firebaseConfigured: firebaseConfigured(),
@@ -842,9 +867,7 @@ async function api(req, res, url) {
       }
       if (req.method === 'POST' && url.pathname === '/api/admin/sync/run') {
         if (!dispatchConfigured)
-          return json(res, 503, {
-            error: 'GITHUB_DISPATCH_TOKEN is not set on the server.',
-          });
+          return json(res, 503, { error: 'GitHub is not connected yet.', code: 'not_connected' });
         const d = await body(req, 2000);
         const dryRun = d.dryRun !== false,
           allowRemovals = d.allowRemovals === true;
@@ -852,13 +875,7 @@ async function api(req, res, url) {
           `https://api.github.com/repos/${syncRepo()}/actions/workflows/${SYNC_WORKFLOW}/dispatches`,
           {
             method: 'POST',
-            headers: {
-              Authorization: `Bearer ${process.env.GITHUB_DISPATCH_TOKEN}`,
-              Accept: 'application/vnd.github+json',
-              'X-GitHub-Api-Version': '2022-11-28',
-              'User-Agent': 'capital-science-faculty',
-              'Content-Type': 'application/json',
-            },
+            headers: githubHeaders(dispatch.token),
             body: JSON.stringify({
               ref: 'main',
               inputs: {
@@ -871,9 +888,43 @@ async function api(req, res, url) {
           },
         );
         if (response.status !== 204)
-          return json(res, 502, { error: `GitHub refused the run request (HTTP ${response.status}).` });
+          return json(res, 502, {
+            error: `GitHub refused the run request (HTTP ${response.status}).`,
+            code: `github_${response.status}`,
+          });
         await audit(req, 'sync.run', { dryRun, allowRemovals });
         return json(res, 200, { ok: true, dryRun, allowRemovals });
+      }
+      if (req.method === 'POST' && url.pathname === '/api/admin/sync/github-token') {
+        if (!firebaseConfigured()) return json(res, 503, { error: 'Firebase is not configured.' });
+        const d = await body(req, 2000),
+          token = String(d.token || '').trim();
+        if (!/^(github_pat_|ghp_)[A-Za-z0-9_]{20,250}$/.test(token))
+          return json(res, 400, { error: 'This does not look like a GitHub token.', code: 'bad_format' });
+        // Check the token can see this workflow before saving it.
+        const check = await fetch(
+          `https://api.github.com/repos/${syncRepo()}/actions/workflows/${SYNC_WORKFLOW}`,
+          { headers: githubHeaders(token), signal: AbortSignal.timeout(15000) },
+        );
+        if (check.status !== 200)
+          return json(res, 400, {
+            error: `GitHub rejected the token (HTTP ${check.status}).`,
+            code: `github_${check.status}`,
+          });
+        await firebase()
+          .db.collection('syncSecrets')
+          .doc('github')
+          .set({ token, last4: token.slice(-4), savedAt: FieldValue.serverTimestamp() });
+        dashboardToken = { at: 0, value: null };
+        await audit(req, 'sync.github_token.save');
+        return json(res, 200, { ok: true, last4: token.slice(-4) });
+      }
+      if (req.method === 'DELETE' && url.pathname === '/api/admin/sync/github-token') {
+        if (!firebaseConfigured()) return json(res, 503, { error: 'Firebase is not configured.' });
+        await firebase().db.collection('syncSecrets').doc('github').delete();
+        dashboardToken = { at: 0, value: null };
+        await audit(req, 'sync.github_token.remove');
+        return json(res, 200, { ok: true });
       }
       if (req.method === 'POST' && url.pathname === '/api/admin/sync/pause') {
         if (!firebaseConfigured()) return json(res, 503, { error: 'Firebase is not configured.' });
