@@ -105,6 +105,7 @@ function strictSameOrigin(req) {
 // ---------- Drive sync (GitHub Actions workflow ⇄ site) ----------
 const SYNC_WORKFLOW = 'drive-sync.yml';
 const SYNC_SCHEDULE_HOURS_UTC = [3, 11, 19];
+const SYNC_SCHEDULE_MINUTE = 7;
 const SYNC_RUNS_KEPT = 100;
 const SYNC_LIST_LIMIT = 25;
 const syncBuckets = ['added', 'removed', 'renamed', 'moved', 'changed'];
@@ -258,7 +259,9 @@ const syncRunSummary = (run) => {
 function nextSyncRun(now = new Date()) {
   for (let day = 0; day < 2; day++)
     for (const hour of SYNC_SCHEDULE_HOURS_UTC) {
-      const at = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + day, hour));
+      const at = new Date(
+        Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + day, hour, SYNC_SCHEDULE_MINUTE),
+      );
       if (at > now) return at.toISOString();
     }
   return null;
@@ -881,7 +884,7 @@ async function api(req, res, url) {
           reportConfigured: true,
           workflowUrl: `https://github.com/${syncRepo()}/actions/workflows/${SYNC_WORKFLOW}`,
           firebaseConfigured: firebaseConfigured(),
-          schedule: '0 3,11,19 * * * (UTC)',
+          schedule: '7 3,11,19 * * * (UTC)',
           nextRun: nextSyncRun(),
           nextCheck: nextSyncCheck(),
         };

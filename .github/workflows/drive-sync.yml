@@ -2,8 +2,9 @@ name: Drive sync
 
 on:
   schedule:
-    # Full sync three times a day: 03:00, 11:00 and 19:00 UTC (06:00, 14:00 and 22:00 in Cairo).
-    - cron: '0 3,11,19 * * *'
+    # Full sync three times a day at 03:07, 11:07 and 19:07 UTC (06:07, 14:07 and 22:07 in Cairo).
+    # Off the top of the hour, when GitHub's scheduler is busiest and often delays or drops runs.
+    - cron: '7 3,11,19 * * *'
     # Hourly check for a run requested from the dashboard ("تشغيل الآن"); exits in seconds when none.
     - cron: '17 * * * *'
   workflow_dispatch:
