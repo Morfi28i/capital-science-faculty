@@ -1,15 +1,20 @@
-import http from 'node:http';
-import { readFile, writeFile, mkdir, stat } from 'node:fs/promises';
-import { existsSync, readFileSync } from 'node:fs';
-import path from 'node:path';
-import crypto from 'node:crypto';
-import { applicationDefault, cert, getApps, initializeApp } from 'firebase-admin/app';
-import { getAuth } from 'firebase-admin/auth';
-import { FieldValue, getFirestore } from 'firebase-admin/firestore';
+import http from "node:http";
+import { readFile, writeFile, mkdir, stat } from "node:fs/promises";
+import { existsSync, readFileSync } from "node:fs";
+import path from "node:path";
+import crypto from "node:crypto";
+import {
+  applicationDefault,
+  cert,
+  getApps,
+  initializeApp,
+} from "firebase-admin/app";
+import { getAuth } from "firebase-admin/auth";
+import { FieldValue, getFirestore } from "firebase-admin/firestore";
 
 const root = process.cwd(),
-  dbPath = path.join(root, 'data/site.json'),
-  driveCatalogPath = path.join(root, 'data/drive-catalog.json');
+  dbPath = path.join(root, "data/site.json"),
+  driveCatalogPath = path.join(root, "data/drive-catalog.json");
 const emailCheckRate = new Map(),
   contactCheckRate = new Map(),
   adminLoginRate = new Map();
@@ -23,55 +28,57 @@ setInterval(() => {
       else bucket.delete(key);
     }
 }, 10 * 60_000).unref();
-await mkdir(path.join(root, 'uploads'), { recursive: true });
-await mkdir(path.join(root, 'public', 'uploads'), { recursive: true });
+await mkdir(path.join(root, "uploads"), { recursive: true });
+await mkdir(path.join(root, "public", "uploads"), { recursive: true });
 const mime = {
-  '.html': 'text/html; charset=utf-8',
-  '.css': 'text/css; charset=utf-8',
-  '.js': 'text/javascript; charset=utf-8',
-  '.json': 'application/json; charset=utf-8',
-  '.svg': 'image/svg+xml',
-  '.ico': 'image/svg+xml',
-  '.png': 'image/png',
-  '.jpg': 'image/jpeg',
-  '.webp': 'image/webp',
-  '.pdf': 'application/pdf',
-  '.webmanifest': 'application/manifest+json',
+  ".html": "text/html; charset=utf-8",
+  ".css": "text/css; charset=utf-8",
+  ".js": "text/javascript; charset=utf-8",
+  ".json": "application/json; charset=utf-8",
+  ".svg": "image/svg+xml",
+  ".ico": "image/svg+xml",
+  ".png": "image/png",
+  ".jpg": "image/jpeg",
+  ".webp": "image/webp",
+  ".pdf": "application/pdf",
+  ".webmanifest": "application/manifest+json",
 };
 const securityHeaders = {
-  'X-Content-Type-Options': 'nosniff',
-  'Referrer-Policy': 'strict-origin-when-cross-origin',
-  'X-Frame-Options': 'DENY',
-  'Permissions-Policy': 'camera=(), microphone=(), geolocation=()',
+  "X-Content-Type-Options": "nosniff",
+  "Referrer-Policy": "strict-origin-when-cross-origin",
+  "X-Frame-Options": "DENY",
+  "Permissions-Policy": "camera=(), microphone=(), geolocation=()",
 };
 const json = (res, code, obj) => {
   res.writeHead(code, {
     ...securityHeaders,
-    'Content-Type': 'application/json; charset=utf-8',
-    'Cache-Control': 'no-store',
+    "Content-Type": "application/json; charset=utf-8",
+    "Cache-Control": "no-store",
   });
   res.end(JSON.stringify(obj));
 };
-const httpError = (status, message) => Object.assign(new Error(message), { status });
+const httpError = (status, message) =>
+  Object.assign(new Error(message), { status });
 async function body(req, limit = 2_000_000) {
   let b = [];
   let n = 0;
   for await (const c of req) {
     n += c.length;
-    if (n > limit) throw Error('Request too large');
+    if (n > limit) throw Error("Request too large");
     b.push(c);
   }
   try {
-    const parsed = JSON.parse(Buffer.concat(b).toString() || '{}');
-    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) throw new Error();
+    const parsed = JSON.parse(Buffer.concat(b).toString() || "{}");
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed))
+      throw new Error();
     return parsed;
   } catch {
-    throw httpError(400, 'Request body must be a JSON object.');
+    throw httpError(400, "Request body must be a JSON object.");
   }
 }
 const clientIp = (req) =>
-  String(req.headers['x-forwarded-for'] || req.socket.remoteAddress || '')
-    .split(',')[0]
+  String(req.headers["x-forwarded-for"] || req.socket.remoteAddress || "")
+    .split(",")[0]
     .trim();
 // Allow a request only when its rolling one-hour window still has room.
 function withinRate(bucket, key, max, windowMs = 60 * 60_000) {
@@ -94,60 +101,98 @@ function sameOrigin(req) {
   }
 }
 // Stricter variant for new state-changing endpoints: the Origin header must be present and match the host.
+// Two-way messages live in users/{uid}/messages. Each user doc keeps a small `thread` summary
+// (last message time, preview, unread count for the team) so the dashboard can list conversations.
+const messageBursts = new Map();
+function messageAllowed(uid) {
+  const now = Date.now(),
+    recent = (messageBursts.get(uid) || []).filter(
+      (at) => now - at < 10 * 60_000,
+    );
+  if (recent.length >= 8) return false;
+  recent.push(now);
+  messageBursts.set(uid, recent);
+  return true;
+}
+function threadUpdate(sender, text) {
+  return {
+    thread: {
+      lastAt: FieldValue.serverTimestamp(),
+      preview: String(text).replace(/\s+/g, " ").slice(0, 140),
+      lastSender: sender,
+      ...(sender === "user" ? { adminUnread: FieldValue.increment(1) } : {}),
+    },
+  };
+}
+function senderOf(message) {
+  return message.sender === "user" ? "user" : "admin";
+}
+
 function strictSameOrigin(req) {
   try {
-    return Boolean(req.headers.origin) && new URL(req.headers.origin).host === req.headers.host;
+    return (
+      Boolean(req.headers.origin) &&
+      new URL(req.headers.origin).host === req.headers.host
+    );
   } catch {
     return false;
   }
 }
 
 // ---------- Drive sync (GitHub Actions workflow ⇄ site) ----------
-const SYNC_WORKFLOW = 'drive-sync.yml';
+const SYNC_WORKFLOW = "drive-sync.yml";
 const SYNC_SCHEDULE_HOURS_UTC = [3, 11, 19];
 const SYNC_SCHEDULE_MINUTE = 7;
 const SYNC_RUNS_KEPT = 100;
 const SYNC_LIST_LIMIT = 25;
-const syncBuckets = ['added', 'removed', 'renamed', 'moved', 'changed'];
-const digest = (value) => crypto.createHash('sha256').update(String(value)).digest();
+const syncBuckets = ["added", "removed", "renamed", "moved", "changed"];
+const digest = (value) =>
+  crypto.createHash("sha256").update(String(value)).digest();
 // Bearer-token check for the workflow's calls; compares fixed-length digests in constant time.
 const syncRepo = () =>
-  /^[\w.-]+\/[\w.-]+$/.test(process.env.GITHUB_REPO || '')
+  /^[\w.-]+\/[\w.-]+$/.test(process.env.GITHUB_REPO || "")
     ? process.env.GITHUB_REPO
-    : 'Morfi28i/capital-science-faculty';
+    : "Morfi28i/capital-science-faculty";
 // GitHub Actions can mint a signed OIDC token for each run. Verifying it against GitHub's public keys
 // proves the call comes from this repository's drive-sync workflow on main, with no shared secret.
-const GITHUB_OIDC_ISSUER = 'https://token.actions.githubusercontent.com';
-const SYNC_OIDC_AUDIENCE = 'capital-science-faculty-sync';
+const GITHUB_OIDC_ISSUER = "https://token.actions.githubusercontent.com";
+const SYNC_OIDC_AUDIENCE = "capital-science-faculty-sync";
 let githubKeys = { at: 0, keys: [] };
 async function githubJwks(force = false) {
-  if (!force && githubKeys.keys.length && Date.now() - githubKeys.at < 60 * 60_000) return githubKeys.keys;
+  if (
+    !force &&
+    githubKeys.keys.length &&
+    Date.now() - githubKeys.at < 60 * 60_000
+  )
+    return githubKeys.keys;
   const response = await fetch(`${GITHUB_OIDC_ISSUER}/.well-known/jwks`, {
     signal: AbortSignal.timeout(8000),
   });
-  if (!response.ok) throw new Error(`GitHub JWKS returned HTTP ${response.status}`);
+  if (!response.ok)
+    throw new Error(`GitHub JWKS returned HTTP ${response.status}`);
   githubKeys = { at: Date.now(), keys: (await response.json()).keys || [] };
   return githubKeys.keys;
 }
 async function githubOidcValid(token) {
-  const parts = token.split('.');
+  const parts = token.split(".");
   if (parts.length !== 3) return false;
   let header, claims;
   try {
-    header = JSON.parse(Buffer.from(parts[0], 'base64url').toString('utf8'));
-    claims = JSON.parse(Buffer.from(parts[1], 'base64url').toString('utf8'));
+    header = JSON.parse(Buffer.from(parts[0], "base64url").toString("utf8"));
+    claims = JSON.parse(Buffer.from(parts[1], "base64url").toString("utf8"));
   } catch {
     return false;
   }
-  if (header.alg !== 'RS256' || !header.kid) return false;
+  if (header.alg !== "RS256" || !header.kid) return false;
   let jwk = (await githubJwks()).find((key) => key.kid === header.kid);
-  if (!jwk) jwk = (await githubJwks(true)).find((key) => key.kid === header.kid);
+  if (!jwk)
+    jwk = (await githubJwks(true)).find((key) => key.kid === header.kid);
   if (!jwk) return false;
   const signed = crypto.verify(
-    'RSA-SHA256',
+    "RSA-SHA256",
     Buffer.from(`${parts[0]}.${parts[1]}`),
-    crypto.createPublicKey({ key: jwk, format: 'jwk' }),
-    Buffer.from(parts[2], 'base64url'),
+    crypto.createPublicKey({ key: jwk, format: "jwk" }),
+    Buffer.from(parts[2], "base64url"),
   );
   const now = Math.floor(Date.now() / 1000),
     repo = syncRepo(),
@@ -157,53 +202,69 @@ async function githubOidcValid(token) {
     claims.iss === GITHUB_OIDC_ISSUER &&
     audiences.includes(SYNC_OIDC_AUDIENCE) &&
     claims.repository === repo &&
-    claims.ref === 'refs/heads/main' &&
-    String(claims.workflow_ref || '').startsWith(`${repo}/.github/workflows/${SYNC_WORKFLOW}@`) &&
+    claims.ref === "refs/heads/main" &&
+    String(claims.workflow_ref || "").startsWith(
+      `${repo}/.github/workflows/${SYNC_WORKFLOW}@`,
+    ) &&
     Number(claims.exp) > now - 30 &&
     Number(claims.nbf || 0) <= now + 30
   );
 }
 // The workflow proves itself with a GitHub OIDC token; SYNC_REPORT_TOKEN remains an optional alternative.
 async function syncCallerValid(req) {
-  const given = String(req.headers.authorization || '').replace(/^Bearer\s+/i, '');
+  const given = String(req.headers.authorization || "").replace(
+    /^Bearer\s+/i,
+    "",
+  );
   if (!given) return false;
   const expected = process.env.SYNC_REPORT_TOKEN;
-  if (expected && crypto.timingSafeEqual(digest(given), digest(expected))) return true;
+  if (expected && crypto.timingSafeEqual(digest(given), digest(expected)))
+    return true;
   try {
     return await githubOidcValid(given);
   } catch (error) {
-    console.error('GitHub OIDC check failed:', error.message);
+    console.error("GitHub OIDC check failed:", error.message);
     return false;
   }
 }
-const text = (value, max) => (typeof value === 'string' ? value.slice(0, max) : '');
-const int = (value, max = 1_000_000) => (Number.isInteger(value) && value >= 0 && value <= max ? value : 0);
+const text = (value, max) =>
+  typeof value === "string" ? value.slice(0, max) : "";
+const int = (value, max = 1_000_000) =>
+  Number.isInteger(value) && value >= 0 && value <= max ? value : 0;
 const isoText = (value) =>
-  typeof value === 'string' && !Number.isNaN(Date.parse(value)) ? value.slice(0, 40) : null;
+  typeof value === "string" && !Number.isNaN(Date.parse(value))
+    ? value.slice(0, 40)
+    : null;
 function syncItem(item) {
-  if (!item || typeof item !== 'object') return null;
+  if (!item || typeof item !== "object") return null;
   const clean = {
     id: text(item.id, 80),
     title: text(item.title, 200),
-    type: item.type === 'folder' ? 'folder' : 'file',
+    type: item.type === "folder" ? "folder" : "file",
     note: text(item.note, 300),
   };
-  if (typeof item.from === 'string') clean.from = text(item.from, 200);
-  if (typeof item.fromNote === 'string') clean.fromNote = text(item.fromNote, 300);
+  if (typeof item.from === "string") clean.from = text(item.from, 200);
+  if (typeof item.fromNote === "string")
+    clean.fromNote = text(item.fromNote, 300);
   return clean.id ? clean : null;
 }
 // Validate and bound a report posted by the workflow. Returns null when the shape is wrong.
 function cleanSyncReport(raw) {
-  if (!raw || typeof raw !== 'object' || raw.schemaVersion !== 1) return null;
-  const status = ['paused', 'skipped', 'success', 'failure'].includes(raw.status) ? raw.status : null;
-  const mode = ['dry-run', 'write'].includes(raw.mode) ? raw.mode : null;
-  const runId = text(raw.runId, 80).replace(/[^A-Za-z0-9_-]/g, '-');
+  if (!raw || typeof raw !== "object" || raw.schemaVersion !== 1) return null;
+  const status = ["paused", "skipped", "success", "failure"].includes(
+    raw.status,
+  )
+    ? raw.status
+    : null;
+  const mode = ["dry-run", "write"].includes(raw.mode) ? raw.mode : null;
+  const runId = text(raw.runId, 80).replace(/[^A-Za-z0-9_-]/g, "-");
   if (!status || !mode || !runId) return null;
   const years = {};
   for (const [category, year] of Object.entries(
-    raw.years && typeof raw.years === 'object' ? raw.years : {},
+    raw.years && typeof raw.years === "object" ? raw.years : {},
   ).slice(0, 6)) {
-    if (!/^\d{4}\/\d{4}$/.test(category) || !year || typeof year !== 'object') continue;
+    if (!/^\d{4}\/\d{4}$/.test(category) || !year || typeof year !== "object")
+      continue;
     const counts = {};
     for (const name of syncBuckets) counts[name] = int(year.counts?.[name]);
     const clean = { before: int(year.before), after: int(year.after), counts };
@@ -212,26 +273,30 @@ function cleanSyncReport(raw) {
         .slice(0, SYNC_LIST_LIMIT)
         .map(syncItem)
         .filter(Boolean);
-    clean.stale = (Array.isArray(year.stale) ? year.stale : []).slice(0, SYNC_LIST_LIMIT).map((s) => ({
-      id: text(s?.id, 80),
-      note: text(s?.note, 300),
-      reason: text(s?.reason, 200),
-      kept: int(s?.kept),
-    }));
+    clean.stale = (Array.isArray(year.stale) ? year.stale : [])
+      .slice(0, SYNC_LIST_LIMIT)
+      .map((s) => ({
+        id: text(s?.id, 80),
+        note: text(s?.note, 300),
+        reason: text(s?.reason, 200),
+        kept: int(s?.kept),
+      }));
     clean.problems = (Array.isArray(year.problems) ? year.problems : [])
       .slice(0, SYNC_LIST_LIMIT)
       .map((p) => text(p, 300));
     years[category] = clean;
   }
   const totals = {};
-  for (const name of [...syncBuckets, 'stale']) totals[name] = int(raw.totals?.[name]);
+  for (const name of [...syncBuckets, "stale"])
+    totals[name] = int(raw.totals?.[name]);
   return {
     runId,
     runUrl:
-      typeof raw.runUrl === 'string' && raw.runUrl.startsWith('https://github.com/')
+      typeof raw.runUrl === "string" &&
+      raw.runUrl.startsWith("https://github.com/")
         ? text(raw.runUrl, 200)
         : null,
-    trigger: text(raw.trigger, 40) || 'unknown',
+    trigger: text(raw.trigger, 40) || "unknown",
     status,
     mode,
     startedAt: isoText(raw.startedAt),
@@ -240,14 +305,21 @@ function cleanSyncReport(raw) {
     ok: raw.ok === true,
     changed: raw.changed === true,
     wrote: raw.wrote === true,
-    commit: typeof raw.commit === 'string' && /^[0-9a-f]{7,40}$/.test(raw.commit) ? raw.commit : null,
+    commit:
+      typeof raw.commit === "string" && /^[0-9a-f]{7,40}$/.test(raw.commit)
+        ? raw.commit
+        : null,
     rows: { before: int(raw.rows?.before), after: int(raw.rows?.after) },
     totals,
-    gates: (Array.isArray(raw.gates) ? raw.gates : []).slice(0, 20).map((g) => ({
-      code: text(g?.code, 40).replace(/[^a-z_]/g, ''),
-      message: text(g?.message, 300),
-      details: (Array.isArray(g?.details) ? g.details : []).slice(0, 10).map((d) => text(String(d), 200)),
-    })),
+    gates: (Array.isArray(raw.gates) ? raw.gates : [])
+      .slice(0, 20)
+      .map((g) => ({
+        code: text(g?.code, 40).replace(/[^a-z_]/g, ""),
+        message: text(g?.message, 300),
+        details: (Array.isArray(g?.details) ? g.details : [])
+          .slice(0, 10)
+          .map((d) => text(String(d), 200)),
+      })),
     years,
   };
 }
@@ -260,18 +332,25 @@ function nextSyncRun(now = new Date()) {
   for (let day = 0; day < 2; day++)
     for (const hour of SYNC_SCHEDULE_HOURS_UTC) {
       const at = new Date(
-        Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + day, hour, SYNC_SCHEDULE_MINUTE),
+        Date.UTC(
+          now.getUTCFullYear(),
+          now.getUTCMonth(),
+          now.getUTCDate() + day,
+          hour,
+          SYNC_SCHEDULE_MINUTE,
+        ),
       );
       if (at > now) return at.toISOString();
     }
   return null;
 }
-const firestoreTime = (value) => (value?.toDate ? value.toDate().toISOString() : value || null);
+const firestoreTime = (value) =>
+  value?.toDate ? value.toDate().toISOString() : value || null;
 // The workflow checks every 15 minutes and runs a full sync once the last one is SYNC_INTERVAL_HOURS old,
 // so a check GitHub drops or delays is simply caught up by the next one.
 const SYNC_INTERVAL_HOURS = 8;
 function syncDueAt(lastSyncAt, now = new Date()) {
-  const last = Date.parse(lastSyncAt || '');
+  const last = Date.parse(lastSyncAt || "");
   if (Number.isNaN(last)) return now.toISOString();
   const due = new Date(last + SYNC_INTERVAL_HOURS * 60 * 60_000);
   return (due > now ? due : now).toISOString();
@@ -296,37 +375,46 @@ const publicRunRequest = (request) =>
 // admin pasted into the dashboard (Firestore syncSecrets/github, server-only, never sent back to a browser).
 let dashboardToken = { at: 0, value: null };
 async function dispatchToken() {
-  if (process.env.GITHUB_DISPATCH_TOKEN) return { token: process.env.GITHUB_DISPATCH_TOKEN, source: 'env' };
+  if (process.env.GITHUB_DISPATCH_TOKEN)
+    return { token: process.env.GITHUB_DISPATCH_TOKEN, source: "env" };
   if (!firebaseConfigured()) return { token: null, source: null };
   if (Date.now() - dashboardToken.at > 5 * 60_000) {
-    const doc = await firebase().db.collection('syncSecrets').doc('github').get();
+    const doc = await firebase()
+      .db.collection("syncSecrets")
+      .doc("github")
+      .get();
     dashboardToken = { at: Date.now(), value: doc.exists ? doc.data() : null };
   }
   const saved = dashboardToken.value;
   return saved?.token
-    ? { token: saved.token, source: 'dashboard', last4: saved.last4 }
+    ? { token: saved.token, source: "dashboard", last4: saved.last4 }
     : { token: null, source: null };
 }
 const githubHeaders = (token) => ({
   Authorization: `Bearer ${token}`,
-  Accept: 'application/vnd.github+json',
-  'X-GitHub-Api-Version': '2022-11-28',
-  'User-Agent': 'capital-science-faculty',
-  'Content-Type': 'application/json',
+  Accept: "application/vnd.github+json",
+  "X-GitHub-Api-Version": "2022-11-28",
+  "User-Agent": "capital-science-faculty",
+  "Content-Type": "application/json",
 });
 // Record dashboard actions that change sync behaviour. Never blocks the action itself.
 async function audit(req, action, detail = {}) {
   try {
     await firebase()
-      .db.collection('audit')
-      .add({ action, ip: clientIp(req), at: FieldValue.serverTimestamp(), ...detail });
+      .db.collection("audit")
+      .add({
+        action,
+        ip: clientIp(req),
+        at: FieldValue.serverTimestamp(),
+        ...detail,
+      });
   } catch (error) {
-    console.error('Audit log write failed:', error.message);
+    console.error("Audit log write failed:", error.message);
   }
 }
 
-const readLocalDB = async () => JSON.parse(await readFile(dbPath, 'utf8'));
-const siteContentRef = () => firebase().db.collection('site').doc('content');
+const readLocalDB = async () => JSON.parse(await readFile(dbPath, "utf8"));
+const siteContentRef = () => firebase().db.collection("site").doc("content");
 async function readDB() {
   if (!firebaseConfigured()) return readLocalDB();
   const ref = siteContentRef(),
@@ -356,7 +444,7 @@ function firebaseWebConfig() {
   if (generatedWebConfig === undefined) {
     try {
       generatedWebConfig = JSON.parse(
-        readFileSync(path.join(root, 'public', 'firebase-config.json'), 'utf8'),
+        readFileSync(path.join(root, "public", "firebase-config.json"), "utf8"),
       );
     } catch {
       generatedWebConfig = {};
@@ -365,7 +453,7 @@ function firebaseWebConfig() {
   const generated = generatedWebConfig;
   let appHosting = {};
   try {
-    appHosting = JSON.parse(process.env.FIREBASE_WEBAPP_CONFIG || '{}');
+    appHosting = JSON.parse(process.env.FIREBASE_WEBAPP_CONFIG || "{}");
   } catch {}
   const project = { ...generated, ...appHosting };
   return {
@@ -373,78 +461,112 @@ function firebaseWebConfig() {
     authDomain: project.authDomain || process.env.FIREBASE_AUTH_DOMAIN,
     projectId: project.projectId || process.env.FIREBASE_PROJECT_ID,
     appId: project.appId || process.env.FIREBASE_APP_ID,
-    messagingSenderId: project.messagingSenderId || process.env.FIREBASE_MESSAGING_SENDER_ID,
+    messagingSenderId:
+      project.messagingSenderId || process.env.FIREBASE_MESSAGING_SENDER_ID,
   };
 }
 const firebaseServiceAccountFile = () =>
-  process.env.FIREBASE_SERVICE_ACCOUNT_FILE || '/etc/secrets/firebase-service-account.json';
+  process.env.FIREBASE_SERVICE_ACCOUNT_FILE ||
+  "/etc/secrets/firebase-service-account.json";
 const firebaseCredentialsAvailable = () =>
   Boolean(process.env.FIREBASE_SERVICE_ACCOUNT_JSON) ||
   existsSync(firebaseServiceAccountFile()) ||
   Boolean(process.env.FIREBASE_CONFIG) ||
   Boolean(process.env.K_SERVICE);
 const firebaseConfigured = () =>
-  Object.values(firebaseWebConfig()).every(Boolean) && firebaseCredentialsAvailable();
+  Object.values(firebaseWebConfig()).every(Boolean) &&
+  firebaseCredentialsAvailable();
 function firebase() {
-  if (!firebaseConfigured()) throw new Error('Firebase is not fully configured.');
+  if (!firebaseConfigured())
+    throw new Error("Firebase is not fully configured.");
   let app = getApps()[0];
   if (!app) {
-    let projectId = process.env.FIREBASE_PROJECT_ID || '';
+    let projectId = process.env.FIREBASE_PROJECT_ID || "";
     try {
-      projectId = projectId || JSON.parse(process.env.FIREBASE_CONFIG || '{}').projectId || '';
+      projectId =
+        projectId ||
+        JSON.parse(process.env.FIREBASE_CONFIG || "{}").projectId ||
+        "";
     } catch {}
-    if (process.env.FIREBASE_SERVICE_ACCOUNT_JSON || existsSync(firebaseServiceAccountFile())) {
+    if (
+      process.env.FIREBASE_SERVICE_ACCOUNT_JSON ||
+      existsSync(firebaseServiceAccountFile())
+    ) {
       let serviceAccount;
       try {
         serviceAccount = process.env.FIREBASE_SERVICE_ACCOUNT_JSON
           ? JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_JSON)
-          : JSON.parse(readFileSync(firebaseServiceAccountFile(), 'utf8'));
+          : JSON.parse(readFileSync(firebaseServiceAccountFile(), "utf8"));
       } catch {
-        throw new Error('Firebase Admin service-account secret must contain valid JSON.');
+        throw new Error(
+          "Firebase Admin service-account secret must contain valid JSON.",
+        );
       }
       app = initializeApp({
         credential: cert(serviceAccount),
         projectId: projectId || serviceAccount.project_id,
       });
-    } else app = initializeApp({ credential: applicationDefault(), ...(projectId ? { projectId } : {}) });
+    } else
+      app = initializeApp({
+        credential: applicationDefault(),
+        ...(projectId ? { projectId } : {}),
+      });
   }
   return { auth: getAuth(app), db: getFirestore(app) };
 }
 async function verifiedFirebaseUser(req) {
-  const token = String(req.headers.authorization || '').replace(/^Bearer\s+/i, '');
-  if (!token) throw Object.assign(new Error('Sign in to continue.'), { status: 401 });
+  const token = String(req.headers.authorization || "").replace(
+    /^Bearer\s+/i,
+    "",
+  );
+  if (!token)
+    throw Object.assign(new Error("Sign in to continue."), { status: 401 });
   const { auth } = firebase();
   return auth.verifyIdToken(token, true);
 }
 const escapeHtml = (value) =>
-  String(value ?? '').replace(
+  String(value ?? "").replace(
     /[&<>"']/g,
-    (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c],
+    (c) =>
+      ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[
+        c
+      ],
   );
-async function sendRegistrationEmail(profile, isUpdate = false, photoAttachment = null, changedFields = []) {
-  const isDataPicture = String(profile.picture || '').startsWith('data:image/');
+async function sendRegistrationEmail(
+  profile,
+  isUpdate = false,
+  photoAttachment = null,
+  changedFields = [],
+) {
+  const isDataPicture = String(profile.picture || "").startsWith("data:image/");
   const picture = isDataPicture
-    ? ''
+    ? ""
     : escapeHtml(
-        String(profile.picture || '').startsWith('/avatars/')
+        String(profile.picture || "").startsWith("/avatars/")
           ? new URL(
               profile.picture,
-              process.env.PUBLIC_URL || 'https://capital-science-faculty.onrender.com',
+              process.env.PUBLIC_URL ||
+                "https://capital-science-faculty.onrender.com",
             ).toString()
           : profile.picture,
       );
-  const pictureDescription = isDataPicture ? 'Attached to this email' : profile.picture || 'Not supplied';
-  const response = await fetch('https://api.resend.com/emails', {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
+  const pictureDescription = isDataPicture
+    ? "Attached to this email"
+    : profile.picture || "Not supplied";
+  const response = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
+      "Content-Type": "application/json",
+    },
     body: JSON.stringify({
-      from: process.env.RESEND_FROM || 'onboarding@resend.dev',
-      to: ['essamsidek123@gmail.com'],
+      from: process.env.RESEND_FROM || "onboarding@resend.dev",
+      to: ["essamsidek123@gmail.com"],
       subject: isUpdate
-        ? 'Capital Science Faculty profile updated'
-        : 'New Capital Science Faculty registration',
-      text: `${isUpdate ? 'Profile update' : 'New registration'}\nAccount ID: ${profile.id}\nFirst name: ${profile.firstName || ''}\nFather's name: ${profile.fatherName || ''}\nFamily name: ${profile.lastName || ''}\nFull name: ${profile.name}\nEmail: ${profile.email || 'Not supplied'}\nPhone: ${profile.phone || 'Not supplied'}\nGender: ${profile.gender}\nPicture: ${pictureDescription}${isUpdate ? `\nChanged values: ${changedFields.join(', ') || 'None'}` : ''}`,
-      html: `<div style="font-family:Arial,sans-serif;max-width:560px;margin:auto;padding:24px;color:#24362c"><h2>${isUpdate ? 'Student profile updated' : 'New student registration'}</h2>${isUpdate ? `<p><b>Changed values:</b> ${escapeHtml(changedFields.join(', ') || 'None')}</p>` : ''}<p><b>Account ID:</b> ${escapeHtml(profile.id)}</p><p><b>First name:</b> ${escapeHtml(profile.firstName || '')}</p><p><b>Father’s name:</b> ${escapeHtml(profile.fatherName || '')}</p><p><b>Family name:</b> ${escapeHtml(profile.lastName || '')}</p><p><b>Full name:</b> ${escapeHtml(profile.name)}</p><p><b>Email:</b> ${escapeHtml(profile.email || 'Not supplied')}</p><p><b>Phone:</b> ${escapeHtml(profile.phone || 'Not supplied')}</p><p><b>Gender:</b> ${escapeHtml(profile.gender)}</p><p><b>Profile picture:</b> ${isDataPicture ? 'Attached to this email' : picture ? `<a href="${picture}">View portrait</a>` : 'Not supplied'}</p></div>`,
+        ? "Capital Science Faculty profile updated"
+        : "New Capital Science Faculty registration",
+      text: `${isUpdate ? "Profile update" : "New registration"}\nAccount ID: ${profile.id}\nFirst name: ${profile.firstName || ""}\nFather's name: ${profile.fatherName || ""}\nFamily name: ${profile.lastName || ""}\nFull name: ${profile.name}\nEmail: ${profile.email || "Not supplied"}\nPhone: ${profile.phone || "Not supplied"}\nGender: ${profile.gender}\nPicture: ${pictureDescription}${isUpdate ? `\nChanged values: ${changedFields.join(", ") || "None"}` : ""}`,
+      html: `<div style="font-family:Arial,sans-serif;max-width:560px;margin:auto;padding:24px;color:#24362c"><h2>${isUpdate ? "Student profile updated" : "New student registration"}</h2>${isUpdate ? `<p><b>Changed values:</b> ${escapeHtml(changedFields.join(", ") || "None")}</p>` : ""}<p><b>Account ID:</b> ${escapeHtml(profile.id)}</p><p><b>First name:</b> ${escapeHtml(profile.firstName || "")}</p><p><b>Father’s name:</b> ${escapeHtml(profile.fatherName || "")}</p><p><b>Family name:</b> ${escapeHtml(profile.lastName || "")}</p><p><b>Full name:</b> ${escapeHtml(profile.name)}</p><p><b>Email:</b> ${escapeHtml(profile.email || "Not supplied")}</p><p><b>Phone:</b> ${escapeHtml(profile.phone || "Not supplied")}</p><p><b>Gender:</b> ${escapeHtml(profile.gender)}</p><p><b>Profile picture:</b> ${isDataPicture ? "Attached to this email" : picture ? `<a href="${picture}">View portrait</a>` : "Not supplied"}</p></div>`,
       ...(photoAttachment ? { attachments: [photoAttachment] } : {}),
     }),
     signal: AbortSignal.timeout(8000),
@@ -452,17 +574,20 @@ async function sendRegistrationEmail(profile, isUpdate = false, photoAttachment 
   if (!response.ok) {
     const result = await response.json().catch(() => ({}));
     throw new Error(
-      `Email provider returned HTTP ${response.status}${result.message ? `: ${result.message}` : ''}`,
+      `Email provider returned HTTP ${response.status}${result.message ? `: ${result.message}` : ""}`,
     );
   }
   return response.json();
 }
 async function sendManagedEmail(to, subject, message) {
-  const response = await fetch('https://api.resend.com/emails', {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
+  const response = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
+      "Content-Type": "application/json",
+    },
     body: JSON.stringify({
-      from: process.env.RESEND_FROM || 'onboarding@resend.dev',
+      from: process.env.RESEND_FROM || "onboarding@resend.dev",
       to: [to],
       subject: subject.slice(0, 180),
       text: message.slice(0, 10000),
@@ -470,20 +595,25 @@ async function sendManagedEmail(to, subject, message) {
     }),
     signal: AbortSignal.timeout(10000),
   });
-  if (!response.ok) throw new Error(`Email provider returned HTTP ${response.status}`);
+  if (!response.ok)
+    throw new Error(`Email provider returned HTTP ${response.status}`);
   return response.json();
 }
 const ADMIN_SESSION_MS = 8 * 60 * 60_000;
 // A dedicated secret lets the admin password rotate without being the signing key.
-const adminSigningKey = () => process.env.ADMIN_SESSION_SECRET || process.env.ADMIN_PASSWORD || '';
+const adminSigningKey = () =>
+  process.env.ADMIN_SESSION_SECRET || process.env.ADMIN_PASSWORD || "";
 function signAdminToken(token) {
-  return crypto.createHmac('sha256', adminSigningKey()).update(token).digest('hex');
+  return crypto
+    .createHmac("sha256", adminSigningKey())
+    .update(token)
+    .digest("hex");
 }
 function session(req) {
-  const c = req.headers.cookie || '';
+  const c = req.headers.cookie || "";
   const m = c.match(/(?:^|; )admin_session=([^;]+)/);
   if (!m || !process.env.ADMIN_PASSWORD) return null;
-  const [token, issued, signature] = m[1].split('.');
+  const [token, issued, signature] = m[1].split(".");
   if (!token || !issued || !signature) return null;
   if (!(Date.now() - Number(issued) < ADMIN_SESSION_MS)) return null;
   const expected = signAdminToken(`${token}.${issued}`);
@@ -491,128 +621,167 @@ function session(req) {
     b = Buffer.from(expected);
   return a.length === b.length && crypto.timingSafeEqual(a, b) ? token : null;
 }
-const secureCookie = () => (process.env.NODE_ENV === 'production' || process.env.K_SERVICE ? '; Secure' : '');
+const secureCookie = () =>
+  process.env.NODE_ENV === "production" || process.env.K_SERVICE
+    ? "; Secure"
+    : "";
 const contentFields = [
-  'title',
-  'titleAr',
-  'titleEn',
-  'url',
-  'category',
-  'categoryEn',
-  'note',
-  'noteEn',
-  'kind',
+  "title",
+  "titleAr",
+  "titleEn",
+  "url",
+  "category",
+  "categoryEn",
+  "note",
+  "noteEn",
+  "kind",
 ];
 // Store only known content fields so a dashboard edit cannot smuggle arbitrary data into the site JSON.
 function cleanContentItem(item, existing = {}) {
   const clean = { ...existing };
   for (const key of contentFields) {
     if (!(key in item)) continue;
-    const value = String(item[key] ?? '').trim();
-    if (value) clean[key] = value.slice(0, key === 'url' ? 2000 : key.startsWith('note') ? 600 : 180);
+    const value = String(item[key] ?? "").trim();
+    if (value)
+      clean[key] = value.slice(
+        0,
+        key === "url" ? 2000 : key.startsWith("note") ? 600 : 180,
+      );
     else delete clean[key];
   }
-  if (!['whatsapp', 'facebook', 'telegram', 'drive', 'link'].includes(clean.kind)) clean.kind = 'link';
+  if (
+    !["whatsapp", "facebook", "telegram", "drive", "link"].includes(clean.kind)
+  )
+    clean.kind = "link";
   return clean;
 }
 function safeUrl(u) {
   try {
     const x = new URL(u);
-    return ['https:', 'http:'].includes(x.protocol);
+    return ["https:", "http:"].includes(x.protocol);
   } catch {
     return false;
   }
 }
 async function api(req, res, url) {
-  if (req.method === 'GET' && url.pathname === '/api/firebase-config')
+  if (req.method === "GET" && url.pathname === "/api/firebase-config")
     return json(res, 200, {
       enabled: firebaseConfigured(),
       firebase: firebaseConfigured() ? firebaseWebConfig() : null,
     });
-  if (req.method === 'POST' && url.pathname === '/api/auth/check-email') {
+  if (req.method === "POST" && url.pathname === "/api/auth/check-email") {
     try {
-      if (!firebaseConfigured()) return json(res, 503, { error: 'Email verification is unavailable.' });
+      if (!firebaseConfigured())
+        return json(res, 503, { error: "Email verification is unavailable." });
       const d = await body(req, 12000),
-        email = String(d.email || '')
+        email = String(d.email || "")
           .trim()
           .toLowerCase(),
-        ip = String(req.headers['x-forwarded-for'] || req.socket.remoteAddress || '')
-          .split(',')[0]
+        ip = String(
+          req.headers["x-forwarded-for"] || req.socket.remoteAddress || "",
+        )
+          .split(",")[0]
           .trim(),
         now = Date.now(),
-        checks = (emailCheckRate.get(ip) || []).filter((time) => now - time < 60 * 60_000);
+        checks = (emailCheckRate.get(ip) || []).filter(
+          (time) => now - time < 60 * 60_000,
+        );
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
-        return json(res, 400, { error: 'Enter a valid email address.' });
+        return json(res, 400, { error: "Enter a valid email address." });
       if (checks.length >= 15)
-        return json(res, 429, { error: 'Too many checks. Please wait before trying again.' });
+        return json(res, 429, {
+          error: "Too many checks. Please wait before trying again.",
+        });
       checks.push(now);
       emailCheckRate.set(ip, checks);
       try {
         await firebase().auth.getUserByEmail(email);
         return json(res, 200, { exists: true });
       } catch (error) {
-        if (error.code === 'auth/user-not-found') return json(res, 200, { exists: false });
+        if (error.code === "auth/user-not-found")
+          return json(res, 200, { exists: false });
         throw error;
       }
     } catch (error) {
       return json(res, error.status || 500, {
-        error: error.status ? error.message : 'Could not check this email address.',
+        error: error.status
+          ? error.message
+          : "Could not check this email address.",
       });
     }
   }
-  if (req.method === 'POST' && url.pathname === '/api/auth/check-contact') {
+  if (req.method === "POST" && url.pathname === "/api/auth/check-contact") {
     try {
-      if (!firebaseConfigured()) return json(res, 503, { error: 'Contact verification is unavailable.' });
+      if (!firebaseConfigured())
+        return json(res, 503, {
+          error: "Contact verification is unavailable.",
+        });
       const decoded = await verifiedFirebaseUser(req),
         d = await body(req, 12000),
-        email = String(d.email || '')
+        email = String(d.email || "")
           .trim()
           .toLowerCase(),
-        phone = String(d.phone || '').trim(),
-        ip = String(req.headers['x-forwarded-for'] || req.socket.remoteAddress || '')
-          .split(',')[0]
+        phone = String(d.phone || "").trim(),
+        ip = String(
+          req.headers["x-forwarded-for"] || req.socket.remoteAddress || "",
+        )
+          .split(",")[0]
           .trim(),
         now = Date.now(),
-        times = (contactCheckRate.get(ip) || []).filter((time) => now - time < 60 * 60_000);
+        times = (contactCheckRate.get(ip) || []).filter(
+          (time) => now - time < 60 * 60_000,
+        );
       if (times.length >= 20)
-        return json(res, 429, { error: 'Too many checks. Please wait before trying again.' });
+        return json(res, 429, {
+          error: "Too many checks. Please wait before trying again.",
+        });
       times.push(now);
       contactCheckRate.set(ip, times);
       if (email) {
         if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
-          return json(res, 400, { error: 'Enter a valid email address.' });
+          return json(res, 400, { error: "Enter a valid email address." });
         try {
           const found = await firebase().auth.getUserByEmail(email);
           if (found.uid !== decoded.uid)
-            return json(res, 409, { error: 'This email is already linked to another account.' });
+            return json(res, 409, {
+              error: "This email is already linked to another account.",
+            });
           return json(res, 200, { ok: true, available: true });
         } catch (error) {
-          if (error.code === 'auth/user-not-found') return json(res, 200, { ok: true, available: true });
+          if (error.code === "auth/user-not-found")
+            return json(res, 200, { ok: true, available: true });
           throw error;
         }
       }
       if (!/^\+[1-9]\d{7,14}$/.test(phone))
-        return json(res, 400, { error: 'Enter a valid international phone number.' });
+        return json(res, 400, {
+          error: "Enter a valid international phone number.",
+        });
       try {
         const found = await firebase().auth.getUserByPhoneNumber(phone);
         if (found.uid !== decoded.uid)
-          return json(res, 409, { error: 'This phone number is already linked to another account.' });
+          return json(res, 409, {
+            error: "This phone number is already linked to another account.",
+          });
         return json(res, 200, { ok: true, available: true });
       } catch (error) {
-        if (error.code === 'auth/user-not-found') return json(res, 200, { ok: true, available: true });
+        if (error.code === "auth/user-not-found")
+          return json(res, 200, { ok: true, available: true });
         throw error;
       }
     } catch (error) {
       return json(res, error.status || 401, {
-        error: error.status ? error.message : 'Could not check this contact value.',
+        error: error.status
+          ? error.message
+          : "Could not check this contact value.",
       });
     }
   }
-  if (req.method === 'GET' && url.pathname === '/api/site') {
+  if (req.method === "GET" && url.pathname === "/api/site") {
     const db = await readDB();
     let driveFiles = [];
     try {
-      driveFiles = JSON.parse(await readFile(driveCatalogPath, 'utf8'));
+      driveFiles = JSON.parse(await readFile(driveCatalogPath, "utf8"));
     } catch {
       driveFiles = db.lectures || [];
     }
@@ -620,11 +789,17 @@ async function api(req, res, url) {
     // A dashboard lecture entry that points at one of those roots is the same folder, so it is not listed twice.
     const rootUrls = new Set(
       driveFiles
-        .filter((item) => item.type === 'folder' && ['المجلد الرئيسي', 'Year root'].includes(item.note))
+        .filter(
+          (item) =>
+            item.type === "folder" &&
+            ["المجلد الرئيسي", "Year root"].includes(item.note),
+        )
         .map((item) => item.url),
     );
     const mergedRoots = new Set(
-      (db.lectures || []).filter((item) => rootUrls.has(item.url)).map((item) => item.id),
+      (db.lectures || [])
+        .filter((item) => rootUrls.has(item.url))
+        .map((item) => item.id),
     );
     const extraLectures = (db.lectures || []).filter(
       (item) => !Array.isArray(item.folders) && !mergedRoots.has(item.id),
@@ -633,9 +808,9 @@ async function api(req, res, url) {
       ...extraLectures.map((item) => ({
         ...item,
         id: item.id || item.url,
-        type: 'file',
+        type: "file",
         file: true,
-        categoryEn: item.categoryEn || item.category || '',
+        categoryEn: item.categoryEn || item.category || "",
       })),
     );
     return json(res, 200, {
@@ -645,93 +820,169 @@ async function api(req, res, url) {
       firebaseAuthEnabled: firebaseConfigured(),
       contentStoragePersistent: firebaseConfigured(),
       // Firebase SMS needs the paid Blaze plan; keep phone sign-in hidden unless explicitly enabled.
-      phoneAuthEnabled: firebaseConfigured() && process.env.PHONE_AUTH_ENABLED === 'true',
+      phoneAuthEnabled:
+        firebaseConfigured() && process.env.PHONE_AUTH_ENABLED === "true",
     });
   }
-  if (url.pathname.startsWith('/api/firebase/')) {
+  if (url.pathname.startsWith("/api/firebase/")) {
     if (!firebaseConfigured())
       return json(res, 503, {
-        error: 'Firebase is not configured. Connect the Firebase web app and Admin SDK credentials.',
+        error:
+          "Firebase is not configured. Connect the Firebase web app and Admin SDK credentials.",
       });
     try {
       const decoded = await verifiedFirebaseUser(req),
         { db } = firebase(),
-        ref = db.collection('users').doc(decoded.uid);
-      if (req.method === 'GET' && url.pathname === '/api/firebase/profile') {
+        ref = db.collection("users").doc(decoded.uid);
+      if (req.method === "GET" && url.pathname === "/api/firebase/profile") {
         const snap = await ref.get();
         return json(res, 200, { profile: snap.exists ? snap.data() : null });
       }
-      if (req.method === 'GET' && url.pathname === '/api/firebase/messages') {
-        const snap = await ref.collection('messages').orderBy('createdAt', 'desc').limit(100).get();
-        return json(res, 200, { messages: snap.docs.map((x) => ({ id: x.id, ...x.data() })) });
+      if (req.method === "GET" && url.pathname === "/api/firebase/messages") {
+        const snap = await ref
+          .collection("messages")
+          .orderBy("createdAt", "desc")
+          .limit(150)
+          .get();
+        return json(res, 200, {
+          messages: snap.docs.map((x) => ({
+            id: x.id,
+            ...x.data(),
+            sender: senderOf(x.data()),
+          })),
+        });
       }
-      const readMessage = url.pathname.match(/^\/api\/firebase\/messages\/([A-Za-z0-9_-]+)\/read$/);
-      if (req.method === 'POST' && readMessage) {
-        const message = ref.collection('messages').doc(readMessage[1]);
-        if (!(await message.get()).exists) return json(res, 404, { error: 'Message not found.' });
+      if (req.method === "POST" && url.pathname === "/api/firebase/messages") {
+        const d = await body(req, 20_000),
+          text = String(d.message || "").trim();
+        if (!text) return json(res, 400, { error: "اكتب الرسالة الأول." });
+        if (text.length > 2000)
+          return json(res, 400, { error: "الرسالة طويلة. الحد 2000 حرف." });
+        const profile = await ref.get();
+        if (!profile.exists)
+          return json(res, 403, { error: "كمّل ملفك الشخصي الأول." });
+        if (!messageAllowed(decoded.uid))
+          return json(res, 429, {
+            error: "بعت رسايل كتير في وقت قصير. استنى شوية وجرّب تاني.",
+          });
+        const doc = await ref.collection("messages").add({
+          subject: "",
+          message: text,
+          from: String(profile.data().name || "").slice(0, 160),
+          sender: "user",
+          createdAt: FieldValue.serverTimestamp(),
+          readAt: FieldValue.serverTimestamp(),
+          adminReadAt: null,
+        });
+        await ref.set(threadUpdate("user", text), { merge: true });
+        return json(res, 200, { ok: true, id: doc.id });
+      }
+      const readMessage = url.pathname.match(
+        /^\/api\/firebase\/messages\/([A-Za-z0-9_-]+)\/read$/,
+      );
+      if (req.method === "POST" && readMessage) {
+        const message = ref.collection("messages").doc(readMessage[1]);
+        if (!(await message.get()).exists)
+          return json(res, 404, { error: "الرسالة مش موجودة." });
         await message.update({ readAt: FieldValue.serverTimestamp() });
         return json(res, 200, { ok: true });
       }
       if (
-        (req.method === 'POST' &&
-          ['/api/firebase/register', '/api/firebase/profile'].includes(url.pathname)) ||
-        (req.method === 'PUT' && url.pathname === '/api/firebase/profile')
+        (req.method === "POST" &&
+          ["/api/firebase/register", "/api/firebase/profile"].includes(
+            url.pathname,
+          )) ||
+        (req.method === "PUT" && url.pathname === "/api/firebase/profile")
       ) {
         if (!decoded.email_verified && !decoded.phone_number)
-          return json(res, 403, { error: 'Verify your email or phone before saving a profile.' });
+          return json(res, 403, {
+            error: "Verify your email or phone before saving a profile.",
+          });
         const d = await body(req, 5_000_000);
-        if (!String(d.name || '').trim() || !['male', 'female', 'other'].includes(d.gender))
-          return json(res, 400, { error: 'Please complete your name and gender.' });
-        const picture = String(d.picture || '').slice(0, 700_000);
+        if (
+          !String(d.name || "").trim() ||
+          !["male", "female", "other"].includes(d.gender)
+        )
+          return json(res, 400, {
+            error: "Please complete your name and gender.",
+          });
+        const picture = String(d.picture || "").slice(0, 700_000);
         if (
           picture &&
           !(
-            /^\/avatars\/art-(0[1-9]|10)\.svg$/.test(picture) ||
+            /^\/avatars\/(art|sci)-(0[1-9]|10)\.svg$/.test(picture) ||
             /^data:image\/(png|jpeg|webp);base64,/.test(picture) ||
             /^https:\/\//.test(picture)
           )
         )
-          return json(res, 400, { error: 'Unsupported profile image.' });
+          return json(res, 400, { error: "Unsupported profile image." });
         const before = await ref.get(),
           profile = {
             id: decoded.uid,
             name: String(d.name).trim().slice(0, 160),
-            firstName: String(d.firstName || '')
+            firstName: String(d.firstName || "")
               .trim()
               .slice(0, 60),
-            fatherName: String(d.fatherName || '')
+            fatherName: String(d.fatherName || "")
               .trim()
               .slice(0, 60),
-            lastName: String(d.lastName || '')
+            lastName: String(d.lastName || "")
               .trim()
               .slice(0, 60),
             gender: d.gender,
             email: decoded.email || null,
             phone: decoded.phone_number || null,
             picture,
-            providers: decoded.firebase?.sign_in_provider ? [decoded.firebase.sign_in_provider] : [],
-            createdAt: before.exists ? before.get('createdAt') : FieldValue.serverTimestamp(),
+            providers: decoded.firebase?.sign_in_provider
+              ? [decoded.firebase.sign_in_provider]
+              : [],
+            createdAt: before.exists
+              ? before.get("createdAt")
+              : FieldValue.serverTimestamp(),
             updatedAt: FieldValue.serverTimestamp(),
           };
         const changedFields = before.exists
-          ? ['name', 'firstName', 'fatherName', 'lastName', 'gender', 'email', 'phone', 'picture'].filter(
-              (key) => String(before.get(key) || '') !== String(profile[key] || ''),
+          ? [
+              "name",
+              "firstName",
+              "fatherName",
+              "lastName",
+              "gender",
+              "email",
+              "phone",
+              "picture",
+            ].filter(
+              (key) =>
+                String(before.get(key) || "") !== String(profile[key] || ""),
             )
           : [];
         await ref.set(profile, { merge: true });
         let emailSent = false;
-        if ((!before.exists || changedFields.length) && emailNotificationsEnabled()) {
+        if (
+          (!before.exists || changedFields.length) &&
+          emailNotificationsEnabled()
+        ) {
           try {
             let photoAttachment = null;
-            const match = profile.picture.match(/^data:image\/(png|jpeg|webp);base64,([A-Za-z0-9+/=]+)$/);
+            const match = profile.picture.match(
+              /^data:image\/(png|jpeg|webp);base64,([A-Za-z0-9+/=]+)$/,
+            );
             if (match) {
-              const ext = match[1] === 'jpeg' ? 'jpg' : match[1];
-              photoAttachment = { filename: `student-profile.${ext}`, content: match[2] };
+              const ext = match[1] === "jpeg" ? "jpg" : match[1];
+              photoAttachment = {
+                filename: `student-profile.${ext}`,
+                content: match[2],
+              };
             }
-            await sendRegistrationEmail(profile, before.exists, photoAttachment, changedFields);
+            await sendRegistrationEmail(
+              profile,
+              before.exists,
+              photoAttachment,
+              changedFields,
+            );
             emailSent = true;
           } catch (error) {
-            console.error('Profile notification email failed:', error.message);
+            console.error("Profile notification email failed:", error.message);
           }
         }
         return json(res, before.exists ? 200 : 201, {
@@ -742,31 +993,36 @@ async function api(req, res, url) {
       }
     } catch (error) {
       return json(res, error.status || 401, {
-        error: error.status ? error.message : 'Firebase authentication failed.',
+        error: error.status ? error.message : "Firebase authentication failed.",
       });
     }
   }
   // Machine endpoints for the Drive sync workflow: Bearer SYNC_REPORT_TOKEN, no cookies, no browser access.
-  if (url.pathname.startsWith('/api/sync/')) {
-    if (!(await syncCallerValid(req))) return json(res, 401, { error: 'Invalid sync credentials.' });
-    if (req.method === 'POST' && url.pathname === '/api/sync/report') {
+  if (url.pathname.startsWith("/api/sync/")) {
+    if (!(await syncCallerValid(req)))
+      return json(res, 401, { error: "Invalid sync credentials." });
+    if (req.method === "POST" && url.pathname === "/api/sync/report") {
       const run = cleanSyncReport(await body(req, 200_000));
-      if (!run) return json(res, 400, { error: 'Report does not match the expected schema.' });
-      if (!firebaseConfigured()) return json(res, 503, { error: 'Firebase is not configured.' });
+      if (!run)
+        return json(res, 400, {
+          error: "Report does not match the expected schema.",
+        });
+      if (!firebaseConfigured())
+        return json(res, 503, { error: "Firebase is not configured." });
       const { db } = firebase();
       await db
-        .collection('syncRuns')
+        .collection("syncRuns")
         .doc(run.runId)
         .set({ ...run, receivedAt: FieldValue.serverTimestamp() });
       await db
-        .collection('syncState')
-        .doc('latest')
+        .collection("syncState")
+        .doc("latest")
         .set(
           {
             lastRun: syncRunSummary(run),
             updatedAt: FieldValue.serverTimestamp(),
             // A finished full sync (not a dry run) resets the clock for the next automatic one.
-            ...(run.status === 'success' && run.mode === 'write'
+            ...(run.status === "success" && run.mode === "write"
               ? { lastSyncAt: run.finishedAt || new Date().toISOString() }
               : {}),
           },
@@ -774,8 +1030,8 @@ async function api(req, res, url) {
         );
       // Keep only the newest runs so the collection stays small.
       const old = await db
-        .collection('syncRuns')
-        .orderBy('receivedAt', 'desc')
+        .collection("syncRuns")
+        .orderBy("receivedAt", "desc")
         .offset(SYNC_RUNS_KEPT)
         .limit(100)
         .get();
@@ -786,22 +1042,29 @@ async function api(req, res, url) {
       }
       return json(res, 200, { ok: true, runId: run.runId });
     }
-    if (req.method === 'GET' && url.pathname === '/api/sync/state') {
-      if (!firebaseConfigured()) return json(res, 503, { error: 'Firebase is not configured.' });
-      const state = await firebase().db.collection('syncState').doc('latest').get();
+    if (req.method === "GET" && url.pathname === "/api/sync/state") {
+      if (!firebaseConfigured())
+        return json(res, 503, { error: "Firebase is not configured." });
+      const state = await firebase()
+        .db.collection("syncState")
+        .doc("latest")
+        .get();
       return json(res, 200, {
-        paused: state.exists && state.get('paused') === true,
-        runRequest: publicRunRequest(state.exists ? state.get('runRequest') : null),
+        paused: state.exists && state.get("paused") === true,
+        runRequest: publicRunRequest(
+          state.exists ? state.get("runRequest") : null,
+        ),
       });
     }
     // The workflow's hourly check takes a queued dashboard request, exactly once.
-    if (req.method === 'POST' && url.pathname === '/api/sync/claim') {
-      if (!firebaseConfigured()) return json(res, 503, { error: 'Firebase is not configured.' });
+    if (req.method === "POST" && url.pathname === "/api/sync/claim") {
+      if (!firebaseConfigured())
+        return json(res, 503, { error: "Firebase is not configured." });
       const { db } = firebase(),
-        ref = db.collection('syncState').doc('latest');
+        ref = db.collection("syncState").doc("latest");
       const result = await db.runTransaction(async (tx) => {
         const snap = await tx.get(ref),
-          request = snap.exists ? snap.get('runRequest') || null : null;
+          request = snap.exists ? snap.get("runRequest") || null : null;
         if (request)
           tx.update(ref, {
             runRequest: FieldValue.delete(),
@@ -809,8 +1072,8 @@ async function api(req, res, url) {
           });
         return {
           request,
-          paused: snap.exists && snap.get('paused') === true,
-          lastSyncAt: snap.exists ? snap.get('lastSyncAt') || null : null,
+          paused: snap.exists && snap.get("paused") === true,
+          lastSyncAt: snap.exists ? snap.get("lastSyncAt") || null : null,
         };
       });
       return json(res, 200, {
@@ -819,49 +1082,67 @@ async function api(req, res, url) {
         lastSyncAt: result.lastSyncAt,
       });
     }
-    return json(res, 404, { error: 'Not found' });
+    return json(res, 404, { error: "Not found" });
   }
-  if (req.method === 'POST' && ['/api/register', '/api/profile/update'].includes(url.pathname)) {
-    return json(res, 503, { error: 'Verified registration is available only through Firebase Auth.' });
+  if (
+    req.method === "POST" &&
+    ["/api/register", "/api/profile/update"].includes(url.pathname)
+  ) {
+    return json(res, 503, {
+      error: "Verified registration is available only through Firebase Auth.",
+    });
   }
-  if (url.pathname.startsWith('/api/admin')) {
-    if (req.method !== 'GET' && !sameOrigin(req))
-      return json(res, 403, { error: 'Cross-site request blocked.' });
-    if (req.method === 'POST' && url.pathname === '/api/admin/login') {
+  if (url.pathname.startsWith("/api/admin")) {
+    if (req.method !== "GET" && !sameOrigin(req))
+      return json(res, 403, { error: "Cross-site request blocked." });
+    if (req.method === "POST" && url.pathname === "/api/admin/login") {
       if (!process.env.ADMIN_PASSWORD)
         return json(res, 503, {
-          error: 'Admin password is not configured. Set ADMIN_PASSWORD before starting the server.',
+          error:
+            "Admin password is not configured. Set ADMIN_PASSWORD before starting the server.",
         });
       if (!withinRate(adminLoginRate, clientIp(req), 8, 15 * 60_000))
-        return json(res, 429, { error: 'Too many sign-in attempts. Wait 15 minutes and try again.' });
+        return json(res, 429, {
+          error: "Too many sign-in attempts. Wait 15 minutes and try again.",
+        });
       const d = await body(req, 4000);
       // Compare fixed-length digests so the comparison time does not reveal the password length.
-      const digest = (value) => crypto.createHash('sha256').update(String(value)).digest();
-      if (!crypto.timingSafeEqual(digest(d.password || ''), digest(process.env.ADMIN_PASSWORD)))
-        return json(res, 401, { error: 'Incorrect password' });
-      const token = crypto.randomBytes(32).toString('hex'),
+      const digest = (value) =>
+        crypto.createHash("sha256").update(String(value)).digest();
+      if (
+        !crypto.timingSafeEqual(
+          digest(d.password || ""),
+          digest(process.env.ADMIN_PASSWORD),
+        )
+      )
+        return json(res, 401, { error: "Incorrect password" });
+      const token = crypto.randomBytes(32).toString("hex"),
         issued = String(Date.now()),
         signed = `${token}.${issued}.${signAdminToken(`${token}.${issued}`)}`;
       res.setHeader(
-        'Set-Cookie',
+        "Set-Cookie",
         `admin_session=${signed}; HttpOnly; SameSite=Strict; Path=/${secureCookie()}`,
       );
       return json(res, 200, { ok: true });
     }
-    if (req.method === 'POST' && url.pathname === '/api/admin/logout') {
+    if (req.method === "POST" && url.pathname === "/api/admin/logout") {
       res.setHeader(
-        'Set-Cookie',
+        "Set-Cookie",
         `admin_session=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0${secureCookie()}`,
       );
       return json(res, 200, { ok: true });
     }
-    if (req.method === 'GET' && url.pathname === '/api/admin/session')
+    if (req.method === "GET" && url.pathname === "/api/admin/session")
       return json(res, 200, { authenticated: Boolean(session(req)) });
-    if (!session(req)) return json(res, 401, { error: 'Sign in required' });
-    if (req.method === 'GET' && url.pathname === '/api/admin/users') {
+    if (!session(req)) return json(res, 401, { error: "Sign in required" });
+    if (req.method === "GET" && url.pathname === "/api/admin/users") {
       if (!firebaseConfigured())
-        return json(res, 503, { error: 'Firebase must be configured before accounts can be managed.' });
-      const query = (url.searchParams.get('q') || '').trim().toLocaleLowerCase(),
+        return json(res, 503, {
+          error: "Firebase must be configured before accounts can be managed.",
+        });
+      const query = (url.searchParams.get("q") || "")
+          .trim()
+          .toLocaleLowerCase(),
         { auth, db } = firebase(),
         accounts = [];
       // listUsers returns at most 1,000 accounts per page; follow the page token so search covers everyone.
@@ -871,25 +1152,27 @@ async function api(req, res, url) {
         accounts.push(...page.users);
         pageToken = page.pageToken;
       } while (pageToken && accounts.length < 20_000);
-      const profiles = await db.collection('users').get();
+      const profiles = await db.collection("users").get();
       const byId = new Map(profiles.docs.map((x) => [x.id, x.data()]));
       const matches = accounts
         .map((u) => {
           const p = byId.get(u.uid) || {};
           return {
             id: u.uid,
-            name: p.name || u.displayName || '',
-            email: u.email || '',
-            phone: u.phoneNumber || '',
-            gender: p.gender || '',
-            picture: p.picture || '',
-            createdAt: u.metadata.creationTime || '',
+            name: p.name || u.displayName || "",
+            email: u.email || "",
+            phone: u.phoneNumber || "",
+            gender: p.gender || "",
+            picture: p.picture || "",
+            createdAt: u.metadata.creationTime || "",
           };
         })
         .filter(
           (u) =>
             !query ||
-            [u.id, u.name, u.email, u.phone].some((v) => String(v).toLocaleLowerCase().includes(query)),
+            [u.id, u.name, u.email, u.phone].some((v) =>
+              String(v).toLocaleLowerCase().includes(query),
+            ),
         );
       return json(res, 200, {
         users: matches.slice(0, 200),
@@ -897,12 +1180,12 @@ async function api(req, res, url) {
         matched: matches.length,
       });
     }
-    if (url.pathname.startsWith('/api/admin/sync/')) {
-      if (req.method !== 'GET' && !strictSameOrigin(req))
-        return json(res, 403, { error: 'Cross-site request blocked.' });
+    if (url.pathname.startsWith("/api/admin/sync/")) {
+      if (req.method !== "GET" && !strictSameOrigin(req))
+        return json(res, 403, { error: "Cross-site request blocked." });
       const dispatch = await dispatchToken();
       const dispatchConfigured = Boolean(dispatch.token);
-      if (req.method === 'GET' && url.pathname === '/api/admin/sync/status') {
+      if (req.method === "GET" && url.pathname === "/api/admin/sync/status") {
         const config = {
           dispatchConfigured,
           dispatchSource: dispatch.source,
@@ -910,59 +1193,83 @@ async function api(req, res, url) {
           reportConfigured: true,
           workflowUrl: `https://github.com/${syncRepo()}/actions/workflows/${SYNC_WORKFLOW}`,
           firebaseConfigured: firebaseConfigured(),
-          schedule: 'كل 8 ساعات تقريبًا',
+          schedule: "كل 8 ساعات تقريبًا",
           nextRun: nextSyncRun(),
           nextCheck: nextSyncCheck(),
         };
         if (!firebaseConfigured())
-          return json(res, 200, { ...config, paused: false, latest: null, runs: [] });
+          return json(res, 200, {
+            ...config,
+            paused: false,
+            latest: null,
+            runs: [],
+          });
         const { db } = firebase();
         const [state, runs] = await Promise.all([
-          db.collection('syncState').doc('latest').get(),
-          db.collection('syncRuns').orderBy('receivedAt', 'desc').limit(20).get(),
+          db.collection("syncState").doc("latest").get(),
+          db
+            .collection("syncRuns")
+            .orderBy("receivedAt", "desc")
+            .limit(20)
+            .get(),
         ]);
         const all = runs.docs.map((doc) => ({
           ...doc.data(),
-          receivedAt: firestoreTime(doc.get('receivedAt')),
+          receivedAt: firestoreTime(doc.get("receivedAt")),
         }));
         return json(res, 200, {
           ...config,
-          paused: state.exists && state.get('paused') === true,
-          runRequest: publicRunRequest(state.exists ? state.get('runRequest') : null),
-          lastSyncAt: state.exists ? state.get('lastSyncAt') || null : null,
-          nextRun: syncDueAt(state.exists ? state.get('lastSyncAt') : null),
+          paused: state.exists && state.get("paused") === true,
+          runRequest: publicRunRequest(
+            state.exists ? state.get("runRequest") : null,
+          ),
+          lastSyncAt: state.exists ? state.get("lastSyncAt") || null : null,
+          nextRun: syncDueAt(state.exists ? state.get("lastSyncAt") : null),
           latest: all[0] || null,
           runs: all.map(syncRunSummary),
         });
       }
-      if (req.method === 'POST' && url.pathname === '/api/admin/sync/run') {
+      if (req.method === "POST" && url.pathname === "/api/admin/sync/run") {
         const d = await body(req, 2000);
         const dryRun = d.dryRun !== false,
           allowRemovals = d.allowRemovals === true;
         if (!dispatchConfigured) {
           // No GitHub token: queue the request; the workflow's hourly check starts it.
-          if (!firebaseConfigured()) return json(res, 503, { error: 'Firebase is not configured.' });
+          if (!firebaseConfigured())
+            return json(res, 503, { error: "Firebase is not configured." });
           await firebase()
-            .db.collection('syncState')
-            .doc('latest')
+            .db.collection("syncState")
+            .doc("latest")
             .set(
-              { runRequest: { dryRun, allowRemovals, requestedAt: FieldValue.serverTimestamp() } },
+              {
+                runRequest: {
+                  dryRun,
+                  allowRemovals,
+                  requestedAt: FieldValue.serverTimestamp(),
+                },
+              },
               { merge: true },
             );
-          await audit(req, 'sync.run.queued', { dryRun, allowRemovals });
-          return json(res, 200, { ok: true, queued: true, startsBy: nextSyncCheck(), dryRun, allowRemovals });
+          await audit(req, "sync.run.queued", { dryRun, allowRemovals });
+          return json(res, 200, {
+            ok: true,
+            queued: true,
+            startsBy: nextSyncCheck(),
+            dryRun,
+            allowRemovals,
+          });
         }
         const response = await fetch(
           `https://api.github.com/repos/${syncRepo()}/actions/workflows/${SYNC_WORKFLOW}/dispatches`,
           {
-            method: 'POST',
+            method: "POST",
             headers: githubHeaders(dispatch.token),
             body: JSON.stringify({
-              ref: 'main',
+              ref: "main",
               inputs: {
                 dry_run: String(dryRun),
                 allow_removals: String(allowRemovals),
-                allow_large: 'false',
+                allow_large: "false",
               },
             }),
             signal: AbortSignal.timeout(15000),
@@ -973,24 +1280,32 @@ async function api(req, res, url) {
             error: `GitHub refused the run request (HTTP ${response.status}).`,
             code: `github_${response.status}`,
           });
-        await audit(req, 'sync.run', { dryRun, allowRemovals });
+        await audit(req, "sync.run", { dryRun, allowRemovals });
         return json(res, 200, { ok: true, dryRun, allowRemovals });
       }
-      if (req.method === 'DELETE' && url.pathname === '/api/admin/sync/run') {
-        if (!firebaseConfigured()) return json(res, 503, { error: 'Firebase is not configured.' });
+      if (req.method === "DELETE" && url.pathname === "/api/admin/sync/run") {
+        if (!firebaseConfigured())
+          return json(res, 503, { error: "Firebase is not configured." });
         await firebase()
-          .db.collection('syncState')
-          .doc('latest')
+          .db.collection("syncState")
+          .doc("latest")
           .set({ runRequest: FieldValue.delete() }, { merge: true });
-        await audit(req, 'sync.run.cancelled');
+        await audit(req, "sync.run.cancelled");
         return json(res, 200, { ok: true });
       }
-      if (req.method === 'POST' && url.pathname === '/api/admin/sync/github-token') {
-        if (!firebaseConfigured()) return json(res, 503, { error: 'Firebase is not configured.' });
+      if (
+        req.method === "POST" &&
+        url.pathname === "/api/admin/sync/github-token"
+      ) {
+        if (!firebaseConfigured())
+          return json(res, 503, { error: "Firebase is not configured." });
         const d = await body(req, 2000),
-          token = String(d.token || '').trim();
+          token = String(d.token || "").trim();
         if (!/^(github_pat_|ghp_)[A-Za-z0-9_]{20,250}$/.test(token))
-          return json(res, 400, { error: 'This does not look like a GitHub token.', code: 'bad_format' });
+          return json(res, 400, {
+            error: "This does not look like a GitHub token.",
+            code: "bad_format",
+          });
         // Check the token can see this workflow before saving it.
         const check = await fetch(
           `https://api.github.com/repos/${syncRepo()}/actions/workflows/${SYNC_WORKFLOW}`,
@@ -1002,86 +1317,132 @@ async function api(req, res, url) {
             code: `github_${check.status}`,
           });
         await firebase()
-          .db.collection('syncSecrets')
-          .doc('github')
-          .set({ token, last4: token.slice(-4), savedAt: FieldValue.serverTimestamp() });
+          .db.collection("syncSecrets")
+          .doc("github")
+          .set({
+            token,
+            last4: token.slice(-4),
+            savedAt: FieldValue.serverTimestamp(),
+          });
         dashboardToken = { at: 0, value: null };
-        await audit(req, 'sync.github_token.save');
+        await audit(req, "sync.github_token.save");
         return json(res, 200, { ok: true, last4: token.slice(-4) });
       }
-      if (req.method === 'DELETE' && url.pathname === '/api/admin/sync/github-token') {
-        if (!firebaseConfigured()) return json(res, 503, { error: 'Firebase is not configured.' });
-        await firebase().db.collection('syncSecrets').doc('github').delete();
+      if (
+        req.method === "DELETE" &&
+        url.pathname === "/api/admin/sync/github-token"
+      ) {
+        if (!firebaseConfigured())
+          return json(res, 503, { error: "Firebase is not configured." });
+        await firebase().db.collection("syncSecrets").doc("github").delete();
         dashboardToken = { at: 0, value: null };
-        await audit(req, 'sync.github_token.remove');
+        await audit(req, "sync.github_token.remove");
         return json(res, 200, { ok: true });
       }
-      if (req.method === 'POST' && url.pathname === '/api/admin/sync/pause') {
-        if (!firebaseConfigured()) return json(res, 503, { error: 'Firebase is not configured.' });
+      if (req.method === "POST" && url.pathname === "/api/admin/sync/pause") {
+        if (!firebaseConfigured())
+          return json(res, 503, { error: "Firebase is not configured." });
         const d = await body(req, 2000);
-        if (typeof d.paused !== 'boolean') return json(res, 400, { error: 'paused must be true or false.' });
+        if (typeof d.paused !== "boolean")
+          return json(res, 400, { error: "paused must be true or false." });
         await firebase()
-          .db.collection('syncState')
-          .doc('latest')
-          .set({ paused: d.paused, pausedChangedAt: FieldValue.serverTimestamp() }, { merge: true });
-        await audit(req, d.paused ? 'sync.pause' : 'sync.resume');
+          .db.collection("syncState")
+          .doc("latest")
+          .set(
+            { paused: d.paused, pausedChangedAt: FieldValue.serverTimestamp() },
+            { merge: true },
+          );
+        await audit(req, d.paused ? "sync.pause" : "sync.resume");
         return json(res, 200, { ok: true, paused: d.paused });
       }
-      return json(res, 404, { error: 'Not found' });
+      return json(res, 404, { error: "Not found" });
     }
-    if (req.method === 'GET' && url.pathname === '/api/admin/audience') {
-      if (!firebaseConfigured()) return json(res, 503, { error: 'Firebase is not configured.' });
-      const count = await firebase().db.collection('users').count().get();
-      return json(res, 200, { profiles: count.data().count, broadcastLimit: 500 });
-    }
-    if (req.method === 'POST' && url.pathname === '/api/admin/email') {
-      if (!emailNotificationsEnabled()) return json(res, 503, { error: 'Resend email is not configured.' });
+    if (req.method === "GET" && url.pathname === "/api/admin/audience") {
       if (!firebaseConfigured())
-        return json(res, 503, { error: 'Firebase must be configured before targeting accounts.' });
+        return json(res, 503, { error: "Firebase is not configured." });
+      const count = await firebase().db.collection("users").count().get();
+      return json(res, 200, {
+        profiles: count.data().count,
+        broadcastLimit: 500,
+      });
+    }
+    if (req.method === "POST" && url.pathname === "/api/admin/email") {
+      // In-site delivery never depends on email; email is an extra copy only when Resend is set up.
+      if (!firebaseConfigured())
+        return json(res, 503, { error: "Firebase لازم يكون متوصل الأول." });
+      const emailEnabled = emailNotificationsEnabled();
       const d = await body(req),
-        subject = String(d.subject || '').trim(),
-        message = String(d.message || '').trim();
-      if (!subject || !message) return json(res, 400, { error: 'Subject and message are required.' });
+        subject = String(d.subject || "").trim(),
+        message = String(d.message || "").trim();
+      if (!subject || !message)
+        return json(res, 400, { error: "اكتب العنوان ونص الرسالة." });
       const { db } = firebase();
       let targets = [];
-      if (d.mode === 'all')
-        targets = (await db.collection('users').limit(500).get()).docs.map((x) => ({
-          id: x.id,
-          ...x.data(),
-        }));
+      if (d.mode === "all")
+        targets = (await db.collection("users").limit(500).get()).docs.map(
+          (x) => ({
+            id: x.id,
+            ...x.data(),
+          }),
+        );
       else {
-        const target = String(d.target || '').trim();
-        if (!target) return json(res, 400, { error: 'Enter a user ID, verified email, or phone number.' });
+        const target = String(d.target || "").trim();
+        if (!target)
+          return json(res, 400, {
+            error: "اكتب ID الحساب أو الإيميل أو رقم الموبايل.",
+          });
         let snapshot;
-        if (target.includes('@'))
-          snapshot = await db.collection('users').where('email', '==', target.toLowerCase()).limit(1).get();
-        else if (target.startsWith('+'))
-          snapshot = await db.collection('users').where('phone', '==', target).limit(1).get();
+        if (target.includes("@"))
+          snapshot = await db
+            .collection("users")
+            .where("email", "==", target.toLowerCase())
+            .limit(1)
+            .get();
+        else if (target.startsWith("+"))
+          snapshot = await db
+            .collection("users")
+            .where("phone", "==", target)
+            .limit(1)
+            .get();
         else {
-          const doc = await db.collection('users').doc(target).get();
+          const doc = await db.collection("users").doc(target).get();
           snapshot = { docs: doc.exists ? [doc] : [] };
         }
         targets = snapshot.docs.map((x) => ({ id: x.id, ...x.data() }));
       }
-      if (!targets.length) return json(res, 404, { error: 'No matching account was found.' });
+      if (!targets.length)
+        return json(res, 404, { error: "مفيش حساب بالبيانات دي." });
       let emailSent = 0,
         emailFailed = 0,
         inAppDelivered = 0;
       for (const target of targets) {
         try {
           await db
-            .collection('users')
+            .collection("users")
             .doc(target.id)
-            .collection('messages')
-            .add({ subject, message, from: 'Morfi', createdAt: FieldValue.serverTimestamp(), readAt: null });
+            .collection("messages")
+            .add({
+              subject,
+              message,
+              from: "Morfi",
+              sender: "admin",
+              createdAt: FieldValue.serverTimestamp(),
+              readAt: null,
+            });
+          await db
+            .collection("users")
+            .doc(target.id)
+            .set(threadUpdate("admin", `${subject} — ${message}`), {
+              merge: true,
+            });
           inAppDelivered++;
         } catch {
           continue;
         }
-        const address = String(target.email || '')
+        const address = String(target.email || "")
           .trim()
           .toLowerCase();
-        if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(address)) {
+        if (emailEnabled && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(address)) {
           try {
             await sendManagedEmail(address, subject, message);
             emailSent++;
@@ -1096,91 +1457,217 @@ async function api(req, res, url) {
         inAppDelivered,
         emailSent,
         emailFailed,
-        limit: d.mode === 'all' ? 500 : 1,
+        emailEnabled,
+        limit: d.mode === "all" ? 500 : 1,
       });
     }
-    const match = url.pathname.match(/^\/api\/admin\/(subjects|lectures|advising|official)(?:\/([^/]+))?$/);
+    if (
+      url.pathname === "/api/admin/threads" ||
+      url.pathname.startsWith("/api/admin/threads/")
+    ) {
+      if (req.method !== "GET" && !strictSameOrigin(req))
+        return json(res, 403, { error: "Cross-site request blocked." });
+      if (!firebaseConfigured())
+        return json(res, 503, { error: "Firebase لازم يكون متوصل الأول." });
+      const { db } = firebase();
+      if (req.method === "GET" && url.pathname === "/api/admin/threads") {
+        const snap = await db
+          .collection("users")
+          .orderBy("thread.lastAt", "desc")
+          .limit(100)
+          .get();
+        return json(res, 200, {
+          threads: snap.docs.map((x) => {
+            const p = x.data();
+            return {
+              id: x.id,
+              name: p.name || "",
+              picture: String(p.picture || "").startsWith("data:")
+                ? ""
+                : p.picture || "",
+              contact: p.email || p.phone || "",
+              thread: p.thread || {},
+            };
+          }),
+        });
+      }
+      const threadMatch = url.pathname.match(
+        /^\/api\/admin\/threads\/([A-Za-z0-9_-]{1,128})$/,
+      );
+      if (!threadMatch) return json(res, 404, { error: "Not found" });
+      const userRef = db.collection("users").doc(threadMatch[1]),
+        user = await userRef.get();
+      if (!user.exists) return json(res, 404, { error: "الحساب ده مش موجود." });
+      if (req.method === "GET") {
+        const snap = await userRef
+            .collection("messages")
+            .orderBy("createdAt", "desc")
+            .limit(200)
+            .get(),
+          messages = snap.docs
+            .map((x) => ({ id: x.id, ...x.data(), sender: senderOf(x.data()) }))
+            .reverse();
+        const batch = db.batch();
+        snap.docs
+          .filter((x) => senderOf(x.data()) === "user" && !x.data().adminReadAt)
+          .forEach((x) =>
+            batch.update(x.ref, { adminReadAt: FieldValue.serverTimestamp() }),
+          );
+        batch.set(userRef, { thread: { adminUnread: 0 } }, { merge: true });
+        await batch.commit();
+        const p = user.data();
+        return json(res, 200, {
+          user: {
+            id: user.id,
+            name: p.name || "",
+            contact: p.email || p.phone || "",
+          },
+          messages,
+        });
+      }
+      if (req.method === "POST") {
+        const d = await body(req, 40_000),
+          text = String(d.message || "").trim();
+        if (!text) return json(res, 400, { error: "اكتب الرد الأول." });
+        if (text.length > 10_000)
+          return json(res, 400, { error: "الرد طويل أوي." });
+        await userRef.collection("messages").add({
+          subject: "",
+          message: text,
+          from: "Morfi",
+          sender: "admin",
+          createdAt: FieldValue.serverTimestamp(),
+          readAt: null,
+        });
+        await userRef.set(threadUpdate("admin", text), { merge: true });
+        return json(res, 200, { ok: true });
+      }
+      return json(res, 405, { error: "Method not allowed" });
+    }
+    const match = url.pathname.match(
+      /^\/api\/admin\/(subjects|lectures|advising|official)(?:\/([^/]+))?$/,
+    );
     if (match) {
       const [, key, id] = match,
         db = await readDB();
       db[key] = Array.isArray(db[key]) ? db[key] : [];
-      if (req.method === 'GET') return json(res, 200, db[key]);
-      if (req.method === 'POST' || req.method === 'PUT') {
+      if (req.method === "GET") return json(res, 200, db[key]);
+      if (req.method === "POST" || req.method === "PUT") {
         const item = await body(req),
           index = id ? db[key].findIndex((x) => x.id === id) : -1;
-        if (id && index < 0) return json(res, 404, { error: 'Not found' });
-        const obj = { ...cleanContentItem(item, id ? db[key][index] : {}), id: id || crypto.randomUUID() };
+        if (id && index < 0) return json(res, 404, { error: "Not found" });
+        const obj = {
+          ...cleanContentItem(item, id ? db[key][index] : {}),
+          id: id || crypto.randomUUID(),
+        };
         if (!obj.title || !obj.url || !safeUrl(obj.url))
-          return json(res, 400, { error: 'A title and valid http(s) URL are required' });
+          return json(res, 400, {
+            error: "A title and valid http(s) URL are required",
+          });
         // Reject a link that another item already uses, but only when the link is new or being changed,
         // so older items that already share a link can still be edited.
         const previousUrl = id ? db[key][index].url : null;
-        if (obj.url !== previousUrl && db[key].some((x) => x.id !== obj.id && x.url === obj.url))
-          return json(res, 409, { error: 'This link already exists in this section.' });
+        if (
+          obj.url !== previousUrl &&
+          db[key].some((x) => x.id !== obj.id && x.url === obj.url)
+        )
+          return json(res, 409, {
+            error: "This link already exists in this section.",
+          });
         if (id) db[key][index] = obj;
         else db[key].unshift(obj);
         await saveDB(db);
         return json(res, 200, obj);
       }
-      if (req.method === 'DELETE' && id) {
-        if (!db[key].some((x) => x.id === id)) return json(res, 404, { error: 'Not found' });
+      if (req.method === "DELETE" && id) {
+        if (!db[key].some((x) => x.id === id))
+          return json(res, 404, { error: "Not found" });
         db[key] = db[key].filter((x) => x.id !== id);
         await saveDB(db);
         return json(res, 200, { ok: true });
       }
     }
   }
-  return json(res, 404, { error: 'Not found' });
+  return json(res, 404, { error: "Not found" });
 }
-const appRoutes = ['/', '/subjects', '/lectures', '/advising', '/official', '/developer', '/profile'];
-const publicRoot = path.join(root, 'public');
+const appRoutes = [
+  "/",
+  "/subjects",
+  "/lectures",
+  "/advising",
+  "/official",
+  "/developer",
+  "/profile",
+];
+const publicRoot = path.join(root, "public");
 async function sendFile(res, file, status = 200, extraHeaders = {}) {
   const ext = path.extname(file);
   // Code and pages must revalidate so a new deploy shows up at once; images rarely change and can be cached.
-  const cache = ['.svg', '.png', '.jpg', '.webp'].includes(ext) ? 'public, max-age=86400' : 'no-cache';
+  const cache = [".svg", ".png", ".jpg", ".webp"].includes(ext)
+    ? "public, max-age=86400"
+    : "no-cache";
   res.writeHead(status, {
     ...securityHeaders,
-    'Content-Type': mime[ext] || 'application/octet-stream',
-    'Cache-Control': cache,
+    "Content-Type": mime[ext] || "application/octet-stream",
+    "Cache-Control": cache,
     ...extraHeaders,
   });
   res.end(await readFile(file));
 }
 const server = http.createServer(async (req, res) => {
   try {
-    const url = new URL(req.url, 'http://localhost');
-    if (url.pathname.startsWith('/api/')) return await api(req, res, url);
-    if (!['GET', 'HEAD'].includes(req.method)) return json(res, 405, { error: 'Method not allowed' });
-    const route = url.pathname.length > 1 ? url.pathname.replace(/\/+$/, '') : url.pathname;
-    if (route === '/admin') {
+    const url = new URL(req.url, "http://localhost");
+    if (url.pathname.startsWith("/api/")) return await api(req, res, url);
+    if (!["GET", "HEAD"].includes(req.method))
+      return json(res, 405, { error: "Method not allowed" });
+    const route =
+      url.pathname.length > 1 ? url.pathname.replace(/\/+$/, "") : url.pathname;
+    if (route === "/admin") {
       res.setHeader(
-        'Set-Cookie',
+        "Set-Cookie",
         `admin_session=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0${secureCookie()}`,
       );
-      return sendFile(res, path.join(publicRoot, 'admin.html'), 200, { 'Cache-Control': 'no-store' });
+      return sendFile(res, path.join(publicRoot, "admin.html"), 200, {
+        "Cache-Control": "no-store",
+      });
     }
-    if (appRoutes.includes(route)) return sendFile(res, path.join(publicRoot, 'index.html'));
-    if (route === '/favicon.ico') return sendFile(res, path.join(publicRoot, 'favicon.svg'));
+    if (appRoutes.includes(route))
+      return sendFile(res, path.join(publicRoot, "index.html"));
+    if (route === "/favicon.ico")
+      return sendFile(res, path.join(publicRoot, "favicon.svg"));
     let rel;
     try {
       rel = decodeURIComponent(route);
     } catch {
-      return json(res, 400, { error: 'Malformed URL' });
+      return json(res, 400, { error: "Malformed URL" });
     }
     const file = path.resolve(publicRoot, `.${rel}`);
-    const info = file.startsWith(publicRoot + path.sep) ? await stat(file).catch(() => null) : null;
+    const info = file.startsWith(publicRoot + path.sep)
+      ? await stat(file).catch(() => null)
+      : null;
     if (info?.isFile()) return sendFile(res, file);
     // Unknown pages get the app shell with a 404 status so the browser shows the designed not-found page.
-    if (!path.extname(rel)) return sendFile(res, path.join(publicRoot, 'index.html'), 404);
-    res.writeHead(404, { ...securityHeaders, 'Content-Type': 'text/plain; charset=utf-8' });
-    res.end('Not found');
+    if (!path.extname(rel))
+      return sendFile(res, path.join(publicRoot, "index.html"), 404);
+    res.writeHead(404, {
+      ...securityHeaders,
+      "Content-Type": "text/plain; charset=utf-8",
+    });
+    res.end("Not found");
   } catch (e) {
     if (res.headersSent) return res.end();
-    json(res, e.message === 'Request too large' ? 413 : e.status || 500, {
-      error: e.message === 'Request too large' ? 'Request too large' : e.status ? e.message : 'Server error',
+    json(res, e.message === "Request too large" ? 413 : e.status || 500, {
+      error:
+        e.message === "Request too large"
+          ? "Request too large"
+          : e.status
+            ? e.message
+            : "Server error",
     });
   }
 });
 server.listen(Number(process.env.PORT || 3000), () =>
-  console.log(`Capital Science Faculty is running on http://localhost:${process.env.PORT || 3000}`),
+  console.log(
+    `Capital Science Faculty is running on http://localhost:${process.env.PORT || 3000}`,
+  ),
 );
