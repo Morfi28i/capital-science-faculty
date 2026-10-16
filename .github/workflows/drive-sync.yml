@@ -13,11 +13,11 @@ on:
         type: boolean
         default: true
       allow_removals:
-        description: 'Allow a year to lose more than max(10 rows, 3%)'
+        description: 'Allow a year to lose more than half of its rows at once'
         type: boolean
         default: false
       allow_large:
-        description: 'Allow more than 400 new rows in one run'
+        description: 'Allow more than 3000 new rows in one run'
         type: boolean
         default: false
 

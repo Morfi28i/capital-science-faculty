@@ -116,20 +116,25 @@ class ChangeGates(unittest.TestCase):
     def codes(self, old, new, **flags):
         return [e['code'] for e in validator.change_errors(old, new, ROOTS, **flags)]
 
-    def test_small_drop_is_allowed(self):
+    def test_deletions_are_mirrored(self):
         old, _ = build(self.many_files(100))
-        new, _ = build(self.many_files(91))  # 9 rows gone: under max(10, 3%)
+        new, _ = build(self.many_files(60))  # 40 files deleted on Drive: applied
         self.assertEqual(self.codes(old, new), [])
 
-    def test_large_drop_needs_flag(self):
+    def test_losing_half_a_year_needs_flag(self):
         old, _ = build(self.many_files(100))
-        new, _ = build(self.many_files(80))  # 20 rows gone
+        new, _ = build(self.many_files(30))  # 70 of ~103 rows gone at once: treated as a Drive glitch
         self.assertEqual(self.codes(old, new), ['too_many_removals'])
         self.assertEqual(self.codes(old, new, allow_removals=True), [])
 
-    def test_large_addition_needs_flag(self):
+    def test_additions_are_mirrored(self):
         old, _ = build(fake_drive())
-        new, _ = build(self.many_files(401))
+        new, _ = build(self.many_files(500))
+        self.assertEqual(self.codes(old, new), [])
+
+    def test_huge_addition_needs_flag(self):
+        old, _ = build(fake_drive())
+        new, _ = build(self.many_files(3001))
         self.assertEqual(self.codes(old, new), ['too_many_additions'])
         self.assertEqual(self.codes(old, new, allow_large=True), [])
 

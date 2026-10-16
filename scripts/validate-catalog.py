@@ -19,7 +19,10 @@ ROOT_NOTE = 'المجلد الرئيسي'
 SEMESTER_NOTE = 'مجلد السنة'
 # Drive sources that were replaced and must never reappear in the catalog.
 REMOVED_SOURCES = ['1_xmVYVlPbaf_iJqcYlGJnPR-ROMUY-FD']
-MAX_ADDED = 400
+# The catalog mirrors Drive: deletions and additions are applied automatically. These limits only stop
+# changes so large that they almost certainly come from a Drive glitch, not from real edits.
+MAX_REMOVED_SHARE = 0.5
+MAX_ADDED = 3000
 REPORT_LIST_LIMIT = 200
 URL_PREFIXES = ('https://drive.google.com/', 'https://docs.google.com/')
 ROW_KEYS = ['id', 'parentId', 'title', 'url', 'kind', 'file', 'type', 'category', 'categoryAr', 'categoryEn', 'note']
@@ -197,7 +200,7 @@ def change_errors(old, new, year_roots, allow_removals=False, allow_large=False)
         if after <= 1:
             errors.append(gate('empty_year', f"{year['title']} returned no rows.", [cat]))
             continue
-        limit = max(10, math.ceil(before * 0.03))
+        limit = max(10, math.ceil(before * MAX_REMOVED_SHARE))
         if before - after > limit and not allow_removals:
             errors.append(gate('too_many_removals',
                                f"{year['title']} would drop {before - after} rows (limit {limit}).",
