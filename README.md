@@ -34,7 +34,7 @@ Lecture files come from three public Google Drive folders (the year roots in `YE
 | `scripts/update-drive-catalog.py` | Crawls the 3 roots (4 folders at a time, same breadth-first order every run), keeps a folder's previous subtree when Drive fails to list it ("stale"), writes a JSON report, and rewrites the catalog only when the set of `(id, parentId, title, type, url)` changed. Flags: `--dry-run`, `--report PATH`, `--candidate PATH`, `--allow-removals`, `--allow-large`. Exit `0` ok, `2` a gate failed, `1` crash. |
 | `scripts/validate-catalog.py` | The gates: valid JSON array, the 3 fixed roots in order, unique ids, every `parentId` exists and leads to a root, nothing from the removed 2025 source, a year may lose at most max(10 rows, 3%) without `--allow-removals`, at most 400 new rows without `--allow-large`, no empty year. Usable alone: `python3 scripts/validate-catalog.py data/drive-catalog.json`. |
 | `scripts/tests/` | `python3 -m unittest discover -s scripts/tests` (stdlib only, no network). |
-| `.github/workflows/drive-sync.yml` | Runs the tests, checks the pause flag, crawls, commits only `data/drive-catalog.json` as `sync: +N -M (UTC time)` when there is a real change, keeps the report and candidate as artifacts for 14 days, and posts the report to the site. Manual runs default to dry run. The schedule (03:00, 11:00, 19:00 UTC) is **commented out** until the owner turns it on. |
+| `.github/workflows/drive-sync.yml` | Runs the tests, checks the pause flag, crawls, commits only `data/drive-catalog.json` as `sync: +N -M (UTC time)` when there is a real change, keeps the report and candidate as artifacts for 14 days, and posts the report to the site. Manual runs default to dry run. Scheduled runs: 03:00, 11:00 and 19:00 UTC (enabled 2026-10-16). |
 | `POST /api/sync/report`, `GET /api/sync/state` | Called by the workflow with its GitHub OIDC token as `Authorization: Bearer …`. Reports go to Firestore `syncRuns/{runId}` (newest 100 kept) and `syncState/latest`. |
 | `/api/admin/sync/status`, `/run`, `/pause` | Behind the admin session. `run` triggers the workflow through the GitHub API with `GITHUB_DISPATCH_TOKEN` (never sent to the browser). Every state-changing call needs a same-origin `Origin` header and is written to Firestore `audit`. |
 | Dashboard tab "مزامنة Drive" | Last run, next run, counts, additions, removals, moves, stale folders, gate failures in Arabic, the last 20 runs, and the buttons Run now / Dry-run / Pause. |
@@ -59,7 +59,7 @@ If `main` ever gets branch protection that blocks direct pushes, the workflow's 
 1. GitHub → Actions → **Drive sync** → Run workflow (or the dashboard buttons), with *dry run* left checked. Check the job log, the `drive-sync-…` artifact, and the dashboard tab.
 2. Check that the crawler got real folder listings from GitHub's servers: the report must show rows and no flood of "stale" folders. If Drive refuses GitHub's IP addresses, the run stops at the `empty_year` gate and nothing is written.
 3. Run once with *dry run* unchecked. If Drive changed, a `sync:` commit appears on `main`, and Render should start a deploy within a minute.
-4. Only after that, enable the schedule by removing the `#` in front of `schedule:` and the `cron` line in `.github/workflows/drive-sync.yml`.
+4. The schedule is on (since 2026-10-16). To stop it for a while, use Pause in the dashboard.
 
 ### Pause and roll back
 

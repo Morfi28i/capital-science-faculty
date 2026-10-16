@@ -1,10 +1,10 @@
 name: Drive sync
 
 on:
-  # Scheduled runs (03:00, 11:00, 19:00 UTC) stay off until the owner approves them.
-  # To enable, remove the "#" from the next two lines and push.
-  # schedule:
-  #   - cron: '0 3,11,19 * * *'
+  # Three runs a day: 03:00, 11:00 and 19:00 UTC (06:00, 14:00 and 22:00 in Cairo).
+  # Pause from the dashboard ("مزامنة Drive" → إيقاف مؤقت) instead of editing this file.
+  schedule:
+    - cron: '0 3,11,19 * * *'
   workflow_dispatch:
     inputs:
       dry_run:
