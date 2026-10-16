@@ -61,6 +61,12 @@ If `main` ever gets branch protection that blocks direct pushes, the workflow's 
 3. Run once with *dry run* unchecked. If Drive changed, a `sync:` commit appears on `main`, and Render should start a deploy within a minute.
 4. The schedule is on (since 2026-10-16). To stop it for a while, use Pause in the dashboard.
 
+### Scheduling notes
+
+- The repository is **public** (since 2026-10-16) because GitHub did not fire scheduled runs for it while it was private on a free account. Public repositories also have unlimited Actions minutes. The full history was checked before the switch: no keys, credentials or student data were ever committed.
+- GitHub's `schedule` is best-effort: runs often start 10–45 minutes late and can occasionally be skipped. A push to `main` re-syncs the schedule if it stops.
+- In public repositories GitHub disables scheduled workflows after 60 days without any repository activity. If Drive does not change for two months, re-enable the workflow from the Actions tab (GitHub emails a warning first).
+
 ### Pause and roll back
 
 - **Pause:** dashboard → مزامنة Drive → إيقاف مؤقت. Scheduled and manual runs then exit right after the pause check.
