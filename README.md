@@ -35,40 +35,28 @@ Lecture files come from three public Google Drive folders (the year roots in `YE
 | `scripts/validate-catalog.py` | The gates: valid JSON array, the 3 fixed roots in order, unique ids, every `parentId` exists and leads to a root, nothing from the removed 2025 source, a year may lose at most max(10 rows, 3%) without `--allow-removals`, at most 400 new rows without `--allow-large`, no empty year. Usable alone: `python3 scripts/validate-catalog.py data/drive-catalog.json`. |
 | `scripts/tests/` | `python3 -m unittest discover -s scripts/tests` (stdlib only, no network). |
 | `.github/workflows/drive-sync.yml` | Runs the tests, checks the pause flag, crawls, commits only `data/drive-catalog.json` as `sync: +N -M (UTC time)` when there is a real change, keeps the report and candidate as artifacts for 14 days, and posts the report to the site. Manual runs default to dry run. The schedule (03:00, 11:00, 19:00 UTC) is **commented out** until the owner turns it on. |
-| `POST /api/sync/report`, `GET /api/sync/state` | Called by the workflow with `Authorization: Bearer $SYNC_REPORT_TOKEN`. Reports go to Firestore `syncRuns/{runId}` (newest 100 kept) and `syncState/latest`. |
+| `POST /api/sync/report`, `GET /api/sync/state` | Called by the workflow with its GitHub OIDC token as `Authorization: Bearer …`. Reports go to Firestore `syncRuns/{runId}` (newest 100 kept) and `syncState/latest`. |
 | `/api/admin/sync/status`, `/run`, `/pause` | Behind the admin session. `run` triggers the workflow through the GitHub API with `GITHUB_DISPATCH_TOKEN` (never sent to the browser). Every state-changing call needs a same-origin `Origin` header and is written to Firestore `audit`. |
 | Dashboard tab "مزامنة Drive" | Last run, next run, counts, additions, removals, moves, stale folders, gate failures in Arabic, the last 20 runs, and the buttons Run now / Dry-run / Pause. |
 
 ### Setup
 
-1. **Report token.** Generate one value and store it in two places:
-   ```sh
-   openssl rand -hex 32
-   ```
-   - Render → the service → Environment → `SYNC_REPORT_TOKEN`
-   - GitHub → the repository → Settings → Secrets and variables → Actions → New repository secret → `SYNC_REPORT_TOKEN`
-2. **Dispatch token** (for the dashboard's Run buttons). On GitHub go to Settings → Developer settings → Personal access tokens → Fine-grained tokens → Generate new token.
-   - Resource owner: `Morfi28i`.
-   - Repository access: *Only select repositories* → `capital-science-faculty`.
-   - Repository permissions: **Actions: Read and write** (Metadata read-only is added automatically).
-   - Expiration: up to one year; put the expiry date in your calendar.
-   - Save it in Render as `GITHUB_DISPATCH_TOKEN`. It is never needed in GitHub secrets.
-3. **Repository name.** Set `GITHUB_REPO=Morfi28i/capital-science-faculty` in Render (already declared in `render.yaml`).
-4. Optional: a repository *variable* `SITE_URL` if the site moves (default `https://capital-science-faculty.onrender.com`).
-5. If `main` ever gets branch protection that blocks direct pushes, the workflow's push (made with the built-in `GITHUB_TOKEN`) will fail. Allow GitHub Actions to push, or switch the workflow to opening a pull request.
+The workflow proves who it is with a **GitHub OIDC token** (`permissions: id-token: write`). The site verifies its signature against GitHub's public keys and accepts only tokens for this repository, the `drive-sync.yml` workflow and the `main` branch, with audience `capital-science-faculty-sync`. Reports and the pause flag therefore need **no secret in Render or GitHub**.
 
-Which secret goes where:
+Optional:
 
-| Name | Render env | GitHub secret |
+| Name | Where | What it does |
 |---|---|---|
-| `SYNC_REPORT_TOKEN` | yes | yes (same value) |
-| `GITHUB_DISPATCH_TOKEN` | yes | no |
-| `GITHUB_REPO` | yes | no |
-| `GITHUB_TOKEN` | no | automatic, nothing to create |
+| `GITHUB_DISPATCH_TOKEN` | Render env | Lets the dashboard's Run buttons start the workflow directly. Without it, the buttons open the workflow page on GitHub instead. Create a fine-grained token: Settings → Developer settings → Personal access tokens → Fine-grained → *Only select repositories* → `capital-science-faculty` → **Actions: Read and write**. |
+| `GITHUB_REPO` | Render env | Defaults to `Morfi28i/capital-science-faculty`; set it only if the repository moves. |
+| `SYNC_REPORT_TOKEN` | Render env + GitHub secret | An alternative shared secret the server also accepts; not needed with OIDC. |
+| `SITE_URL` | GitHub repository variable | Only if the site moves from `https://capital-science-faculty.onrender.com`. |
+
+If `main` ever gets branch protection that blocks direct pushes, the workflow's push (made with the built-in `GITHUB_TOKEN`) will fail. Allow GitHub Actions to push, or switch the workflow to opening a pull request.
 
 ### First runs
 
-1. GitHub → Actions → **Drive sync** → Run workflow, with *dry run* left checked. Check the job log, the `drive-sync-…` artifact, and the dashboard tab.
+1. GitHub → Actions → **Drive sync** → Run workflow (or the dashboard buttons), with *dry run* left checked. Check the job log, the `drive-sync-…` artifact, and the dashboard tab.
 2. Check that the crawler got real folder listings from GitHub's servers: the report must show rows and no flood of "stale" folders. If Drive refuses GitHub's IP addresses, the run stops at the `empty_year` gate and nothing is written.
 3. Run once with *dry run* unchecked. If Drive changed, a `sync:` commit appears on `main`, and Render should start a deploy within a minute.
 4. Only after that, enable the schedule by removing the `#` in front of `schedule:` and the `cron` line in `.github/workflows/drive-sync.yml`.

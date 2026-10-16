@@ -26,6 +26,8 @@ concurrency:
 
 permissions:
   contents: write
+  # Lets the job mint a GitHub OIDC token; the site verifies it instead of a shared secret.
+  id-token: write
 
 jobs:
   sync:
@@ -33,7 +35,7 @@ jobs:
     timeout-minutes: 40
     env:
       SITE_URL: ${{ vars.SITE_URL || 'https://capital-science-faculty.onrender.com' }}
-      SYNC_REPORT_TOKEN: ${{ secrets.SYNC_REPORT_TOKEN }}
+      SYNC_AUDIENCE: capital-science-faculty-sync
       # Scheduled runs write; manual runs follow the inputs (dry run by default).
       DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run || 'false' }}
       ALLOW_REMOVALS: ${{ github.event_name == 'workflow_dispatch' && inputs.allow_removals || 'false' }}
@@ -48,14 +50,13 @@ jobs:
       - name: Check pause flag
         id: pause
         run: |
-          if [ -z "$SYNC_REPORT_TOKEN" ]; then
-            echo "::warning::SYNC_REPORT_TOKEN is not set; cannot read the pause flag or post the report."
-            echo "paused=false" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
+          token=$(curl -fsS -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+            "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=$SYNC_AUDIENCE" | python3 -c 'import json,sys; print(json.load(sys.stdin)["value"])')
+          echo "::add-mask::$token"
           # The free Render instance may need up to a minute to wake up.
-          state=$(curl -sS --retry 3 --retry-all-errors --max-time 90 \
-            -H "Authorization: Bearer $SYNC_REPORT_TOKEN" "$SITE_URL/api/sync/state" || echo '{}')
+          state=$(curl -fsS --retry 3 --retry-all-errors --max-time 90 \
+            -H "Authorization: Bearer $token" "$SITE_URL/api/sync/state" || echo '{}')
+          if [ "$state" = "{}" ]; then echo "::warning::Could not read the pause flag from the site; continuing."; fi
           paused=$(printf '%s' "$state" | python3 -c 'import json,sys; d=json.loads(sys.stdin.read() or "{}"); print("true" if isinstance(d, dict) and d.get("paused") is True else "false")' 2>/dev/null || echo false)
           if [ "$paused" = "true" ]; then echo "::notice::Drive sync is paused from the dashboard; skipping."; fi
           echo "paused=$paused" >> "$GITHUB_OUTPUT"
@@ -128,12 +129,16 @@ jobs:
           PAUSED: ${{ steps.pause.outputs.paused }}
           JOB_STATUS: ${{ job.status }}
         run: |
-          if [ -z "$SYNC_REPORT_TOKEN" ]; then exit 0; fi
           if [ "$PAUSED" = "true" ]; then export SYNC_STATUS=paused
           elif [ "$JOB_STATUS" = "success" ]; then export SYNC_STATUS=success
           else export SYNC_STATUS=failure; fi
           python3 scripts/sync-report-payload.py sync-report.json > sync-payload.json
-          curl -sS --retry 3 --retry-all-errors --max-time 90 -o /dev/null -w "report posted: HTTP %{http_code}\n" \
-            -X POST -H "Authorization: Bearer $SYNC_REPORT_TOKEN" -H "Content-Type: application/json" \
-            --data-binary @sync-payload.json "$SITE_URL/api/sync/report" \
-            || echo "::warning::Could not post the sync report to the site."
+          # A fresh OIDC token: the one from the pause check may have expired during the crawl.
+          token=$(curl -fsS -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+            "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=$SYNC_AUDIENCE" | python3 -c 'import json,sys; print(json.load(sys.stdin)["value"])')
+          echo "::add-mask::$token"
+          code=$(curl -sS --retry 3 --retry-all-errors --max-time 90 -o /dev/null -w "%{http_code}" \
+            -X POST -H "Authorization: Bearer $token" -H "Content-Type: application/json" \
+            --data-binary @sync-payload.json "$SITE_URL/api/sync/report" || echo 000)
+          echo "report posted: HTTP $code"
+          if [ "$code" != "200" ]; then echo "::warning::The site did not accept the sync report (HTTP $code)."; fi

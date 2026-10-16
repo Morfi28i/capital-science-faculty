@@ -110,10 +110,70 @@ const SYNC_LIST_LIMIT = 25;
 const syncBuckets = ['added', 'removed', 'renamed', 'moved', 'changed'];
 const digest = (value) => crypto.createHash('sha256').update(String(value)).digest();
 // Bearer-token check for the workflow's calls; compares fixed-length digests in constant time.
-function syncTokenValid(req) {
-  const expected = process.env.SYNC_REPORT_TOKEN;
+const syncRepo = () =>
+  /^[\w.-]+\/[\w.-]+$/.test(process.env.GITHUB_REPO || '')
+    ? process.env.GITHUB_REPO
+    : 'Morfi28i/capital-science-faculty';
+// GitHub Actions can mint a signed OIDC token for each run. Verifying it against GitHub's public keys
+// proves the call comes from this repository's drive-sync workflow on main, with no shared secret.
+const GITHUB_OIDC_ISSUER = 'https://token.actions.githubusercontent.com';
+const SYNC_OIDC_AUDIENCE = 'capital-science-faculty-sync';
+let githubKeys = { at: 0, keys: [] };
+async function githubJwks(force = false) {
+  if (!force && githubKeys.keys.length && Date.now() - githubKeys.at < 60 * 60_000) return githubKeys.keys;
+  const response = await fetch(`${GITHUB_OIDC_ISSUER}/.well-known/jwks`, {
+    signal: AbortSignal.timeout(8000),
+  });
+  if (!response.ok) throw new Error(`GitHub JWKS returned HTTP ${response.status}`);
+  githubKeys = { at: Date.now(), keys: (await response.json()).keys || [] };
+  return githubKeys.keys;
+}
+async function githubOidcValid(token) {
+  const parts = token.split('.');
+  if (parts.length !== 3) return false;
+  let header, claims;
+  try {
+    header = JSON.parse(Buffer.from(parts[0], 'base64url').toString('utf8'));
+    claims = JSON.parse(Buffer.from(parts[1], 'base64url').toString('utf8'));
+  } catch {
+    return false;
+  }
+  if (header.alg !== 'RS256' || !header.kid) return false;
+  let jwk = (await githubJwks()).find((key) => key.kid === header.kid);
+  if (!jwk) jwk = (await githubJwks(true)).find((key) => key.kid === header.kid);
+  if (!jwk) return false;
+  const signed = crypto.verify(
+    'RSA-SHA256',
+    Buffer.from(`${parts[0]}.${parts[1]}`),
+    crypto.createPublicKey({ key: jwk, format: 'jwk' }),
+    Buffer.from(parts[2], 'base64url'),
+  );
+  const now = Math.floor(Date.now() / 1000),
+    repo = syncRepo(),
+    audiences = Array.isArray(claims.aud) ? claims.aud : [claims.aud];
+  return (
+    signed &&
+    claims.iss === GITHUB_OIDC_ISSUER &&
+    audiences.includes(SYNC_OIDC_AUDIENCE) &&
+    claims.repository === repo &&
+    claims.ref === 'refs/heads/main' &&
+    String(claims.workflow_ref || '').startsWith(`${repo}/.github/workflows/${SYNC_WORKFLOW}@`) &&
+    Number(claims.exp) > now - 30 &&
+    Number(claims.nbf || 0) <= now + 30
+  );
+}
+// The workflow proves itself with a GitHub OIDC token; SYNC_REPORT_TOKEN remains an optional alternative.
+async function syncCallerValid(req) {
   const given = String(req.headers.authorization || '').replace(/^Bearer\s+/i, '');
-  return Boolean(expected && given) && crypto.timingSafeEqual(digest(given), digest(expected));
+  if (!given) return false;
+  const expected = process.env.SYNC_REPORT_TOKEN;
+  if (expected && crypto.timingSafeEqual(digest(given), digest(expected))) return true;
+  try {
+    return await githubOidcValid(given);
+  } catch (error) {
+    console.error('GitHub OIDC check failed:', error.message);
+    return false;
+  }
 }
 const text = (value, max) => (typeof value === 'string' ? value.slice(0, max) : '');
 const int = (value, max = 1_000_000) => (Number.isInteger(value) && value >= 0 && value <= max ? value : 0);
@@ -638,8 +698,7 @@ async function api(req, res, url) {
   }
   // Machine endpoints for the Drive sync workflow: Bearer SYNC_REPORT_TOKEN, no cookies, no browser access.
   if (url.pathname.startsWith('/api/sync/')) {
-    if (!process.env.SYNC_REPORT_TOKEN) return json(res, 503, { error: 'Sync reporting is not configured.' });
-    if (!syncTokenValid(req)) return json(res, 401, { error: 'Invalid sync token.' });
+    if (!(await syncCallerValid(req))) return json(res, 401, { error: 'Invalid sync credentials.' });
     if (req.method === 'POST' && url.pathname === '/api/sync/report') {
       const run = cleanSyncReport(await body(req, 200_000));
       if (!run) return json(res, 400, { error: 'Report does not match the expected schema.' });
@@ -753,13 +812,12 @@ async function api(req, res, url) {
     if (url.pathname.startsWith('/api/admin/sync/')) {
       if (req.method !== 'GET' && !strictSameOrigin(req))
         return json(res, 403, { error: 'Cross-site request blocked.' });
-      const dispatchConfigured = Boolean(
-        process.env.GITHUB_DISPATCH_TOKEN && /^[\w.-]+\/[\w.-]+$/.test(process.env.GITHUB_REPO || ''),
-      );
+      const dispatchConfigured = Boolean(process.env.GITHUB_DISPATCH_TOKEN);
       if (req.method === 'GET' && url.pathname === '/api/admin/sync/status') {
         const config = {
           dispatchConfigured,
-          reportConfigured: Boolean(process.env.SYNC_REPORT_TOKEN),
+          reportConfigured: true,
+          workflowUrl: `https://github.com/${syncRepo()}/actions/workflows/${SYNC_WORKFLOW}`,
           firebaseConfigured: firebaseConfigured(),
           schedule: '0 3,11,19 * * * (UTC)',
           nextRun: nextSyncRun(),
@@ -785,13 +843,13 @@ async function api(req, res, url) {
       if (req.method === 'POST' && url.pathname === '/api/admin/sync/run') {
         if (!dispatchConfigured)
           return json(res, 503, {
-            error: 'GITHUB_DISPATCH_TOKEN and GITHUB_REPO must be set on the server.',
+            error: 'GITHUB_DISPATCH_TOKEN is not set on the server.',
           });
         const d = await body(req, 2000);
         const dryRun = d.dryRun !== false,
           allowRemovals = d.allowRemovals === true;
         const response = await fetch(
-          `https://api.github.com/repos/${process.env.GITHUB_REPO}/actions/workflows/${SYNC_WORKFLOW}/dispatches`,
+          `https://api.github.com/repos/${syncRepo()}/actions/workflows/${SYNC_WORKFLOW}/dispatches`,
           {
             method: 'POST',
             headers: {

@@ -370,8 +370,8 @@ async function syncDashboard() {
     totals = run?.totals || {};
   const warnings = [
     !status.firebaseConfigured && 'Firebase مش متوصل، فمفيش سجل للتشغيلات ولا إيقاف مؤقت.',
-    !status.reportConfigured && 'SYNC_REPORT_TOKEN مش متضبط على السيرفر، فالتقارير مش هتوصل هنا.',
-    !status.dispatchConfigured && 'GITHUB_DISPATCH_TOKEN أو GITHUB_REPO مش متضبطين، فزرار التشغيل مش هيشتغل.',
+    !status.dispatchConfigured &&
+      'أزرار التشغيل هتفتح صفحة المزامنة على GitHub، ومنها تدوس Run workflow. (عشان تشتغل من هنا مباشرة حط GITHUB_DISPATCH_TOKEN في Render.)',
   ].filter(Boolean);
   const gates = (run?.gates || [])
     .map(
@@ -425,6 +425,16 @@ async function syncDashboard() {
       .join('') || '<p class="admin-muted">لا يوجد.</p>'
   }</div></section>`;
   const dispatch = async (dryRun, button) => {
+    // Without a dispatch token on the server, hand over to GitHub's own Run workflow page.
+    if (!status.dispatchConfigured) {
+      window.open(status.workflowUrl, '_blank', 'noopener');
+      toast(
+        dryRun
+          ? 'اتفتحت صفحة GitHub: دوس Run workflow وسيب dry run متعلّم.'
+          : 'اتفتحت صفحة GitHub: دوس Run workflow وشيل علامة dry run.',
+      );
+      return;
+    }
     const question = dryRun
       ? 'تشغيل تجربة؟ هتقرأ Drive وتطلع تقرير من غير ما تغيّر الموقع.'
       : 'تشغيل حقيقي؟ لو فيه تغييرات هتتحفظ وتنزل على الموقع.';
