@@ -1345,7 +1345,7 @@ function showToast(message) {
   setTimeout(() => node.remove(), 3200);
 }
 function shell(content) {
-  return `<div class="shell">${header()}<div class="content">${dhikrStrip()}${banner()}<div id="page" class="page-transition" tabindex="-1">${content}</div></div>${footer()}</div>`;
+  return `<div class="shell">${header()}<div class="dhikr-wrap">${dhikrStrip()}</div><div class="content">${banner()}<div id="page" class="page-transition" tabindex="-1">${content}</div></div>${footer()}</div>`;
 }
 function render() {
   startDhikrRotation();

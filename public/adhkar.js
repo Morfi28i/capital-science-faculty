@@ -24,8 +24,15 @@ export function dhikrStrip() {
 
 // While a page stays open, swap the dhikr every 15 seconds.
 let timer;
+// The strip sticks just under the site's top bar, whose height changes with the screen size.
+function syncTopbar() {
+  const height = document.querySelector('.topbar')?.offsetHeight;
+  if (height) document.documentElement.style.setProperty('--topbar-h', `${height}px`);
+}
 export function startDhikrRotation() {
+  requestAnimationFrame(syncTopbar);
   if (timer) return;
+  addEventListener('resize', syncTopbar);
   timer = setInterval(() => {
     const el = document.querySelector('.dhikr-text');
     if (!el || document.hidden) return;
