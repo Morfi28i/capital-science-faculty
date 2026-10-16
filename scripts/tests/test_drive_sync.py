@@ -186,6 +186,31 @@ class StaleFolders(unittest.TestCase):
         self.assertNotIn('pdf2xxxxxxxxxxxxxxxxxxxxxxxx', {r['id'] for r in new})
 
 
+class GoneFolders(unittest.TestCase):
+    def test_deleted_folder_is_removed_but_errors_keep_old_rows(self):
+        import urllib.error
+        dead, flaky = 'deadxxxxxxxxxxxxxxxxxxxxxxxx', 'flakyxxxxxxxxxxxxxxxxxxxxxxx'
+        sem0 = 'sem0xxxxxxxxxxxxxxxxxxxxxxxx'
+        drive = fake_drive({sem0: [{'id': dead, 'name': 'Dead shortcut', 'mime': FOLDER},
+                                   {'id': flaky, 'name': 'Flaky', 'mime': FOLDER}],
+                            flaky: [{'id': 'insidexxxxxxxxxxxxxxxxxxxxxx', 'name': 'Kept.pdf', 'mime': PDF}]})
+        old, _ = build(drive)
+
+        def lister(folder_id):
+            if folder_id == dead:
+                raise urllib.error.HTTPError('u', 404, 'Not Found', {}, None)
+            if folder_id == flaky:
+                raise urllib.error.HTTPError('u', 503, 'Unavailable', {}, None)
+            return copy.deepcopy(drive.get(folder_id, []))
+
+        rows, problems, stale = updater.crawl(ROOTS[0]['id'], updater.old_children_index(old), lister, delay=0)
+        ids = {r['id'] for r in rows}
+        self.assertNotIn(dead, ids)  # Drive says it is gone: removed
+        self.assertIn(flaky, ids)  # temporary error: kept, with its previous contents
+        self.assertIn('insidexxxxxxxxxxxxxxxxxxxxxx', ids)
+        self.assertEqual([s['id'] for s in stale], [flaky])
+
+
 class Breaker(unittest.TestCase):
     def test_repeated_failures_stop_fetching_and_keep_old_rows(self):
         semesters = [{'id': f'semester{i:03d}xxxxxxxxxxxxxxxx', 'name': f'S{i}', 'mime': FOLDER} for i in range(40)]

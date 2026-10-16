@@ -28,6 +28,7 @@ import os
 import re
 import sys
 import time
+import urllib.error
 import urllib.request
 from datetime import datetime, timezone
 from pathlib import Path
@@ -123,8 +124,14 @@ WORKERS = 4
 MAX_CONSECUTIVE_FAILURES = 25
 
 
+GONE = 'gone from Drive (HTTP 404)'
+
+
 def fetch_listing(lister, folder_id, delay):
-    """List one folder: (children, None) on success, (None, reason) on failure."""
+    """List one folder: (children, None) on success, (None, reason) on failure.
+
+    A 404 means Drive says the folder no longer exists (for example a shortcut to a deleted folder);
+    that is reported as GONE so the folder is removed instead of being kept from the old catalog."""
     try:
         children = lister(folder_id)
         if children is None:
@@ -133,6 +140,8 @@ def fetch_listing(lister, folder_id, delay):
             children = lister(folder_id)
         time.sleep(delay)
         return (children, None) if children is not None else (None, 'no public listing')
+    except urllib.error.HTTPError as error:
+        return None, GONE if error.code == 404 else str(error)
     except Exception as error:
         return None, str(error)
 
@@ -143,7 +152,7 @@ def crawl(root_id, previous_children, lister=None, delay=0.4):
     Folders of one depth level are fetched in parallel (WORKERS at a time) but processed in queue order,
     so the output is exactly what a one-at-a-time breadth-first walk would produce."""
     lister = lister or list_folder
-    seen, level, rows, problems, stale = {root_id}, [(root_id, [], False)], [], [], []
+    seen, level, rows, problems, stale, gone = {root_id}, [(root_id, [], False)], [], [], [], set()
     failures_in_a_row = 0
     with concurrent.futures.ThreadPoolExecutor(max_workers=WORKERS) as pool:
         while level:
@@ -156,23 +165,30 @@ def crawl(root_id, previous_children, lister=None, delay=0.4):
                 jobs = [None if offline or breaker else pool.submit(fetch_listing, lister, folder_id, delay)
                         for folder_id, _, offline in batch]
                 failures_in_a_row = visit_batch(batch, jobs, previous_children, seen, rows, problems, stale,
-                                                next_level, failures_in_a_row)
+                                                next_level, failures_in_a_row, gone)
             if sys.stderr.isatty():
                 print(f'  {len(rows)} items, {len(next_level)} folders in next level', file=sys.stderr, end='\r')
             level = next_level
     if sys.stderr.isatty():
         print(file=sys.stderr)
+    # Folders Drive reports as deleted are removed; they never have children in the output.
+    rows = [row for row in rows if row['id'] not in gone]
     return rows, problems, stale
 
 
-def visit_batch(batch, jobs, previous_children, seen, rows, problems, stale, next_level, failures_in_a_row):
+def visit_batch(batch, jobs, previous_children, seen, rows, problems, stale, next_level, failures_in_a_row,
+                gone=None):
     """Record one batch of folder listings in queue order; returns the updated failure streak."""
     for (folder_id, path, offline), job in zip(batch, jobs):
         if job is None:
             children, failure = None, 'below the depth/size guard' if offline else 'stopped after repeated Drive failures'
         else:
             children, failure = job.result()
-            failures_in_a_row = 0 if children is not None else failures_in_a_row + 1
+            failures_in_a_row = 0 if children is not None or failure == GONE else failures_in_a_row + 1
+        if failure == GONE and gone is not None:
+            gone.add(folder_id)
+            problems.append(f"{'/'.join(path) or 'root'}: {failure}, removed")
+            continue
         if children is None:
             # Keep what we had for this folder; never delete rows whose parent could not be listed.
             children = [from_old(row) for row in previous_children.get(folder_id, [])]
