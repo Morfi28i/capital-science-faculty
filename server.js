@@ -267,13 +267,21 @@ function nextSyncRun(now = new Date()) {
   return null;
 }
 const firestoreTime = (value) => (value?.toDate ? value.toDate().toISOString() : value || null);
+// The workflow checks every 15 minutes and runs a full sync once the last one is SYNC_INTERVAL_HOURS old,
+// so a check GitHub drops or delays is simply caught up by the next one.
+const SYNC_INTERVAL_HOURS = 8;
+function syncDueAt(lastSyncAt, now = new Date()) {
+  const last = Date.parse(lastSyncAt || '');
+  if (Number.isNaN(last)) return now.toISOString();
+  const due = new Date(last + SYNC_INTERVAL_HOURS * 60 * 60_000);
+  return (due > now ? due : now).toISOString();
+}
 // Without a GitHub token, a dashboard "run" is queued in Firestore and picked up by the workflow's
-// hourly check at minute 17 (UTC).
-const SYNC_CHECK_MINUTE = 17;
+// next quarter-hour check.
 function nextSyncCheck(now = new Date()) {
   const at = new Date(now);
-  at.setUTCMinutes(SYNC_CHECK_MINUTE, 0, 0);
-  if (at <= now) at.setUTCHours(at.getUTCHours() + 1);
+  at.setUTCSeconds(0, 0);
+  at.setUTCMinutes(Math.floor(at.getUTCMinutes() / 15) * 15 + 15);
   return at.toISOString();
 }
 const publicRunRequest = (request) =>
@@ -753,7 +761,17 @@ async function api(req, res, url) {
       await db
         .collection('syncState')
         .doc('latest')
-        .set({ lastRun: syncRunSummary(run), updatedAt: FieldValue.serverTimestamp() }, { merge: true });
+        .set(
+          {
+            lastRun: syncRunSummary(run),
+            updatedAt: FieldValue.serverTimestamp(),
+            // A finished full sync (not a dry run) resets the clock for the next automatic one.
+            ...(run.status === 'success' && run.mode === 'write'
+              ? { lastSyncAt: run.finishedAt || new Date().toISOString() }
+              : {}),
+          },
+          { merge: true },
+        );
       // Keep only the newest runs so the collection stays small.
       const old = await db
         .collection('syncRuns')
@@ -789,9 +807,17 @@ async function api(req, res, url) {
             runRequest: FieldValue.delete(),
             runRequestClaimedAt: FieldValue.serverTimestamp(),
           });
-        return { request, paused: snap.exists && snap.get('paused') === true };
+        return {
+          request,
+          paused: snap.exists && snap.get('paused') === true,
+          lastSyncAt: snap.exists ? snap.get('lastSyncAt') || null : null,
+        };
       });
-      return json(res, 200, { request: publicRunRequest(result.request), paused: result.paused });
+      return json(res, 200, {
+        request: publicRunRequest(result.request),
+        paused: result.paused,
+        lastSyncAt: result.lastSyncAt,
+      });
     }
     return json(res, 404, { error: 'Not found' });
   }
@@ -884,7 +910,7 @@ async function api(req, res, url) {
           reportConfigured: true,
           workflowUrl: `https://github.com/${syncRepo()}/actions/workflows/${SYNC_WORKFLOW}`,
           firebaseConfigured: firebaseConfigured(),
-          schedule: '7 3,11,19 * * * (UTC)',
+          schedule: 'كل 8 ساعات تقريبًا',
           nextRun: nextSyncRun(),
           nextCheck: nextSyncCheck(),
         };
@@ -903,6 +929,8 @@ async function api(req, res, url) {
           ...config,
           paused: state.exists && state.get('paused') === true,
           runRequest: publicRunRequest(state.exists ? state.get('runRequest') : null),
+          lastSyncAt: state.exists ? state.get('lastSyncAt') || null : null,
+          nextRun: syncDueAt(state.exists ? state.get('lastSyncAt') : null),
           latest: all[0] || null,
           runs: all.map(syncRunSummary),
         });

@@ -2,11 +2,10 @@ name: Drive sync
 
 on:
   schedule:
-    # Full sync three times a day at 03:07, 11:07 and 19:07 UTC (06:07, 14:07 and 22:07 in Cairo).
-    # Off the top of the hour, when GitHub's scheduler is busiest and often delays or drops runs.
-    - cron: '7 3,11,19 * * *'
-    # Hourly check for a run requested from the dashboard ("تشغيل الآن"); exits in seconds when none.
-    - cron: '17 * * * *'
+    # A quick check every 15 minutes. It runs a full sync when the last one is 8 hours old (about three a
+    # day) or when the dashboard asked for a run, and otherwise exits in seconds. GitHub often delays or
+    # drops scheduled runs, so the next check that does fire simply catches up.
+    - cron: '4,19,34,49 * * * *'
   workflow_dispatch:
     inputs:
       dry_run:
@@ -38,13 +37,12 @@ jobs:
     env:
       SITE_URL: ${{ vars.SITE_URL || 'https://capital-science-faculty.onrender.com' }}
       SYNC_AUDIENCE: capital-science-faculty-sync
-      DASHBOARD_CHECK_CRON: '17 * * * *'
+      SYNC_INTERVAL_HOURS: '8'
     steps:
       - name: Decide what to run
         id: plan
         env:
           EVENT: ${{ github.event_name }}
-          CRON: ${{ github.event.schedule }}
           INPUT_DRY_RUN: ${{ inputs.dry_run }}
           INPUT_ALLOW_REMOVALS: ${{ inputs.allow_removals }}
           INPUT_ALLOW_LARGE: ${{ inputs.allow_large }}
@@ -54,21 +52,51 @@ jobs:
           echo "::add-mask::$token"
           # Evaluate a Python expression on the JSON read from stdin (bound to d); prints true/false.
           field() { python3 -c "import json,sys; d=json.loads(sys.stdin.read() or '{}'); print('true' if ($1) else 'false')" 2>/dev/null || echo false; }
-          if [ "$EVENT" = "schedule" ] && [ "$CRON" = "$DASHBOARD_CHECK_CRON" ]; then
-            # Hourly check: take a queued dashboard request, if any. The free Render instance may need a minute to wake.
+          if [ "$EVENT" = "schedule" ]; then
+            # Take a queued dashboard request, if any. The free Render instance may need a minute to wake.
             reply=$(curl -fsS --retry 3 --retry-all-errors --max-time 90 -X POST \
               -H "Authorization: Bearer $token" "$SITE_URL/api/sync/claim" || echo '{}')
-            if [ "$(printf '%s' "$reply" | field 'd.get("request") is not None')" != "true" ]; then
-              echo "No run requested from the dashboard."
+            if [ "$(printf '%s' "$reply" | field 'd.get("request") is not None')" = "true" ]; then
+              echo "Starting the run requested from the dashboard."
+              {
+                echo "run=true"; echo "paused=false"; echo "trigger=dashboard"
+                echo "dry_run=$(printf '%s' "$reply" | field '(d.get("request") or {}).get("dryRun") is not False')"
+                echo "allow_removals=$(printf '%s' "$reply" | field '(d.get("request") or {}).get("allowRemovals") is True')"
+                echo "allow_large=false"
+              } >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+            if [ "$reply" = "{}" ]; then
+              echo "::warning::Could not reach the site; skipping this check."
               { echo "run=false"; echo "paused=false"; } >> "$GITHUB_OUTPUT"
               exit 0
             fi
-            echo "Starting the run requested from the dashboard."
+            if [ "$(printf '%s' "$reply" | field 'd.get("paused") is True')" = "true" ]; then
+              echo "Drive sync is paused from the dashboard."
+              { echo "run=false"; echo "paused=false"; } >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+            # Full sync when the last successful one is at least SYNC_INTERVAL_HOURS old (or unknown).
+            due=$(printf '%s' "$reply" | python3 -c "
+          import json, sys
+          from datetime import datetime, timezone, timedelta
+          d = json.loads(sys.stdin.read() or '{}')
+          last = d.get('lastSyncAt')
+          try:
+              age = datetime.now(timezone.utc) - datetime.fromisoformat(str(last).replace('Z', '+00:00'))
+              print('true' if age >= timedelta(hours=float('$SYNC_INTERVAL_HOURS')) else 'false')
+          except Exception:
+              print('true')
+          " 2>/dev/null || echo false)
+            if [ "$due" != "true" ]; then
+              echo "Nothing to do: no dashboard request and the last sync is recent."
+              { echo "run=false"; echo "paused=false"; } >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+            echo "Last full sync is ${SYNC_INTERVAL_HOURS}+ hours old; starting a full sync."
             {
-              echo "run=true"; echo "paused=false"; echo "trigger=dashboard"
-              echo "dry_run=$(printf '%s' "$reply" | field '(d.get("request") or {}).get("dryRun") is not False')"
-              echo "allow_removals=$(printf '%s' "$reply" | field '(d.get("request") or {}).get("allowRemovals") is True')"
-              echo "allow_large=false"
+              echo "run=true"; echo "paused=false"; echo "trigger=schedule"
+              echo "dry_run=false"; echo "allow_removals=false"; echo "allow_large=false"
             } >> "$GITHUB_OUTPUT"
             exit 0
           fi
@@ -76,12 +104,7 @@ jobs:
             -H "Authorization: Bearer $token" "$SITE_URL/api/sync/state" || echo '{}')
           if [ "$state" = "{}" ]; then echo "::warning::Could not read the pause flag from the site; continuing."; fi
           paused=$(printf '%s' "$state" | field 'd.get("paused") is True')
-          # Scheduled full syncs respect the dashboard pause; manual runs from GitHub always run.
-          if [ "$EVENT" = "schedule" ] && [ "$paused" = "true" ]; then
-            echo "::notice::Drive sync is paused from the dashboard; skipping."
-            { echo "run=false"; echo "paused=true"; } >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
+          # Manual runs from GitHub always run, even while the dashboard pause is on.
           {
             echo "run=true"; echo "paused=false"; echo "trigger=$EVENT"
             if [ "$EVENT" = "workflow_dispatch" ]; then
@@ -170,8 +193,8 @@ jobs:
           retention-days: 14
 
       - name: Post report to the site
-        # Quiet hourly checks with nothing to do post nothing.
-        if: always() && (steps.plan.outputs.run == 'true' || steps.plan.outputs.paused == 'true' || steps.plan.outcome == 'failure')
+        # Quick checks with nothing to do post nothing.
+        if: always() && (steps.plan.outputs.run == 'true' || steps.plan.outcome == 'failure')
         env:
           COMMIT_SHA: ${{ steps.commit.outputs.sha }}
           PAUSED: ${{ steps.plan.outputs.paused }}

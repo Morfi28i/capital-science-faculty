@@ -374,7 +374,7 @@ function githubConnectBox(status) {
     return `<section class="admin-box"><h2>ربط GitHub</h2><p>زرار التشغيل متربط عن طريق إعدادات Render.</p></section>`;
   if (status.dispatchConfigured)
     return `<section class="admin-box"><h2>ربط GitHub</h2><div class="admin-row"><span>متربط ✓<small>توكن ينتهي بـ ••••${esc(status.dispatchLast4 || '')}</small></span><button class="delete" id="github-disconnect">فك الربط</button></div></section>`;
-  return `<section class="admin-box" id="github-connect"><h2>ربط GitHub (اختياري)</h2><p>زرار "تشغيل الآن" شغال من غير ربط، بس التشغيل بيبدأ خلال ساعة. لو عايزه يبدأ فورًا اربط GitHub مرة واحدة:</p><ol class="admin-steps"><li>افتح <a href="${tokenUrl}" target="_blank" rel="noopener">صفحة إنشاء توكن على GitHub</a>.</li><li>في <b>Repository access</b> اختار <b>Only select repositories</b> وبعدين <b>capital-science-faculty</b>.</li><li>في <b>Permissions</b> اتأكد إن <b>Actions</b> = <b>Read and write</b>.</li><li>دوس <b>Generate token</b> وانسخ التوكن (بيبدأ بـ github_pat_).</li><li>الزقه هنا ودوس ربط.</li></ol><form class="admin-form" id="github-token-form"><label class="wide">توكن GitHub<input name="token" type="password" autocomplete="off" spellcheck="false" placeholder="github_pat_…" dir="ltr" required></label><div class="admin-form-actions"><button class="button primary">ربط</button></div></form><p class="admin-muted">التوكن بيتحفظ على السيرفر بس ومبيرجعش للمتصفح، والسيرفر بيتأكد إنه شغال قبل ما يحفظه.</p></section>`;
+  return `<section class="admin-box" id="github-connect"><h2>ربط GitHub (اختياري)</h2><p>زرار "تشغيل الآن" شغال من غير ربط، بس التشغيل بيبدأ خلال ربع ساعة تقريبًا. لو عايزه يبدأ فورًا اربط GitHub مرة واحدة:</p><ol class="admin-steps"><li>افتح <a href="${tokenUrl}" target="_blank" rel="noopener">صفحة إنشاء توكن على GitHub</a>.</li><li>في <b>Repository access</b> اختار <b>Only select repositories</b> وبعدين <b>capital-science-faculty</b>.</li><li>في <b>Permissions</b> اتأكد إن <b>Actions</b> = <b>Read and write</b>.</li><li>دوس <b>Generate token</b> وانسخ التوكن (بيبدأ بـ github_pat_).</li><li>الزقه هنا ودوس ربط.</li></ol><form class="admin-form" id="github-token-form"><label class="wide">توكن GitHub<input name="token" type="password" autocomplete="off" spellcheck="false" placeholder="github_pat_…" dir="ltr" required></label><div class="admin-form-actions"><button class="button primary">ربط</button></div></form><p class="admin-muted">التوكن بيتحفظ على السيرفر بس ومبيرجعش للمتصفح، والسيرفر بيتأكد إنه شغال قبل ما يحفظه.</p></section>`;
 }
 function wireGithubConnect(status) {
   const form = document.querySelector('#github-token-form');
@@ -437,7 +437,7 @@ async function syncDashboard() {
       ? `<div class="admin-row"><span>${esc(statusLabels[run.status] || run.status)} · ${run.mode === 'dry-run' ? 'تجربة (من غير حفظ)' : 'حقيقي'}<small>${esc(when(run.finishedAt || run.receivedAt))} · ${esc(triggerLabels[run.trigger] || run.trigger)} · ${run.durationSec ? `${Math.round(run.durationSec / 60)} دقيقة` : ''}${run.commit ? ` · commit ${esc(run.commit.slice(0, 7))}` : run.changed ? ' · فيه تغييرات' : ' · مفيش تغييرات'}</small></span>${run.runUrl ? `<a class="button ghost" href="${esc(run.runUrl)}" target="_blank" rel="noopener">تفاصيل على GitHub</a>` : ''}</div>`
       : '<p class="admin-muted">لسه مفيش أي تشغيل وصل تقريره.</p>'
   }
-  <p class="admin-muted">التشغيل التلقائي الجاي: ${esc(when(status.nextRun))} (لو الجدولة مفعّلة في GitHub) · المواعيد <bdi dir="ltr">${esc(status.schedule)}</bdi></p>
+  <p class="admin-muted">آخر تحديث ناجح: ${esc(when(status.lastSyncAt))} · التحديث التلقائي الجاي: حوالي ${esc(when(status.nextRun))} (كل 8 ساعات تقريبًا، وGitHub ساعات بيتأخر شوية)</p>
   <section class="stats" aria-label="أرقام آخر تشغيل">${[
     [totals.added, 'اتضاف'],
     [totals.removed, 'اتشال'],
@@ -452,7 +452,7 @@ async function syncDashboard() {
   ${gates ? `<div class="storage-status"><b>المزامنة وقفت للأمان ومحفظتش حاجة:</b><ul>${gates}</ul></div>` : ''}
   ${
     status.runRequest
-      ? `<div class="storage-status" data-persistent="true"><b>فيه طلب تشغيل ${status.runRequest.dryRun ? 'تجربة' : 'حقيقي'} مستني.</b> هيبدأ الساعة ${esc(clock(status.nextCheck))} تقريبًا (GitHub بيبص على الطلبات كل ساعة). <button class="button ghost" id="sync-cancel" type="button">إلغاء الطلب</button></div>`
+      ? `<div class="storage-status" data-persistent="true"><b>فيه طلب تشغيل ${status.runRequest.dryRun ? 'تجربة' : 'حقيقي'} مستني.</b> هيبدأ الساعة ${esc(clock(status.nextCheck))} تقريبًا (GitHub بيبص على الطلبات كل ربع ساعة، وساعات بيتأخر). <button class="button ghost" id="sync-cancel" type="button">إلغاء الطلب</button></div>`
       : ''
   }
   <div class="admin-form-actions"><button class="button primary" id="sync-run">تشغيل الآن</button><button class="button ghost" id="sync-dry">تجربة (Dry-run)</button><button class="button ghost" id="sync-pause">${status.paused ? 'استئناف المزامنة' : 'إيقاف مؤقت'}</button></div></section>
