@@ -44,14 +44,13 @@ YEAR_ROOTS = [
      'category': '2024/2025', 'categoryAr': 'دفعة 2024/2025', 'categoryEn': 'Class of 2024/25'},
     {'id': '1WhpUU4jCUmcOwdapwVRDK5UIK5b7xuU4', 'title': 'ماتيريال 2025/2026', 'titleEn': 'Study materials · 2025/2026',
      'category': '2025/2026', 'categoryAr': 'دفعة 2025/2026', 'categoryEn': 'Class of 2025/26'},
-    # 2026/2027 is our own Drive folder. The older public folder is merged into it: anything there that
-    # the new folder doesn't already have (same name in the same place) is added; the rest is skipped.
-    {'id': '1r1VT0p5kOKFReaHfs8162PiMjKFZ190K', 'title': 'ماتيريال 2026/2027', 'titleEn': 'Study materials · 2026/2027',
+    # 2026/2027 has no Drive folder of its own: it shows two folders side by side, ours first.
+    # 'by' is shown next to each folder's name on the site.
+    {'id': 'materials-2026-2027', 'title': 'ماتيريال 2026/2027', 'titleEn': 'Study materials · 2026/2027',
      'category': '2026/2027', 'categoryAr': 'دفعة 2026/2027', 'categoryEn': 'Class of 2026/27',
-     'mergeFrom': '10egV3LBAs9fEo3HjghyjnsQBuzcdnvgX',
-     # Subject folders named differently in the two trees (normalized names: old → new).
-     'aliases': {'chemistry': 'general chemistry', 'computer science': 'introduction to computer science',
-                 'english': 'en', 'mathematics (algebra)': 'algebra', 'physics': 'general physics i'}},
+     'url': 'https://drive.google.com/drive/folders/1r1VT0p5kOKFReaHfs8162PiMjKFZ190K',
+     'sources': [{'id': '1r1VT0p5kOKFReaHfs8162PiMjKFZ190K', 'name': '1st Physics Group (B)', 'by': 'Morfi'},
+                 {'id': '10egV3LBAs9fEo3HjghyjnsQBuzcdnvgX', 'name': '1st Physics Group B', 'by': 'Leader'}]},
 ]
 ESC = {'n': '\n', 't': '\t', 'r': '\r', 'b': '\b', 'f': '\f', 'v': '\v', '0': '\0'}
 
@@ -233,55 +232,21 @@ def load_validator():
     return module
 
 
-def name_key(name):
-    """Compare names loosely: case, extra spaces and the different Arabic alef/yaa/taa forms don't matter."""
-    name = re.sub(r'\s+', ' ', str(name)).strip().casefold()
-    for forms, plain in (('أإآ', 'ا'), ('ى', 'ي'), ('ة', 'ه')):
-        name = re.sub(f'[{forms}]', plain, name)
-    return name.replace('ـ', '')
+def with_sources(lister, year):
+    """For a year without its own Drive folder, list its source folders as the root's children."""
+    if not year.get('sources'):
+        return lister
+
+    def listing(folder_id):
+        if folder_id == year['id']:
+            return [{'id': x['id'], 'name': x['name'], 'mime': FOLDER, 'by': x['by']} for x in year['sources']]
+        return lister(folder_id)
+
+    return listing
 
 
-def merge_rows(root_id, new_rows, old_root_id, old_rows, aliases=None):
-    """Put the old tree's rows under the new tree wherever the new tree lacks them.
-
-    Walks both trees together from their roots. An old folder whose name matches a new folder in the
-    same place is merged into it (recursively); an old file whose name matches a new file there is
-    skipped; anything else is added, with its whole subtree, under the matching new folder."""
-    aliases = aliases or {}
-    kids = {}
-    for row in new_rows:
-        kids.setdefault(row['parentId'], []).append(row)
-    old_kids = {}
-    for row in old_rows:
-        old_kids.setdefault(row['parentId'], []).append(row)
-    added = []
-
-    def has_files(row):
-        return row['mime'] != FOLDER or any(has_files(child) for child in old_kids.get(row['id'], []))
-
-    def subtree(row, parent_id, path):
-        # Empty old folders (nothing but empty folders below) would only clutter the merged tree.
-        if not has_files(row):
-            return
-        added.append({**row, 'parentId': parent_id, 'path': path})
-        for child in old_kids.get(row['id'], []):
-            subtree(child, row['id'], path + [row['name']])
-
-    def merge(new_id, old_id, path):
-        present = {(name_key(r['name']), r['mime'] == FOLDER): r for r in kids.get(new_id, [])}
-        for row in old_kids.get(old_id, []):
-            key = name_key(row['name'])
-            if not path:
-                key = aliases.get(key, key)
-            match = present.get((key, row['mime'] == FOLDER))
-            if match and row['mime'] == FOLDER:
-                merge(match['id'], row['id'], path + [match['name']])
-            elif not match:
-                subtree(row, new_id, path)
-
-    merge(root_id, old_root_id, [])
-    seen = {row['id'] for row in new_rows}
-    return new_rows + [row for row in added if row['id'] not in seen]
+def year_url(year):
+    return year.get('url') or f"https://drive.google.com/drive/folders/{year['id']}"
 
 
 def build_catalog(old, lister=None, delay=0.4):
@@ -290,18 +255,14 @@ def build_catalog(old, lister=None, delay=0.4):
     catalog, info = [], {}
     for year in YEAR_ROOTS:
         print(f"Crawling {year['category']} …", file=sys.stderr)
-        rows, problems, stale = crawl(year['id'], previous_children, lister, delay)
-        if year.get('mergeFrom'):
-            old_rows, old_problems, old_stale = crawl(year['mergeFrom'], previous_children, lister, delay)
-            rows = merge_rows(year['id'], rows, year['mergeFrom'], old_rows, year.get('aliases'))
-            problems, stale = problems + old_problems, stale + old_stale
+        rows, problems, stale = crawl(year['id'], previous_children, with_sources(lister or list_folder, year), delay)
         base = {k: year[k] for k in ('category', 'categoryAr', 'categoryEn')}
         catalog.append({
             'id': year['id'],
             'title': year['title'],
             'titleAr': year['title'],
             'titleEn': year['titleEn'],
-            'url': f"https://drive.google.com/drive/folders/{year['id']}",
+            'url': year_url(year),
             'kind': 'drive',
             'file': False,
             'type': 'folder',
@@ -321,6 +282,7 @@ def build_catalog(old, lister=None, delay=0.4):
                 'type': 'folder' if row['mime'] == FOLDER else 'file',
                 **base,
                 'note': ' › '.join(row['path']) if row['path'] else 'مجلد السنة',
+                **({'by': row['by']} if row.get('by') else {}),
             })
         fresh = sum(1 for row in rows if not row.get('stale'))
         info[year['category']] = {'problems': problems, 'stale': stale, 'fresh': fresh}

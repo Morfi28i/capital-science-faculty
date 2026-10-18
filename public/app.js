@@ -1525,7 +1525,7 @@ function driveHierarchy(items) {
 function driveFolderCard(node) {
   const item = node.item,
     title = driveTitle(item);
-  return `<button class="drive-entry drive-folder-entry reveal" type="button" data-folder-index="${node.index}"><span class="drive-entry-icon">${icon('folder')}</span><span class="drive-entry-copy"><b>${esc(title)}</b><small>${fmt(node.children.length)} ${lang === 'ar' ? 'عنصر داخل المجلد' : 'items inside'}</small></span>${icon('chevron', 'drive-entry-arrow')}</button>`;
+  return `<button class="drive-entry drive-folder-entry reveal" type="button" data-folder-index="${node.index}"><span class="drive-entry-icon">${icon('folder')}</span><span class="drive-entry-copy"><b>${esc(title)}${item.by ? ` <span class="drive-by ${item.by === 'Morfi' ? 'mine' : ''}" dir="ltr">by ${esc(item.by)}</span>` : ''}</b><small>${fmt(node.children.length)} ${lang === 'ar' ? 'عنصر داخل المجلد' : 'items inside'}</small></span>${icon('chevron', 'drive-entry-arrow')}</button>`;
 }
 function driveCrumbs(node, nodes) {
   const chain = [];

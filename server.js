@@ -670,10 +670,14 @@ async function api(req, res, url) {
       driveFiles = db.lectures || [];
     }
     // Year roots come from the Drive catalog with fixed names and order (see scripts/update-drive-catalog.py).
-    // A dashboard lecture entry that points at one of those roots is the same folder, so it is not listed twice.
+    // A dashboard lecture entry that points at one of those roots (or at a year's source folder, marked
+    // with `by`) is the same folder, so it is not listed twice.
     const rootUrls = new Set(
       driveFiles
-        .filter((item) => item.type === 'folder' && ['المجلد الرئيسي', 'Year root'].includes(item.note))
+        .filter(
+          (item) =>
+            item.type === 'folder' && (['المجلد الرئيسي', 'Year root'].includes(item.note) || item.by),
+        )
         .map((item) => item.url),
     );
     const mergedRoots = new Set(

@@ -44,7 +44,7 @@ def root_entry(year):
         'title': year['title'],
         'titleAr': year['title'],
         'titleEn': year['titleEn'],
-        'url': f"https://drive.google.com/drive/folders/{year['id']}",
+        'url': year.get('url') or f"https://drive.google.com/drive/folders/{year['id']}",
         'kind': 'drive',
         'file': False,
         'type': 'folder',

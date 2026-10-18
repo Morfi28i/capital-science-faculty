@@ -1489,6 +1489,23 @@ body.menu-open::after {
   font-size: 15px;
   overflow-wrap: anywhere;
 }
+.drive-by {
+  display: inline-block;
+  margin-inline-start: 6px;
+  padding: 1px 9px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  border: 1px solid var(--line-strong);
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+  vertical-align: middle;
+}
+.drive-by.mine {
+  background: var(--primary-soft);
+  border-color: color-mix(in oklab, var(--primary) 35%, transparent);
+  color: var(--primary);
+}
 .drive-entry-copy small {
   color: var(--muted);
   font-size: 12.5px;

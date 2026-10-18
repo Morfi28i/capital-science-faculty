@@ -267,10 +267,10 @@ class EndToEnd(unittest.TestCase):
     def test_gate_failure_writes_nothing(self):
         report = Path(self.tmp.name) / 'report.json'
         candidate = Path(self.tmp.name) / 'candidate.json'
-        # Every listing of the last year fails and there is no previous subtree to keep for its root.
-        failing = {ROOTS[2]['id']}
-        self.path.write_text(updater.serialize([r for r in json.loads(self.original) if r['category'] != ROOTS[2]['category']
-                                                or r['id'] == ROOTS[2]['id']]), encoding='utf-8')
+        # Every listing of a year with its own Drive folder fails and there is no previous subtree to keep.
+        failing = {ROOTS[1]['id']}
+        self.path.write_text(updater.serialize([r for r in json.loads(self.original) if r['category'] != ROOTS[1]['category']
+                                                or r['id'] == ROOTS[1]['id']]), encoding='utf-8')
         before = self.path.read_bytes()
         code = self.run_main(fake_drive(), ['--report', str(report), '--candidate', str(candidate)], failing)
         self.assertEqual(code, 2)
@@ -283,28 +283,13 @@ if __name__ == '__main__':
     unittest.main()
 
 
-class MergeTest(unittest.TestCase):
-    """The old 2026/2027 folder fills in only what the new folder lacks."""
 
-    def row(self, id, name, parent, folder=False):
-        return {'id': id, 'name': name, 'mime': FOLDER if folder else PDF, 'parentId': parent, 'path': []}
+class SourcesTest(unittest.TestCase):
+    """A year made of several source folders lists them, with their 'by' label, under the root."""
 
-    def test_merge_adds_missing_and_skips_duplicates(self):
-        new = [self.row('n1', 'General Chemistry', 'NEW', True), self.row('n2', 'Lecture 1.pdf', 'n1'),
-               self.row('n3', 'Zoology', 'NEW', True)]
-        old = [self.row('o1', 'chemistry', 'OLD', True), self.row('o2', 'lecture 1.pdf', 'o1'),
-               self.row('o3', 'Lecture 2.pdf', 'o1'), self.row('o4', 'Calculus', 'OLD', True),
-               self.row('o5', 'Book.pdf', 'o4'), self.row('o6', 'Empty', 'OLD', True),
-               self.row('o7', 'أمان', 'OLD', True), self.row('o8', 'x.pdf', 'o7')]
-        new.append(self.row('n4', 'امان', 'NEW', True))
-        merged = updater.merge_rows('NEW', new, 'OLD', old, {'chemistry': 'general chemistry'})
-        by_id = {r['id']: r for r in merged}
-        self.assertNotIn('o1', by_id)  # merged into General Chemistry through the alias
-        self.assertNotIn('o2', by_id)  # same file name already in the new folder
-        self.assertEqual(by_id['o3']['parentId'], 'n1')  # missing file added to the new folder
-        self.assertEqual(by_id['o4']['parentId'], 'NEW')  # missing subject added with its files
-        self.assertEqual(by_id['o5']['parentId'], 'o4')
-        self.assertNotIn('o6', by_id)  # empty old folders are left out
-        self.assertNotIn('o7', by_id)  # أمان and امان are the same name
-        self.assertEqual(by_id['o8']['parentId'], 'n4')
-        self.assertEqual([r['id'] for r in merged][:4], ['n1', 'n2', 'n3', 'n4'])  # new tree comes first
+    def test_sources_become_root_children(self):
+        year = {'id': 'Y', 'sources': [{'id': 'A', 'name': 'Mine', 'by': 'Morfi'},
+                                       {'id': 'B', 'name': 'Theirs', 'by': 'Leader'}]}
+        listing = updater.with_sources(lambda folder_id: [{'id': folder_id + '1', 'name': 'x.pdf', 'mime': PDF}], year)
+        self.assertEqual([(c['id'], c['by']) for c in listing('Y')], [('A', 'Morfi'), ('B', 'Leader')])
+        self.assertEqual(listing('A')[0]['id'], 'A1')
