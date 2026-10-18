@@ -281,3 +281,30 @@ class EndToEnd(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+class MergeTest(unittest.TestCase):
+    """The old 2026/2027 folder fills in only what the new folder lacks."""
+
+    def row(self, id, name, parent, folder=False):
+        return {'id': id, 'name': name, 'mime': FOLDER if folder else PDF, 'parentId': parent, 'path': []}
+
+    def test_merge_adds_missing_and_skips_duplicates(self):
+        new = [self.row('n1', 'General Chemistry', 'NEW', True), self.row('n2', 'Lecture 1.pdf', 'n1'),
+               self.row('n3', 'Zoology', 'NEW', True)]
+        old = [self.row('o1', 'chemistry', 'OLD', True), self.row('o2', 'lecture 1.pdf', 'o1'),
+               self.row('o3', 'Lecture 2.pdf', 'o1'), self.row('o4', 'Calculus', 'OLD', True),
+               self.row('o5', 'Book.pdf', 'o4'), self.row('o6', 'Empty', 'OLD', True),
+               self.row('o7', 'أمان', 'OLD', True), self.row('o8', 'x.pdf', 'o7')]
+        new.append(self.row('n4', 'امان', 'NEW', True))
+        merged = updater.merge_rows('NEW', new, 'OLD', old, {'chemistry': 'general chemistry'})
+        by_id = {r['id']: r for r in merged}
+        self.assertNotIn('o1', by_id)  # merged into General Chemistry through the alias
+        self.assertNotIn('o2', by_id)  # same file name already in the new folder
+        self.assertEqual(by_id['o3']['parentId'], 'n1')  # missing file added to the new folder
+        self.assertEqual(by_id['o4']['parentId'], 'NEW')  # missing subject added with its files
+        self.assertEqual(by_id['o5']['parentId'], 'o4')
+        self.assertNotIn('o6', by_id)  # empty old folders are left out
+        self.assertNotIn('o7', by_id)  # أمان and امان are the same name
+        self.assertEqual(by_id['o8']['parentId'], 'n4')
+        self.assertEqual([r['id'] for r in merged][:4], ['n1', 'n2', 'n3', 'n4'])  # new tree comes first
