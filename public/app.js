@@ -617,13 +617,6 @@ function header() {
   const dark = renderedTheme() === 'dark';
   return `<header class="topbar"><div class="topbar-inner">${brand()}<nav class="nav" id="site-nav" aria-label="${lang === 'ar' ? 'التنقل الرئيسي' : 'Main'}">${navLink('/', t('home'))}${navLink('/subjects', t('subjects'))}${navLink('/lectures', t('lectures'))}${navLink('/advising', t('advising'))}${navLink('/official', t('official'))}${navLink('/developer', t('developer'))}</nav><div class="tools"><button class="icon-btn lang-btn" id="lang" lang="${lang === 'ar' ? 'en' : 'ar'}">${t('language')}</button><button class="icon-btn" id="theme" aria-label="${dark ? t('toLight') : t('toDark')}" title="${dark ? t('toLight') : t('toDark')}">${dark ? icon('sun') : icon('moon')}</button><a class="avatar-mini" href="/profile" data-route="/profile" aria-label="${t('profile')}" title="${t('profile')}" ${currentPath() === '/profile' ? 'aria-current="page"' : ''}>${avatar}</a><button class="icon-btn mobile-menu" id="mobile-menu" aria-controls="site-nav" aria-expanded="false" aria-label="${t('menu')}">${icon('menu')}</button></div></div></header>`;
 }
-// The site moved to Vercel; visitors on the old Render address get the new link for the same page.
-const NEW_SITE = 'https://capital-science-faculty.vercel.app';
-function movedNotice() {
-  if (!location.hostname.endsWith('onrender.com')) return '';
-  const target = NEW_SITE + location.pathname + location.search;
-  return `<div class="moved-notice" role="alert"><p><b>${lang === 'ar' ? 'رابط الموقع اتغيّر!' : 'The site has a new address!'}</b> <span>${lang === 'ar' ? 'احفظ الرابط الجديد واستخدمه من دلوقتي:' : 'Save the new link and use it from now on:'}</span> <a href="${attr(target)}" dir="ltr">capital-science-faculty.vercel.app</a></p><a class="button primary" href="${attr(target)}">${lang === 'ar' ? 'افتح الرابط الجديد' : 'Open the new link'} ${icon('arrow')}</a></div>`;
-}
 function banner() {
   return `<a class="dev-banner" href="/developer" data-route="/developer"><span class="banner-dot" aria-hidden="true"></span><span>${t('banner')}</span>${icon('arrow', 'banner-arrow')}</a>`;
 }
@@ -1352,7 +1345,7 @@ function showToast(message) {
   setTimeout(() => node.remove(), 3200);
 }
 function shell(content) {
-  return `<div class="shell">${movedNotice()}${header()}<div class="dhikr-wrap">${dhikrStrip()}</div><div class="content">${banner()}<div id="page" class="page-transition" tabindex="-1">${content}</div></div>${footer()}</div>`;
+  return `<div class="shell">${header()}<div class="dhikr-wrap">${dhikrStrip()}</div><div class="content">${banner()}<div id="page" class="page-transition" tabindex="-1">${content}</div></div>${footer()}</div>`;
 }
 function render() {
   startDhikrRotation();
@@ -2299,6 +2292,5 @@ function onboarding(force = false, legacyProfile = null) {
   } catch {}
   render();
   verifyProfilePersistence();
-  // On the old address the "link changed" notice comes first; the welcome screen shows on the new one.
-  if (!location.hostname.endsWith('onrender.com')) onboarding();
+  onboarding();
 })();

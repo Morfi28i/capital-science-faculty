@@ -1367,10 +1367,31 @@ async function sendFile(res, file, status = 200, extraHeaders = {}) {
   res.end(await readFile(file));
 }
 // One request handler for both hosts: Render runs it as a normal server, Vercel calls it from api/index.js.
+// The site moved to Vercel. Render now only answers /api (Vercel forwards its API calls here); anyone
+// opening a page on the old address gets just a notice with the new link to the same page.
+const NEW_SITE = 'https://capital-science-faculty.vercel.app';
+function movedPage(res, url) {
+  const target = escapeHtml(NEW_SITE + url.pathname + url.search);
+  res.writeHead(200, {
+    ...securityHeaders,
+    'Content-Type': 'text/html; charset=utf-8',
+    'Cache-Control': 'no-store',
+  });
+  res.end(`<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>رابط الموقع اتغيّر · Capital Science</title><style>
+:root{color-scheme:light dark;--bg:light-dark(#f6f4ec,#0f1612);--card:light-dark(#fffdf8,#16201a);--ink:light-dark(#17241c,#e8eee5);--muted:light-dark(#66705f,#96a394);--line:light-dark(#e2dfd1,#253128);--primary:light-dark(#1d4632,#9fd6b0);--on:light-dark(#fffdf8,#0d1611);--gold:light-dark(#c98f36,#e6b964)}
+*{box-sizing:border-box}body{margin:0;min-height:100vh;display:grid;place-items:center;padding:24px 16px;background:var(--bg);color:var(--ink);font:16px/1.7 'IBM Plex Sans Arabic',system-ui,sans-serif}
+main{width:100%;max-width:460px;padding:32px 24px;border:1px solid var(--line);border-radius:24px;background:var(--card);text-align:center;box-shadow:0 30px 80px -30px #0006}
+.mark{width:64px;height:64px;margin:0 auto 18px;display:grid;place-items:center;border-radius:18px;background:var(--gold);color:#1b1405;font:700 30px Georgia,serif}
+h1{margin:0 0 8px;font-size:26px}p{margin:0 0 20px;color:var(--muted)}
+.link{display:block;margin:0 0 20px;padding:12px;border-radius:14px;border:1px dashed var(--gold);font-weight:700;color:var(--ink);text-decoration:none;overflow-wrap:anywhere}
+.go{display:inline-flex;align-items:center;justify-content:center;width:100%;min-height:52px;border-radius:999px;background:var(--primary);color:var(--on);font-weight:700;font-size:17px;text-decoration:none}
+</style></head><body><main><div class="mark">C</div><h1>رابط الموقع اتغيّر!</h1><p>موقع Capital Science اتنقل لرابط جديد. احفظه واستخدمه من دلوقتي.</p><a class="link" dir="ltr" href="${target}">capital-science-faculty.vercel.app</a><a class="go" href="${target}">افتح الرابط الجديد</a></main></body></html>`);
+}
 export async function handleRequest(req, res) {
   try {
     const url = new URL(req.url, 'http://localhost');
     if (url.pathname.startsWith('/api/')) return await api(req, res, url);
+    if (String(req.headers.host || '').endsWith('onrender.com')) return movedPage(res, url);
     if (!['GET', 'HEAD'].includes(req.method)) return json(res, 405, { error: 'Method not allowed' });
     const route = url.pathname.length > 1 ? url.pathname.replace(/\/+$/, '') : url.pathname;
     if (route === '/admin') {
