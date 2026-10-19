@@ -599,6 +599,33 @@ body.menu-open::after {
   background: color-mix(in oklab, #000 35%, transparent);
   animation: fade-in 0.2s ease;
 }
+.moved-notice {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 10px 18px;
+  padding: 12px max(var(--gutter), env(safe-area-inset-right)) 12px
+    max(var(--gutter), env(safe-area-inset-left));
+  background: var(--gold);
+  color: #1b1405;
+  font-size: 15px;
+  text-align: center;
+}
+.moved-notice p {
+  margin: 0;
+}
+.moved-notice p a {
+  color: inherit;
+  font-weight: 700;
+  text-decoration: underline;
+  overflow-wrap: anywhere;
+}
+.moved-notice .button {
+  background: #1b1405;
+  color: #fff;
+  min-height: 40px;
+}
 /* The strip sits outside the page content so it stays on screen down to the footer. */
 .dhikr-wrap {
   position: sticky;
