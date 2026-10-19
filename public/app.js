@@ -2299,5 +2299,6 @@ function onboarding(force = false, legacyProfile = null) {
   } catch {}
   render();
   verifyProfilePersistence();
-  onboarding();
+  // On the old address the "link changed" notice comes first; the welcome screen shows on the new one.
+  if (!location.hostname.endsWith('onrender.com')) onboarding();
 })();
