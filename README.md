@@ -80,8 +80,10 @@ If `main` ever gets branch protection that blocks direct pushes, the workflow's 
 
 ## Hosting on Vercel (alongside Render)
 
-The same code runs on both hosts and both read the same Firestore data. Render runs `server.js` as a
-normal server; Vercel serves `public/` from its CDN and sends every other request to `api/index.js`,
-which calls the same request handler (see `vercel.json`). To deploy on Vercel: import the GitHub repo,
-add the same environment variables as on Render, and add the Vercel domain to Firebase Authentication →
-Settings → Authorized domains.
+Vercel serves the pages and files in `public/` from its CDN (always awake, fast) and forwards every
+`/api/...` request to the Render server (see `vercel.json`), so both addresses show the same live data
+and Vercel needs no secrets. `server.js` trusts the Vercel address for its same-site checks.
+
+To run the API on Vercel itself instead (no Render), point the `/api` rewrite at `/api/index`
+(`api/index.js` calls the same request handler), copy Render's environment variables to Vercel, and add
+the Vercel domain to Firebase Authentication → Settings → Authorized domains.

@@ -83,13 +83,19 @@ function withinRate(bucket, key, max, windowMs = 60 * 60_000) {
   bucket.set(key, times);
   return true;
 }
+// The Vercel copy of the site forwards its /api requests here, so its address counts as this site too.
+const trustedOrigins = new Set([
+  'capital-science-faculty.vercel.app',
+  'capital-science-faculty.onrender.com',
+]);
 // Browsers send Origin on cross-site POST/PUT/DELETE. Rejecting a foreign Origin blocks CSRF
 // even if a SameSite cookie is relaxed by an older browser.
 function sameOrigin(req) {
   const origin = req.headers.origin;
   if (!origin) return true;
   try {
-    return new URL(origin).host === req.headers.host;
+    const host = new URL(origin).host;
+    return host === req.headers.host || trustedOrigins.has(host);
   } catch {
     return false;
   }
@@ -122,7 +128,9 @@ function senderOf(message) {
 
 function strictSameOrigin(req) {
   try {
-    return Boolean(req.headers.origin) && new URL(req.headers.origin).host === req.headers.host;
+    if (!req.headers.origin) return false;
+    const host = new URL(req.headers.origin).host;
+    return host === req.headers.host || trustedOrigins.has(host);
   } catch {
     return false;
   }
