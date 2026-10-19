@@ -55,7 +55,7 @@ export async function sendEmailSignInLink(email) {
     if (error.code === 'auth/operation-not-allowed')
       throw new Error('Enable Email Link sign-in in Firebase Authentication.');
     if (error.code === 'auth/unauthorized-continue-uri' || error.code === 'auth/unauthorized-domain')
-      throw new Error('Add capital-science-faculty.onrender.com to Firebase Auth authorized domains.');
+      throw new Error(`Add ${location.hostname} to Firebase Auth authorized domains.`);
     throw error;
   }
   sessionStorage.setItem('cs-pending-email-link', email);

@@ -23,8 +23,9 @@ setInterval(() => {
       else bucket.delete(key);
     }
 }, 10 * 60_000).unref();
-await mkdir(path.join(root, 'uploads'), { recursive: true });
-await mkdir(path.join(root, 'public', 'uploads'), { recursive: true });
+// Vercel's file system is read-only; uploads there go to Firestore instead, so a failed mkdir is fine.
+await mkdir(path.join(root, 'uploads'), { recursive: true }).catch(() => {});
+await mkdir(path.join(root, 'public', 'uploads'), { recursive: true }).catch(() => {});
 const mime = {
   '.html': 'text/html; charset=utf-8',
   '.css': 'text/css; charset=utf-8',
@@ -1357,7 +1358,8 @@ async function sendFile(res, file, status = 200, extraHeaders = {}) {
   });
   res.end(await readFile(file));
 }
-const server = http.createServer(async (req, res) => {
+// One request handler for both hosts: Render runs it as a normal server, Vercel calls it from api/index.js.
+export async function handleRequest(req, res) {
   try {
     const url = new URL(req.url, 'http://localhost');
     if (url.pathname.startsWith('/api/')) return await api(req, res, url);
@@ -1396,7 +1398,10 @@ const server = http.createServer(async (req, res) => {
       error: e.message === 'Request too large' ? 'Request too large' : e.status ? e.message : 'Server error',
     });
   }
-});
-server.listen(Number(process.env.PORT || 3000), () =>
-  console.log(`Capital Science Faculty is running on http://localhost:${process.env.PORT || 3000}`),
-);
+}
+if (!process.env.VERCEL)
+  http
+    .createServer(handleRequest)
+    .listen(Number(process.env.PORT || 3000), () =>
+      console.log(`Capital Science Faculty is running on http://localhost:${process.env.PORT || 3000}`),
+    );
