@@ -1385,7 +1385,21 @@ main{width:100%;max-width:460px;padding:32px 24px;border:1px solid var(--line);b
 h1{margin:0 0 8px;font-size:26px}p{margin:0 0 20px;color:var(--muted)}
 .link{display:block;margin:0 0 20px;padding:12px;border-radius:14px;border:1px dashed var(--gold);font-weight:700;color:var(--ink);text-decoration:none;overflow-wrap:anywhere}
 .go{display:inline-flex;align-items:center;justify-content:center;width:100%;min-height:52px;border-radius:999px;background:var(--primary);color:var(--on);font-weight:700;font-size:17px;text-decoration:none}
-</style></head><body><main><div class="mark">C</div><h1>رابط الموقع اتغيّر!</h1><p>موقع Capital Science اتنقل لرابط جديد. احفظه واستخدمه من دلوقتي.</p><a class="link" dir="ltr" href="${target}">capital-science-faculty.vercel.app</a><a class="go" href="${target}">افتح الرابط الجديد</a></main></body></html>`);
+</style></head><body><main><div class="mark">C</div><h1>رابط الموقع اتغيّر!</h1><p>موقع Capital Science اتنقل لرابط جديد. احفظه واستخدمه من دلوقتي.</p><a class="link" dir="ltr" href="${target}">capital-science-faculty.vercel.app</a><a class="go" href="${target}">افتح الرابط الجديد</a></main><script>
+// Carry this browser's saved preferences and email to the new address in the fragment (never sent to a server).
+try {
+  var data = {};
+  ['cs-theme', 'cs-lang', 'cs-onboarding-version'].forEach(function (k) { var v = localStorage.getItem(k); if (v !== null) data[k] = v; });
+  var p = JSON.parse(localStorage.getItem('cs-profile') || 'null');
+  if (p && p.email) data['cs-profile'] = JSON.stringify({ email: p.email });
+  if (Object.keys(data).length) {
+    var b = new TextEncoder().encode(JSON.stringify(data)), s = '';
+    b.forEach(function (c) { s += String.fromCharCode(c); });
+    var tag = '#cs-move=' + btoa(s).split('+').join('-').split('/').join('_').replace(/=+$/, '');
+    document.querySelectorAll('a').forEach(function (a) { a.href = a.href.split('#')[0] + tag; });
+  }
+} catch (e) {}
+</script></body></html>`);
 }
 export async function handleRequest(req, res) {
   try {

@@ -571,6 +571,25 @@ function clearProfile() {
   sessionStorage.setItem('cs-guest', '1');
   verifyProfilePersistence();
 }
+// Visitors coming from the old Render address carry their browser data in the URL fragment (never sent
+// to a server). Preferences are kept; a Firebase account's profile is not restored without its sign-in
+// session, so instead its email pre-fills a one-time "sign in again" step.
+function importMovedData() {
+  const match = location.hash.match(/^#cs-move=([A-Za-z0-9_-]+)$/);
+  if (!match) return;
+  history.replaceState(null, '', location.pathname + location.search);
+  try {
+    const bytes = Uint8Array.from(atob(match[1].replace(/-/g, '+').replace(/_/g, '/')), (c) =>
+      c.charCodeAt(0),
+    );
+    const data = JSON.parse(new TextDecoder().decode(bytes));
+    for (const key of ['cs-theme', 'cs-lang', 'cs-onboarding-version'])
+      if (typeof data[key] === 'string' && localStorage.getItem(key) === null)
+        localStorage.setItem(key, data[key]);
+    const profile = JSON.parse(data['cs-profile'] || 'null');
+    if (profile?.email && !getProfile()) localStorage.setItem('cs-returning-email', String(profile.email));
+  } catch {}
+}
 async function resetOldProfileSession() {
   const version = '2';
   if (localStorage.getItem('cs-onboarding-version') === version) return;
@@ -1876,7 +1895,8 @@ function onboarding(force = false, legacyProfile = null) {
   };
   const showEmailLinkCompletion = async () => {
     method = 'email';
-    const savedEmail = sessionStorage.getItem('cs-pending-email-link') || '';
+    const savedEmail =
+      localStorage.getItem('cs-pending-email-link') || sessionStorage.getItem('cs-pending-email-link') || '';
     email = savedEmail;
     await fadeTo(
       `<span class="section-index">${L('تأكيد البريد', 'VERIFY YOUR EMAIL')}</span><h1>${L('أكمل تسجيل الدخول', 'Complete sign-in')}</h1><p>${L('لأمان حسابك، اكتب نفس البريد الذي طلبت عليه رابط التأكيد.', 'For account security, enter the same email address that received the link.')}</p><form id="email-link-form"><label>${L('البريد الإلكتروني', 'Email address')}<input name="email" type="email" inputmode="email" autocomplete="email" required value="${attr(email)}" placeholder="name@example.com"></label><p class="form-error" id="form-error" aria-live="polite"></p><button class="button primary" type="submit">${L('تأكيد ومتابعة', 'Verify and continue')} ${icon('arrow')}</button></form>`,
@@ -2268,7 +2288,19 @@ function onboarding(force = false, legacyProfile = null) {
     step.querySelector('#enter-site').onclick = closeOverlay;
   };
   ov.querySelector('#begin').onclick = showMethod;
-  if (legacyProfile) {
+  const returningEmail = localStorage.getItem('cs-returning-email');
+  if (returningEmail && !legacyProfile && !signInLink) {
+    localStorage.removeItem('cs-returning-email');
+    email = returningEmail;
+    showEmail().then(() =>
+      showToast(
+        L(
+          'أهلًا بعودتك! الموقع اتنقل لرابط جديد، فسجّل دخولك مرة واحدة بنفس حسابك.',
+          'Welcome back! The site moved, so sign in once with the same account.',
+        ),
+      ),
+    );
+  } else if (legacyProfile) {
     method = legacyProfile.email ? 'email' : 'phone';
     email = legacyProfile.email || '';
     showMethod();
@@ -2282,6 +2314,7 @@ function onboarding(force = false, legacyProfile = null) {
   }
 }
 (async () => {
+  importMovedData();
   await resetOldProfileSession();
   try {
     siteSnapshot = await fetch('/api/site').then((r) => r.text());

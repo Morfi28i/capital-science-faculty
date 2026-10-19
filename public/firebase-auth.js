@@ -58,7 +58,8 @@ export async function sendEmailSignInLink(email) {
       throw new Error(`Add ${location.hostname} to Firebase Auth authorized domains.`);
     throw error;
   }
-  sessionStorage.setItem('cs-pending-email-link', email);
+  // localStorage, not sessionStorage: the link usually opens in a new tab, which has its own session.
+  localStorage.setItem('cs-pending-email-link', email);
 }
 
 export async function isEmailSignInLink(url = window.location.href) {
@@ -69,6 +70,7 @@ export async function isEmailSignInLink(url = window.location.href) {
 export async function completeEmailSignInLink(email, url = window.location.href) {
   const { auth, authSdk } = await services();
   const result = await authSdk.signInWithEmailLink(auth, email, url);
+  localStorage.removeItem('cs-pending-email-link');
   sessionStorage.removeItem('cs-pending-email-link');
   await result.user.reload();
   return result.user;
