@@ -1210,17 +1210,7 @@ function wireProfile() {
       });
       pendingEmailChange = '';
       sessionStorage.removeItem('cs-pending-email-change');
-      showToast(
-        saved.notificationSent
-          ? L(
-              'تم تأكيد البريد وإرسال تحديث الملف إلى الإدارة.',
-              'Email verified and the profile update was emailed to the administrator.',
-            )
-          : L(
-              'تم تأكيد البريد، لكن تعذر إرسال إشعار الإدارة.',
-              'Email verified, but the administrator email notice could not be sent.',
-            ),
-      );
+      showToast(L('تم تأكيد البريد الجديد وحفظه في ملفك.', 'Your new email is verified and saved.'));
       render();
     } catch (error) {
       emailStatus.textContent =
@@ -1286,14 +1276,7 @@ function wireProfile() {
         email: user.email || '',
         phone: user.phoneNumber || '',
       });
-      showToast(
-        saved.notificationSent
-          ? L('تم تأكيد الهاتف وإرسال التحديث للإدارة.', 'Phone verified and the profile update was emailed.')
-          : L(
-              'تم تأكيد الهاتف، لكن تعذر إرسال إشعار الإدارة.',
-              'Phone verified, but the administrator email notice could not be sent.',
-            ),
-      );
+      showToast(L('تم تأكيد رقم الهاتف وحفظه في ملفك.', 'Your phone number is verified and saved.'));
       render();
     } catch (error) {
       phoneStatus.textContent = /already|in use|exists/i.test(error.message)
@@ -1336,17 +1319,7 @@ function wireProfile() {
         phone: user.phoneNumber || saved.phone || '',
       });
       render();
-      showToast(
-        saved.notificationSent
-          ? L(
-              'تم حفظ البيانات وإرسال التحديث للإدارة.',
-              'Profile saved and update emailed to the administrator.',
-            )
-          : L(
-              'تم حفظ الملف لكن تعذر إرسال إشعار البريد.',
-              'Profile saved, but the email notice could not be sent.',
-            ),
-      );
+      showToast(L('تم حفظ التعديلات.', 'Your changes are saved.'));
     } catch (err) {
       error.textContent = err.message || t('updateError');
       button.disabled = false;
@@ -1692,6 +1665,11 @@ function onboarding(force = false, legacyProfile = null) {
       step.classList.add('step-leave');
       setTimeout(() => {
         step.innerHTML = html;
+        // Each step wires its form after the animation; until then a quick Enter must not do a native
+        // submit (that reloads the page and puts the typed email in the address bar).
+        step
+          .querySelectorAll('form')
+          .forEach((form) => form.addEventListener('submit', (e) => e.preventDefault()));
         step.classList.remove('step-leave');
         step.classList.add('step-enter');
         requestAnimationFrame(() => step.classList.add('step-ready'));
@@ -2262,17 +2240,13 @@ function onboarding(force = false, legacyProfile = null) {
         email: saved.email || email || '',
         phone: saved.phone || profileDraft.phone || '',
       });
+      // Whether the owner's notification email went out is the team's concern, not the student's.
       showSuccess(
         L('أهلًا بك في مجتمعنا!', 'Welcome to the community!'),
-        saved.notificationSent
-          ? L(
-              'اكتمل تسجيلك وأُرسلت بيانات الملف إلى إدارة الموقع.',
-              'Registration is complete and your profile was emailed to the site owner.',
-            )
-          : L(
-              'اكتمل تسجيلك، لكن تعذر إرسال إشعار البريد إلى الإدارة.',
-              'Registration is complete, but the owner notification email could not be sent.',
-            ),
+        L(
+          'اكتمل تسجيلك. تقدر تعدّل بياناتك وصورتك في أي وقت من صفحة ملفك.',
+          'Your registration is complete. You can edit your details and photo any time from your profile.',
+        ),
       );
     } catch (error) {
       showError(error.message || t('updateError'));
@@ -2285,7 +2259,11 @@ function onboarding(force = false, legacyProfile = null) {
     await fadeTo(
       `<div class="signup-success"><span class="success-mark">✓</span><span class="section-index">CAPITAL SCIENCE · COMMUNITY</span><h1>${title}</h1><p>${copy}</p><button id="enter-site" class="button primary">${L('ادخل للموقع', 'Enter the site')} ${icon('arrow')}</button></div>`,
     );
-    step.querySelector('#enter-site').onclick = closeOverlay;
+    // The page behind the overlay was drawn for a signed-out visitor; redraw it with the new profile.
+    step.querySelector('#enter-site').onclick = () => {
+      closeOverlay();
+      render();
+    };
   };
   ov.querySelector('#begin').onclick = showMethod;
   const returningEmail = localStorage.getItem('cs-returning-email');

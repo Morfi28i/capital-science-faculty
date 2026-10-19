@@ -15,6 +15,8 @@ async function services() {
       ]);
       const app = appSdk.initializeApp(config.firebase);
       const auth = authSdk.getAuth(app);
+      if (config.authEmulator)
+        authSdk.connectAuthEmulator(auth, `http://${config.authEmulator}`, { disableWarnings: true });
       await authSdk.setPersistence(auth, authSdk.browserLocalPersistence);
       // Wait for the saved sign-in to load, otherwise currentUser is still null right after a page load.
       await auth.authStateReady();
@@ -83,8 +85,11 @@ export async function setEmailPassword(email, password) {
   if (passwordLinked) await authSdk.updatePassword(auth.currentUser, password);
   else
     await authSdk.linkWithCredential(auth.currentUser, authSdk.EmailAuthProvider.credential(email, password));
-  await auth.currentUser.getIdToken(true);
-  return auth.currentUser;
+  // Setting a password revokes the sessions that existed before it, including this one (a refreshed token
+  // keeps its old sign-in time), so the server would reject the next request. Sign in again with the new
+  // password to get a fresh session.
+  const { user } = await authSdk.signInWithEmailAndPassword(auth, email, password);
+  return user;
 }
 
 export async function sendPasswordReset(email) {

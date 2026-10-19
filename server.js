@@ -577,6 +577,10 @@ async function api(req, res, url) {
     return json(res, 200, {
       enabled: firebaseConfigured(),
       firebase: firebaseConfigured() ? firebaseWebConfig() : null,
+      // Local testing only: set when the server itself runs against the Firebase Auth emulator.
+      ...(process.env.FIREBASE_AUTH_EMULATOR_HOST
+        ? { authEmulator: process.env.FIREBASE_AUTH_EMULATOR_HOST }
+        : {}),
     });
   if (req.method === 'POST' && url.pathname === '/api/auth/check-email') {
     try {
@@ -843,8 +847,18 @@ async function api(req, res, url) {
         });
       }
     } catch (error) {
-      return json(res, error.status || 401, {
-        error: error.status ? error.message : 'Firebase authentication failed.',
+      if (!error.status)
+        console.error('Firebase request failed:', url.pathname, error.code || '', error.message);
+      const sessionEnded =
+        /^auth\/(id-token-(revoked|expired)|user-disabled|user-not-found|argument-error)$/.test(
+          error.code || '',
+        );
+      return json(res, error.status || (sessionEnded ? 401 : 500), {
+        error: error.status
+          ? error.message
+          : sessionEnded
+            ? 'جلسة الدخول انتهت. سجّل دخولك تاني وكمّل.'
+            : 'حصلت مشكلة في الحفظ. جرّب تاني بعد شوية.',
       });
     }
   }
