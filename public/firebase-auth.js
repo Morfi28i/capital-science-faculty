@@ -46,7 +46,25 @@ export async function checkEmailExists(email) {
   return result.exists === true;
 }
 
+// Ask the server to send our designed email. Returns false when that isn't set up, so the caller falls
+// back to Firebase's own (plain) email.
+async function sendBrandedEmail(kind, email) {
+  const response = await fetch('/api/auth/send-link', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, kind }),
+  });
+  if (response.ok) return true;
+  const result = await response.json().catch(() => ({}));
+  if (response.status === 503 || result.code === 'mail-failed') return false;
+  throw new Error(result.error || 'تعذر إرسال الإيميل.');
+}
+
 export async function sendEmailSignInLink(email) {
+  if (await sendBrandedEmail('signin', email)) {
+    localStorage.setItem('cs-pending-email-link', email);
+    return;
+  }
   const { auth, authSdk } = await services();
   try {
     await authSdk.sendSignInLinkToEmail(auth, email, {
@@ -93,6 +111,7 @@ export async function setEmailPassword(email, password) {
 }
 
 export async function sendPasswordReset(email) {
+  if (await sendBrandedEmail('reset', email)) return;
   const { auth, authSdk } = await services();
   await authSdk.sendPasswordResetEmail(auth, email);
 }

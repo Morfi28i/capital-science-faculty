@@ -6,17 +6,19 @@ import crypto from 'node:crypto';
 import { applicationDefault, cert, getApps, initializeApp } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
 import { FieldValue, getFirestore } from 'firebase-admin/firestore';
+import { mailConfigured, sendAuthEmail } from './mail.js';
 
 const root = process.cwd(),
   dbPath = path.join(root, 'data/site.json'),
   driveCatalogPath = path.join(root, 'data/drive-catalog.json');
-const emailCheckRate = new Map(),
+const authMailRate = new Map(),
+  emailCheckRate = new Map(),
   contactCheckRate = new Map(),
   adminLoginRate = new Map();
 // Rate-limit buckets live in memory; prune expired entries so they cannot grow without bound.
 setInterval(() => {
   const now = Date.now();
-  for (const bucket of [emailCheckRate, contactCheckRate, adminLoginRate])
+  for (const bucket of [authMailRate, emailCheckRate, contactCheckRate, adminLoginRate])
     for (const [key, times] of bucket) {
       const recent = times.filter((time) => now - time < 60 * 60_000);
       if (recent.length) bucket.set(key, recent);
@@ -582,6 +584,63 @@ async function api(req, res, url) {
         ? { authEmulator: process.env.FIREBASE_AUTH_EMULATOR_HOST }
         : {}),
     });
+  // Branded sign-in and password-reset emails. Firebase makes the one-time link; we send it from the site's
+  // Gmail. When that mail account isn't set up, the browser falls back to Firebase's own email.
+  if (req.method === 'POST' && url.pathname === '/api/auth/send-link') {
+    try {
+      if (!firebaseConfigured() || !mailConfigured())
+        return json(res, 503, { code: 'mail-off', error: 'Branded email is not configured.' });
+      if (!sameOrigin(req)) return json(res, 403, { error: 'Cross-site request blocked.' });
+      const d = await body(req, 12000),
+        email = String(d.email || '')
+          .trim()
+          .toLowerCase(),
+        kind = d.kind === 'reset' ? 'reset' : 'signin';
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
+        return json(res, 400, { error: 'اكتب بريد إلكتروني صحيح.' });
+      if (!withinRate(authMailRate, clientIp(req), 10) || !withinRate(authMailRate, email, 5))
+        return json(res, 429, { error: 'طلبات كتير في وقت قصير. استنى شوية وجرّب تاني.' });
+      // Links lead back to whichever of our addresses the request came from.
+      let origin = NEW_SITE;
+      try {
+        const from = new URL(req.headers.origin || '');
+        if (from.host === req.headers.host || trustedOrigins.has(from.host) || from.hostname === 'localhost')
+          origin = from.origin;
+      } catch {}
+      const { auth } = firebase();
+      let link;
+      if (kind === 'reset') {
+        try {
+          await auth.getUserByEmail(email);
+        } catch (error) {
+          // Don't reveal whether an account exists.
+          if (error.code === 'auth/user-not-found') return json(res, 200, { ok: true });
+          throw error;
+        }
+        link = await auth.generatePasswordResetLink(email, { url: `${origin}/profile` });
+      } else {
+        const generated = new URL(
+          await auth.generateSignInWithEmailLink(email, { url: `${origin}/profile`, handleCodeInApp: true }),
+        );
+        // Point the button straight at our site instead of Firebase's redirect page; the browser SDK only
+        // needs these query parameters to finish the sign-in.
+        const direct = new URL(`${origin}/profile`);
+        for (const key of ['mode', 'oobCode', 'apiKey', 'lang']) {
+          const value = generated.searchParams.get(key);
+          if (value) direct.searchParams.set(key, value);
+        }
+        link = direct.toString();
+      }
+      await sendAuthEmail(kind, email, link);
+      return json(res, 200, { ok: true });
+    } catch (error) {
+      console.error('Branded auth email failed:', error.code || '', error.message);
+      return json(res, error.status || 502, {
+        code: error.status ? undefined : 'mail-failed',
+        error: error.status ? error.message : 'تعذر إرسال الإيميل دلوقتي.',
+      });
+    }
+  }
   if (req.method === 'POST' && url.pathname === '/api/auth/check-email') {
     try {
       if (!firebaseConfigured()) return json(res, 503, { error: 'Email verification is unavailable.' });
