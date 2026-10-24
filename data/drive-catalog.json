@@ -35732,6 +35732,19 @@
     "note": "1st Physics Group (B) › امان معملي"
   },
   {
+    "id": "1VQtWU75qIIStD3Gw0HP_jrTxtoR_BquR",
+    "parentId": "1A5orV7nwqbPGabLculWIJkYAytrmAHvJ",
+    "title": "Book",
+    "url": "https://drive.google.com/drive/folders/1VQtWU75qIIStD3Gw0HP_jrTxtoR_BquR",
+    "kind": "drive",
+    "file": false,
+    "type": "folder",
+    "category": "2026/2027",
+    "categoryAr": "دفعة 2026/2027",
+    "categoryEn": "Class of 2026/27",
+    "note": "1st Physics Group (B) › امان معملي"
+  },
+  {
     "id": "1g6752Yj9gDc5GboZwPLB5QP0OE9gThBM",
     "parentId": "1yYqq32c_WUHeMmjsFjTOMyRH5ckUIPcg",
     "title": "اسئلة محلولة",
@@ -35762,6 +35775,19 @@
     "parentId": "1yYqq32c_WUHeMmjsFjTOMyRH5ckUIPcg",
     "title": "Book",
     "url": "https://drive.google.com/drive/folders/1sqV6OiBd8vG6-P6-FgBwc00quq-ClcCw",
+    "kind": "drive",
+    "file": false,
+    "type": "folder",
+    "category": "2026/2027",
+    "categoryAr": "دفعة 2026/2027",
+    "categoryEn": "Class of 2026/27",
+    "note": "1st Physics Group (B) › Algebra"
+  },
+  {
+    "id": "1EG-EvA_qnI3QeKSv4g7Tn6uHzMJRP1L1",
+    "parentId": "1yYqq32c_WUHeMmjsFjTOMyRH5ckUIPcg",
+    "title": "Matrices",
+    "url": "https://drive.google.com/drive/folders/1EG-EvA_qnI3QeKSv4g7Tn6uHzMJRP1L1",
     "kind": "drive",
     "file": false,
     "type": "folder",
@@ -35892,6 +35918,19 @@
     "parentId": "1ojCOg2JMhwwQyZY_pOhSdRdvNZdPtqVW",
     "title": "الواجبات والاختبارات",
     "url": "https://drive.google.com/drive/folders/1y5zwbMgzAlr7M2imVbMYuAEBj3KixhDh",
+    "kind": "drive",
+    "file": false,
+    "type": "folder",
+    "category": "2026/2027",
+    "categoryAr": "دفعة 2026/2027",
+    "categoryEn": "Class of 2026/27",
+    "note": "1st Physics Group (B) › General Mathematics I (Calculus I)"
+  },
+  {
+    "id": "1OGW4ubcprbwhU6tZbHJ6WkICz8dJxO4w",
+    "parentId": "1ojCOg2JMhwwQyZY_pOhSdRdvNZdPtqVW",
+    "title": "Book",
+    "url": "https://drive.google.com/drive/folders/1OGW4ubcprbwhU6tZbHJ6WkICz8dJxO4w",
     "kind": "drive",
     "file": false,
     "type": "folder",
@@ -36720,6 +36759,19 @@
     "note": "1st Physics Group (B) › امان معملي › الامان المعملى -محاضرة 3"
   },
   {
+    "id": "1rjRCWvuhH09gQiPcLLyqXjEOynjV-fEJ",
+    "parentId": "1VQtWU75qIIStD3Gw0HP_jrTxtoR_BquR",
+    "title": "الأمان المعملي - Uni0011.pdf",
+    "url": "https://drive.google.com/file/d/1rjRCWvuhH09gQiPcLLyqXjEOynjV-fEJ/view",
+    "kind": "drive",
+    "file": true,
+    "type": "file",
+    "category": "2026/2027",
+    "categoryAr": "دفعة 2026/2027",
+    "categoryEn": "Class of 2026/27",
+    "note": "1st Physics Group (B) › امان معملي › Book"
+  },
+  {
     "id": "1yi_ymmHx38lamgTOxbDFfa1gRr3UFpc0",
     "parentId": "1g6752Yj9gDc5GboZwPLB5QP0OE9gThBM",
     "title": "اسئلة محلولة على Relations.pdf",
@@ -36967,10 +37019,10 @@
     "note": "1st Physics Group (B) › General Chemistry › inorganic"
   },
   {
-    "id": "1H9tBmmJzDrRwZQX-C7VacFL9Ll4d3_vj",
+    "id": "1vSJBrdNq4qEvNLDKMVItcrV8FGWws7SM",
     "parentId": "1Ph18Y3fHaib0KcMC7524LLGanzDcEkQK",
-    "title": "2--Practical-General-Chemistry-_I_--Chm1103.exe",
-    "url": "https://drive.google.com/file/d/1H9tBmmJzDrRwZQX-C7VacFL9Ll4d3_vj/view",
+    "title": "2--Practical-General-Chemistry-_I_--Chm1103.pdf",
+    "url": "https://drive.google.com/file/d/1vSJBrdNq4qEvNLDKMVItcrV8FGWws7SM/view",
     "kind": "drive",
     "file": true,
     "type": "file",
@@ -37305,10 +37357,36 @@
     "note": "1st Physics Group (B) › General Mathematics I (Calculus I) › الواجبات والاختبارات"
   },
   {
-    "id": "1FzKHnsZxXOGZMOlkj9P5RxGdadZCKYpv",
+    "id": "1GzMSiTAWI6HdMhn1D508CbW2Inl-1Tzy",
+    "parentId": "1OGW4ubcprbwhU6tZbHJ6WkICz8dJxO4w",
+    "title": "General-Mathematics-I-CALCULUS-I-MAT1101.pdf",
+    "url": "https://drive.google.com/file/d/1GzMSiTAWI6HdMhn1D508CbW2Inl-1Tzy/view",
+    "kind": "drive",
+    "file": true,
+    "type": "file",
+    "category": "2026/2027",
+    "categoryAr": "دفعة 2026/2027",
+    "categoryEn": "Class of 2026/27",
+    "note": "1st Physics Group (B) › General Mathematics I (Calculus I) › Book"
+  },
+  {
+    "id": "1k77GkjqIAZPF5WaChOCXk3jJXdeOiE2p",
     "parentId": "1U1SpmgVxEQjdAm3JoHu5fudTsO5-w3cG",
-    "title": "3-4-Practical-physics-I.exe",
-    "url": "https://drive.google.com/file/d/1FzKHnsZxXOGZMOlkj9P5RxGdadZCKYpv/view",
+    "title": "1-2-General-Physics-I_Phy1101_.pdf",
+    "url": "https://drive.google.com/file/d/1k77GkjqIAZPF5WaChOCXk3jJXdeOiE2p/view",
+    "kind": "drive",
+    "file": true,
+    "type": "file",
+    "category": "2026/2027",
+    "categoryAr": "دفعة 2026/2027",
+    "categoryEn": "Class of 2026/27",
+    "note": "1st Physics Group (B) › General physics I › Book"
+  },
+  {
+    "id": "1_RfOIEcGSPqGr9ZdtB3Auvo9mpSc1A8v",
+    "parentId": "1U1SpmgVxEQjdAm3JoHu5fudTsO5-w3cG",
+    "title": "3-4-Practical-physics-I.pdf",
+    "url": "https://drive.google.com/file/d/1_RfOIEcGSPqGr9ZdtB3Auvo9mpSc1A8v/view",
     "kind": "drive",
     "file": true,
     "type": "file",
@@ -37669,23 +37747,10 @@
     "note": "1st Physics Group (B) › General physics I › lecture 3"
   },
   {
-    "id": "1xjlDfve_Xd8BeiZUlOwZ1Y6zEtcy9jxj",
+    "id": "1cUS4BAj6Mih1SArRW07y9O0-dSstk1hX",
     "parentId": "1kFn9PUBu8zr7MA-gpLMRnUP3W-LON1ZE",
-    "title": "Introduction-to-Computer-Science-com1101-mourad-raafat--physical-group---Abd-elrahman-Mourad.exe",
-    "url": "https://drive.google.com/file/d/1xjlDfve_Xd8BeiZUlOwZ1Y6zEtcy9jxj/view",
-    "kind": "drive",
-    "file": true,
-    "type": "file",
-    "category": "2026/2027",
-    "categoryAr": "دفعة 2026/2027",
-    "categoryEn": "Class of 2026/27",
-    "note": "1st Physics Group (B) › Introduction to Computer Science › Book"
-  },
-  {
-    "id": "1nLjQG59BJq_-5jTgLWcilw_pGhfjuslZ",
-    "parentId": "1kFn9PUBu8zr7MA-gpLMRnUP3W-LON1ZE",
-    "title": "Introduction-to-Computer-Science-com1101-mourad-raafat--physical-group---Abd-elrahman-Mourad.exe",
-    "url": "https://drive.google.com/file/d/1nLjQG59BJq_-5jTgLWcilw_pGhfjuslZ/view",
+    "title": "Introduction-to-Computer-Science-com1101-mourad-raafat--physical-group---Abd-elrahman-Mourad.pdf",
+    "url": "https://drive.google.com/file/d/1cUS4BAj6Mih1SArRW07y9O0-dSstk1hX/view",
     "kind": "drive",
     "file": true,
     "type": "file",
@@ -37966,19 +38031,6 @@
     "categoryAr": "دفعة 2026/2027",
     "categoryEn": "Class of 2026/27",
     "note": "1st Physics Group (B) › Introduction to Computer Science › Lab"
-  },
-  {
-    "id": "1j9LsAxLxuQ69fNzDalp5uSfaBbC1LToX",
-    "parentId": "14As_nq8_4vRXsJd_6_haEXfPj_uW3C8b",
-    "title": "2.Practical-Principles-of-Zoology1st-year-physics.exe",
-    "url": "https://drive.google.com/file/d/1j9LsAxLxuQ69fNzDalp5uSfaBbC1LToX/view",
-    "kind": "drive",
-    "file": true,
-    "type": "file",
-    "category": "2026/2027",
-    "categoryAr": "دفعة 2026/2027",
-    "categoryEn": "Class of 2026/27",
-    "note": "1st Physics Group (B) › zoology › Book"
   },
   {
     "id": "1OWv07KwXZQVEZxayOoZDiLyFebox3ln_",
@@ -38839,10 +38891,10 @@
     "note": "1st Physics Group (B) › General Chemistry › inorganic › Book"
   },
   {
-    "id": "1v6FVCX_m8zuQ7h8LQIx1QlzHgxA6GxtY",
+    "id": "1ygDYbgUcYoth7GOvlFZmcumoJWqqI-yp",
     "parentId": "1SwPIXujx9vH67JSJ7gqY-JwQR84lEloZ",
-    "title": "1--General-Chemistry-_I_--Chm1101.exe",
-    "url": "https://drive.google.com/file/d/1v6FVCX_m8zuQ7h8LQIx1QlzHgxA6GxtY/view",
+    "title": "1--General-Chemistry-_I_--Chm1101.pdf",
+    "url": "https://drive.google.com/file/d/1ygDYbgUcYoth7GOvlFZmcumoJWqqI-yp/view",
     "kind": "drive",
     "file": true,
     "type": "file",
