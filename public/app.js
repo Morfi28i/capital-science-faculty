@@ -398,6 +398,31 @@ async function fetchSiteData() {
     render();
   } catch {}
 }
+// Live updates: every 3 seconds while the page is visible, ask the server what changed. /api/live only
+// returns change counters, so this is cheap; the site data or the inbox are fetched again only when
+// their counter moved.
+let liveLast = null,
+  liveTimer = 0;
+async function pollLive() {
+  clearTimeout(liveTimer);
+  if (!document.hidden) {
+    try {
+      const uid = getProfile()?.id || '',
+        v = await (await fetch(`/api/live?u=${encodeURIComponent(uid)}`, { cache: 'no-store' })).json();
+      if (liveLast) {
+        if (v.site !== liveLast.site) refreshSiteData();
+        if (uid && v.user !== liveLast.user) {
+          loadMailbox({ quiet: true });
+          // Away from the inbox, a pulsing dot on the profile button says something new arrived.
+          if (!document.querySelector('#mailbox-list'))
+            document.querySelector('.avatar-mini')?.classList.add('has-news');
+        }
+      }
+      liveLast = v;
+    } catch {}
+  }
+  liveTimer = setTimeout(pollLive, 3000);
+}
 const siteUpdates =
   typeof BroadcastChannel === 'function' ? new BroadcastChannel('capital-science-updates') : null;
 siteUpdates?.addEventListener('message', (event) => {
@@ -407,7 +432,10 @@ window.addEventListener('storage', (event) => {
   if (event.key === 'cs-site-updated') refreshSiteData();
 });
 document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState === 'visible') refreshSiteData();
+  if (document.visibilityState === 'visible') {
+    refreshSiteData();
+    pollLive();
+  }
 });
 const reduceMotion = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
 // Swap pages through the View Transitions API where supported, then move focus to the new heading
@@ -950,7 +978,7 @@ function profilePage() {
   const messages = panel(
     'messages',
     p.id
-      ? `<article class="profile-card mailbox-card chat-card"><div class="chat-head"><span class="chat-team-avatar"><img src="/favicon.svg" alt="" width="42" height="42"></span><div><h2>${L('إدارة الموقع', 'Site team')}</h2><p>${L('محادثة خاصة بينك وبين الإدارة', 'A private conversation with the site team')}</p></div><button class="icon-btn" id="refresh-mailbox" type="button" aria-label="${L('تحديث', 'Refresh')}" title="${L('تحديث', 'Refresh')}">${icon('refresh')}</button></div><div id="mailbox-list" class="chat-thread" aria-live="polite"><p class="mailbox-loading">${L('جارٍ تحميل الرسائل…', 'Loading messages…')}</p></div><form class="chat-compose" id="chat-compose"><textarea name="message" rows="1" maxlength="2000" required placeholder="${L('اكتب رسالتك للإدارة…', 'Write to the site team…')}" aria-label="${L('رسالتك', 'Your message')}"></textarea><button class="button primary chat-send" type="submit" aria-label="${L('إرسال', 'Send')}">${icon('arrow')}<span>${L('إرسال', 'Send')}</span></button></form><p class="form-error" id="chat-error" aria-live="polite"></p></article>`
+      ? `<article class="profile-card mailbox-card chat-card"><div class="chat-head"><span class="chat-team-avatar"><img src="/favicon.svg" alt="" width="42" height="42"></span><div><h2>${L('إدارة الموقع', 'Site team')}</h2><p>${L('محادثة خاصة بينك وبين الإدارة', 'A private conversation with the site team')}</p></div><button class="icon-btn" id="refresh-mailbox" type="button" aria-label="${L('تحديث', 'Refresh')}" title="${L('تحديث', 'Refresh')}">${icon('refresh')}</button></div><div id="mailbox-list" class="chat-thread" aria-live="polite"><p class="mailbox-loading">${L('جارٍ تحميل الرسائل…', 'Loading messages…')}</p></div><div class="chat-suggest" id="chat-suggest" aria-label="${L('اقتراحات تبدأ بيها', 'Suggestions to start with')}"></div><form class="chat-compose" id="chat-compose"><textarea name="message" rows="1" maxlength="2000" required placeholder="${L('اكتب رسالتك للإدارة…', 'Write to the site team…')}" aria-label="${L('رسالتك', 'Your message')}"></textarea><button class="button primary chat-send" type="submit" aria-label="${L('إرسال', 'Send')}">${icon('arrow')}<span>${L('إرسال', 'Send')}</span></button></form><p class="form-error" id="chat-error" aria-live="polite"></p></article>`
       : `<article class="profile-card mailbox-card"><h2>${L('صندوق الرسائل', 'Inbox')}</h2><p>${t('legacyProfile')}</p><button class="button primary" id="link-existing-account">${L('تسجيل الدخول وربط الملف', 'Sign in and link profile')} ${icon('arrow')}</button></article>`,
   );
   const account = panel(
@@ -1047,6 +1075,58 @@ function messageCard(m, compact = false) {
     return `<article class="mailbox-message compact ${!mine && !m.readAt ? 'unread' : ''}"><div class="mailbox-message-head"><strong>${esc(m.subject || who)}</strong><time>${esc(messageStamp(m))}</time></div><p>${esc(String(m.message || '').slice(0, 140))}</p></article>`;
   return `<div class="chat-bubble ${mine ? 'mine' : 'theirs'} ${!mine && !m.readAt ? 'unread' : ''}">${m.subject ? `<strong>${esc(m.subject)}</strong>` : ''}<p>${esc(m.message || '')}</p><time>${esc(messageStamp(m))}</time></div>`;
 }
+// Conversation starters shown above the message box. They appear at the start of a conversation and
+// again once it has been quiet for 15 minutes, with a fresh set for every quarter hour.
+const QUIET_MS = 15 * 60_000;
+const starters = [
+  ['فين ألاقي ملفات محاضرات المادة؟', 'Where can I find the lecture files for a course?'],
+  ['لينك جروب مش شغال، ممكن تبعته تاني؟', 'A group link is broken, could you resend it?'],
+  ['عايز أنضم لجروب السكشن بتاعي', 'I want to join my section group'],
+  ['عندي مشكلة في تسجيل الدخول', 'I have a problem signing in'],
+  ['عندي اقتراح لتطوير الموقع', 'I have an idea to improve the site'],
+  ['فيه ملف ناقص من المحاضرات', 'A lecture file is missing'],
+  ['إمتى بتنزل المحاضرات الجديدة؟', 'When are new lectures added?'],
+  ['ممكن ترجمة أو ملخص لمحاضرة معينة؟', 'Could I get a translation or summary of a lecture?'],
+  ['عايز أعدّل بيانات حسابي', 'I want to change my account details'],
+  ['فين جدول الامتحانات؟', 'Where is the exam schedule?'],
+  ['مين أكلمه في الإرشاد الأكاديمي؟', 'Who do I contact for academic advising?'],
+  ['الخريطة الذهنية للكتاب مش واضحة', 'The book mind map is unclear'],
+  ['عايز أشارك ملفات مع الدفعة', 'I want to share files with my class'],
+  ['فيه فيديو مش بيشتغل', 'A video will not play'],
+  ['شكرًا على الموقع 🌟', 'Thanks for the site 🌟'],
+  ['ممكن تضيف مادة جديدة؟', 'Could you add a new course?'],
+];
+let lastChatAt = 0,
+  shownStarters = '';
+function renderSuggestions() {
+  const box = document.querySelector('#chat-suggest');
+  if (!box) return;
+  const quiet = Date.now() - lastChatAt > QUIET_MS;
+  box.hidden = !quiet;
+  if (!quiet) return;
+  // The quarter hour picks the set, so it changes every 15 minutes and stays put in between.
+  const slot = Math.floor(Date.now() / QUIET_MS),
+    picks = [0, 1, 2, 3].map((i) => starters[(slot * 5 + i * 4) % starters.length]),
+    key = `${slot}-${lang}`;
+  if (key === shownStarters) return;
+  shownStarters = key;
+  box.innerHTML = `<span class="chat-suggest-label">${icon('spark')} ${lang === 'ar' ? 'تقدر تبدأ بـ' : 'You could start with'}</span>${picks
+    .map(
+      ([ar, en], i) =>
+        `<button type="button" class="suggest-chip" style="--i:${i}">${esc(lang === 'ar' ? ar : en)}</button>`,
+    )
+    .join('')}`;
+  box.querySelectorAll('.suggest-chip').forEach(
+    (chip) =>
+      (chip.onclick = () => {
+        const field = document.querySelector('#chat-compose textarea');
+        if (!field) return;
+        field.value = chip.textContent;
+        field.dispatchEvent(new Event('input'));
+        field.focus();
+      }),
+  );
+}
 let mailboxSeen = 0;
 async function loadMailbox({ quiet = false } = {}) {
   const list = document.querySelector('#mailbox-list'),
@@ -1078,6 +1158,11 @@ async function loadMailbox({ quiet = false } = {}) {
     list.innerHTML = thread.length ? thread.map((m) => messageCard(m)).join('') : empty;
     if (thread.length !== mailboxSeen) list.scrollTop = list.scrollHeight;
     mailboxSeen = thread.length;
+    lastChatAt = Math.max(
+      0,
+      ...thread.map((m) => (m.createdAt?.seconds || m.createdAt?._seconds || 0) * 1000),
+    );
+    renderSuggestions();
     // Opening the conversation counts as reading it.
     const panelOpen = !list.closest('[role="tabpanel"]')?.hidden;
     if (panelOpen && unread.length) {
@@ -1216,11 +1301,10 @@ function wireProfile() {
   loadMailbox();
   wireChat();
   document.querySelector('#refresh-mailbox')?.addEventListener('click', () => loadMailbox());
-  // Pick up replies from the team while the conversation is open.
-  const poll = setInterval(() => {
-    const list = document.querySelector('#mailbox-list');
-    if (!list) return clearInterval(poll);
-    if (!document.hidden && !list.closest('[role="tabpanel"]')?.hidden) loadMailbox({ quiet: true });
+  // Replies arrive through the live check; this clock only brings the suggestions back after a quiet spell.
+  const suggestClock = setInterval(() => {
+    if (!document.querySelector('#chat-suggest')) return clearInterval(suggestClock);
+    renderSuggestions();
   }, 30_000);
   wireAvatarPicker(form);
   const profile = () => getProfile() || {},
@@ -1735,17 +1819,16 @@ function observe() {
   // SVG motion paths ignore CSS media queries, so stop the orbiting electrons explicitly.
   if (reduceMotion()) document.querySelectorAll('.atom svg').forEach((svg) => svg.pauseAnimations?.());
 }
-// Behind the home hero: a drifting network of atoms joined by bonds, drawn on a canvas. It only runs
+// Behind the home hero and the sign-in panel: a drifting network of atoms joined by bonds, drawn on a canvas. It only runs
 // while the hero is on screen and the tab is visible, and stays still for reduced-motion visitors.
-function moleculeField() {
-  const hero = document.querySelector('.hero');
+function moleculeField(hero = document.querySelector('.hero')) {
   if (!hero) return;
   const canvas = document.createElement('canvas');
   canvas.className = 'molecule-field';
   canvas.setAttribute('aria-hidden', 'true');
   hero.prepend(canvas);
   const ctx = canvas.getContext('2d'),
-    css = getComputedStyle(document.documentElement),
+    css = getComputedStyle(hero),
     colors = ['--primary', '--gold', '--mint'].map((v) => css.getPropertyValue(v).trim() || '#7fc8a0');
   let w = 0,
     h = 0,
@@ -1879,6 +1962,7 @@ function onboarding(force = false, legacyProfile = null) {
   ov.setAttribute('aria-label', lang === 'ar' ? 'الدخول إلى Capital Science' : 'Join Capital Science');
   ov.innerHTML = `<div class="onboard-left">${brand()}<div class="onboard-decoration" aria-hidden="true">${atom('small')}<p>${lang === 'ar' ? 'كل يوم بداية<br>اكتشاف جديد' : 'Every day, a new<br>discovery begins'}</p></div><span class="onboard-foot">A STUDENT COMMONS · EST 2026</span></div><div class="onboard-main"><button class="onboard-close" id="skip" aria-label="${lang === 'ar' ? 'إغلاق' : 'Close'}">${icon('close')}</button><div class="onboard-step" id="step"><span class="section-index">A SPACE FOR YOUR NEXT CHAPTER</span><h1>${t('welcome')},<br><em>curious mind.</em></h1><p>${t('intro')}</p><button class="button primary" id="begin">${t('continue')} ${icon('arrow')}</button><button class="skip-link" id="guest">${t('skip')}</button></div></div>`;
   document.body.append(ov);
+  moleculeField(ov.querySelector('.onboard-left'));
   const step = ov.querySelector('#step'),
     L = (ar, en) => (lang === 'ar' ? ar : en),
     errNode = () => ov.querySelector('#form-error');
@@ -2531,4 +2615,5 @@ function onboarding(force = false, legacyProfile = null) {
   onboarding();
   // A page drawn from the saved copy fetches fresh data straight away and redraws only if it changed.
   if (fromCache) refreshSiteData();
+  pollLive();
 })();

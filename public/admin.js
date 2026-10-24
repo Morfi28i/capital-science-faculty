@@ -62,6 +62,38 @@ function toast(s) {
   document.body.append(e);
   setTimeout(() => e.remove(), 3200);
 }
+// ---------- Live updates ----------
+// Every 3 seconds while the tab is visible, ask the server which data changed and refresh only the part
+// of the open view that depends on it. /api/live reads no database, so polling it costs almost nothing.
+let liveHandlers = {},
+  liveLast = null,
+  liveTimer = 0,
+  liveStarted = false;
+const onLive = (handlers) => (liveHandlers = handlers);
+async function pollLive() {
+  clearTimeout(liveTimer);
+  if (!document.hidden) {
+    try {
+      const v = await (await fetch('/api/live', { cache: 'no-store' })).json();
+      if (liveLast)
+        for (const key of ['site', 'sync', 'threads']) if (v[key] !== liveLast[key]) liveHandlers[key]?.();
+      liveLast = v;
+      document.querySelector('.live-pill')?.classList.remove('offline');
+    } catch {
+      document.querySelector('.live-pill')?.classList.add('offline');
+    }
+  }
+  liveTimer = setTimeout(pollLive, 3000);
+}
+function startLive() {
+  if (liveStarted) return;
+  liveStarted = true;
+  pollLive();
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) pollLive();
+  });
+}
+const livePill = '<span class="live-pill" title="بيتحدث لوحده من غير تحديث للصفحة"><i></i>مباشر</span>';
 async function check() {
   try {
     const s = await req('/api/admin/session');
@@ -122,8 +154,10 @@ function dashboard() {
   editingId = null;
   if (kind === 'sync') return syncDashboard();
   if (kind === 'messages') return messagesDashboard();
-  app.innerHTML = `<div class="admin-layout">${sidebar()}<main class="admin-main">${dhikrStrip()}<div class="admin-head"><div><span class="section-index">CONTENT MANAGEMENT</span><h1>${labels[kind]}</h1></div><button class="button ghost" id="mode-toggle">الوضع البسيط</button><a class="button ghost" href="/" target="_blank" rel="noopener">عرض الموقع</a><button class="button" id="logout">تسجيل الخروج</button></div><div id="storage-status" class="storage-status" role="status"></div><section class="admin-box"><h2 id="item-form-title">إضافة عنصر</h2><form class="admin-form" id="item-form">${itemFormFields()}<datalist id="category-options"></datalist><div class="admin-form-actions"><button class="button primary" id="item-submit">إضافة العنصر</button><button class="button ghost" type="button" id="cancel-edit" hidden>إلغاء التعديل</button></div></form></section><section class="admin-box"><div class="admin-toolbar"><h2>العناصر الحالية</h2><input id="item-search" type="search" placeholder="ابحث في العناصر…"></div><div class="admin-list" id="list"><p class="admin-muted">جارٍ التحميل…</p></div></section></main></div>`;
+  app.innerHTML = `<div class="admin-layout">${sidebar()}<main class="admin-main">${dhikrStrip()}<div class="admin-head"><div><span class="section-index">CONTENT MANAGEMENT</span><h1>${labels[kind]}</h1></div>${livePill}<button class="button ghost" id="mode-toggle">الوضع البسيط</button><a class="button ghost" href="/" target="_blank" rel="noopener">عرض الموقع</a><button class="button" id="logout">تسجيل الخروج</button></div><div id="storage-status" class="storage-status" role="status"></div><section class="admin-overview" id="overview" aria-label="نظرة سريعة"></section><section class="admin-box"><h2 id="item-form-title">إضافة عنصر</h2><form class="admin-form" id="item-form">${itemFormFields()}<datalist id="category-options"></datalist><div class="admin-form-actions"><button class="button primary" id="item-submit">إضافة العنصر</button><button class="button ghost" type="button" id="cancel-edit" hidden>إلغاء التعديل</button></div></form></section><section class="admin-box"><div class="admin-toolbar"><h2>العناصر الحالية</h2><input id="item-search" type="search" placeholder="ابحث في العناصر…"></div><div class="admin-list" id="list"><p class="admin-muted">جارٍ التحميل…</p></div></section></main></div>`;
   wireShell();
+  startLive();
+  onLive({ site: () => !editingId && loadItems() });
   const layout = document.querySelector('.admin-layout'),
     modeButton = document.querySelector('#mode-toggle');
   const setMode = (mode) => {
@@ -267,9 +301,40 @@ async function loadItems() {
       .map((c) => `<option value="${esc(c)}"></option>`)
       .join('');
     renderItems();
+    renderOverview();
   } catch (e) {
     toast(e.message);
   }
+}
+// A quick visual summary above the list: totals, then one bar per category and per link type.
+const kindNames = {
+  facebook: 'فيسبوك',
+  whatsapp: 'واتساب',
+  telegram: 'تيليجرام',
+  drive: 'Drive',
+  link: 'روابط',
+};
+function renderOverview() {
+  const box = document.querySelector('#overview');
+  if (!box) return;
+  const count = (key) =>
+    Object.entries(
+      items.reduce(
+        (acc, x) => ((acc[x[key] || 'بدون تصنيف'] = (acc[x[key] || 'بدون تصنيف'] || 0) + 1), acc),
+        {},
+      ),
+    ).sort((a, b) => b[1] - a[1]);
+  const bars = (rows, names = {}) =>
+    rows
+      .slice(0, 6)
+      .map(
+        ([name, n], i) =>
+          `<div class="ov-bar" style="--share:${n / Math.max(1, items.length)};--i:${i}"><span>${esc(names[name] || name)}</span><b>${n.toLocaleString('ar-EG')}</b><i></i></div>`,
+      )
+      .join('');
+  const categories = count('category'),
+    kinds = count('kind');
+  box.innerHTML = `<div class="ov-card ov-total"><span class="ov-orb" aria-hidden="true"></span><b>${items.length.toLocaleString('ar-EG')}</b><small>عنصر في ${esc(labels[kind])}</small></div><div class="ov-card"><h3>التصنيفات</h3>${bars(categories) || '<p class="admin-muted">لا يوجد.</p>'}</div><div class="ov-card"><h3>نوع الروابط</h3>${bars(kinds, kindNames) || '<p class="admin-muted">لا يوجد.</p>'}</div>`;
 }
 // ---------- Drive sync tab ----------
 const gateMessages = {
@@ -392,20 +457,26 @@ function chatTime(m) {
 }
 let openThread = null;
 async function messagesDashboard() {
-  app.innerHTML = `<div class="admin-layout">${sidebar()}<main class="admin-main">${dhikrStrip()}<div class="admin-head"><div><span class="section-index">MESSAGES</span><h1>${labels.messages}</h1></div><a class="button ghost" href="/" target="_blank" rel="noopener">عرض الموقع</a><button class="button" id="logout">تسجيل الخروج</button></div><section class="admin-box admin-chat"><div class="admin-threads"><div class="admin-toolbar"><h2>المحادثات</h2><button class="button ghost" id="refresh-threads" type="button">تحديث</button></div><div id="thread-list" class="thread-list"><p class="admin-muted">جارٍ التحميل…</p></div></div><div class="admin-conversation" id="conversation"><p class="admin-muted conversation-empty">اختار محادثة من القايمة عشان تقراها وترد.</p></div></section><section class="admin-box"><h2>رسالة جديدة</h2><p>الرسالة بتوصل جوه الموقع في صفحة الطالب، والطالب يقدر يرد عليها. لو الإيميل متوصل بتتبعت كمان على إيميله.</p><form class="admin-form" id="email-form"><label>نوع الإرسال<select name="mode"><option value="private">شخص محدد</option><option value="all">كل المستخدمين</option></select></label><label>المستلم: ID أو بريد أو هاتف<input name="target" placeholder="معرّف الحساب أو البريد أو +20…" dir="ltr"></label><label class="wide">عنوان الرسالة<input name="subject" maxlength="180" required></label><label class="wide">نص الرسالة<textarea name="message" maxlength="10000" rows="5" required></textarea></label><div class="admin-form-actions"><button class="button primary">إرسال الرسالة</button></div></form><div class="admin-toolbar"><input id="user-search" type="search" placeholder="ابحث عن حساب بالاسم أو ID أو البريد أو الهاتف"><button class="button ghost" id="load-users">بحث</button></div><div class="admin-list" id="user-results"></div></section></main></div>`;
+  app.innerHTML = `<div class="admin-layout">${sidebar()}<main class="admin-main">${dhikrStrip()}<div class="admin-head"><div><span class="section-index">MESSAGES</span><h1>${labels.messages}</h1></div>${livePill}<a class="button ghost" href="/" target="_blank" rel="noopener">عرض الموقع</a><button class="button" id="logout">تسجيل الخروج</button></div><section class="admin-box admin-chat"><div class="admin-threads"><div class="admin-toolbar"><h2>المحادثات</h2><button class="button ghost" id="refresh-threads" type="button">تحديث</button></div><div id="thread-list" class="thread-list"><p class="admin-muted">جارٍ التحميل…</p></div></div><div class="admin-conversation" id="conversation"><p class="admin-muted conversation-empty">اختار محادثة من القايمة عشان تقراها وترد.</p></div></section><section class="admin-box"><h2>رسالة جديدة</h2><p>الرسالة بتوصل جوه الموقع في صفحة الطالب، والطالب يقدر يرد عليها. لو الإيميل متوصل بتتبعت كمان على إيميله.</p><form class="admin-form" id="email-form"><label>نوع الإرسال<select name="mode"><option value="private">شخص محدد</option><option value="all">كل المستخدمين</option></select></label><label>المستلم: ID أو بريد أو هاتف<input name="target" placeholder="معرّف الحساب أو البريد أو +20…" dir="ltr"></label><label class="wide">عنوان الرسالة<input name="subject" maxlength="180" required></label><label class="wide">نص الرسالة<textarea name="message" maxlength="10000" rows="5" required></textarea></label><div class="admin-form-actions"><button class="button primary">إرسال الرسالة</button></div></form><div class="admin-toolbar"><input id="user-search" type="search" placeholder="ابحث عن حساب بالاسم أو ID أو البريد أو الهاتف"><button class="button ghost" id="load-users">بحث</button></div><div class="admin-list" id="user-results"></div></section></main></div>`;
   wireShell();
+  startLive();
   const threadList = document.querySelector('#thread-list'),
     conversation = document.querySelector('#conversation');
+  let shownThreads = '';
   async function loadThreads() {
     try {
       const { threads } = await req('/api/admin/threads');
-      threadList.innerHTML =
+      // Redraw only when something changed, so the list does not flicker on every live check.
+      const html =
         threads
           .map(
             (t) =>
               `<button type="button" class="thread-row ${t.thread.adminUnread ? 'unread' : ''} ${openThread === t.id ? 'active' : ''}" data-id="${esc(t.id)}"><span class="thread-name">${esc(t.name || 'بدون اسم')}${t.thread.adminUnread ? `<b class="thread-badge">${t.thread.adminUnread}</b>` : ''}</span><small>${t.thread.lastSender === 'user' ? '' : 'أنت: '}${esc(t.thread.preview || '')}</small><time>${esc(chatTime(t.thread.lastAt))}</time></button>`,
           )
           .join('') || '<p class="admin-muted">مفيش محادثات لسه.</p>';
+      if (html === shownThreads) return;
+      shownThreads = html;
+      threadList.innerHTML = html;
       threadList
         .querySelectorAll('.thread-row')
         .forEach((b) => (b.onclick = () => openConversation(b.dataset.id)));
@@ -422,15 +493,28 @@ async function messagesDashboard() {
     try {
       const { user, messages } = await req(`/api/admin/threads/${encodeURIComponent(id)}`);
       if (openThread !== id) return;
-      conversation.innerHTML = `<div class="conversation-head"><b>${esc(user.name || 'بدون اسم')}</b><small dir="ltr">${esc(user.contact || user.id)}</small></div><div class="conversation-thread" id="conversation-thread">${
+      const bubbles =
         messages
           .map(
             (m) =>
-              `<div class="admin-bubble ${m.sender === 'user' ? 'theirs' : 'mine'}">${m.subject ? `<strong>${esc(m.subject)}</strong>` : ''}<p>${esc(m.message || '')}</p><time>${esc(chatTime(m.createdAt))}${m.sender === 'admin' ? (m.readAt ? ' · اتقرت' : ' · لسه متقرتش') : ''}</time></div>`,
+              `<div class="admin-bubble ${m.sender === 'user' ? 'theirs' : 'mine'}">${m.subject ? `<strong>${esc(m.subject)}</strong>` : ''}<p>${esc(m.message || '')}</p><time>${esc(chatTime(m.createdAt))}${m.sender === 'admin' ? (m.readAt ? ' · اتقرت ✓✓' : ' · اتبعتت ✓') : ''}</time></div>`,
           )
-          .join('') || '<p class="admin-muted conversation-empty">مفيش رسايل.</p>'
-      }</div><form class="conversation-reply" id="reply-form"><textarea name="message" rows="2" maxlength="10000" required placeholder="اكتب ردك…"></textarea><button class="button primary">رد</button></form>`;
+          .join('') || '<p class="admin-muted conversation-empty">مفيش رسايل.</p>';
+      // A live refresh of the open conversation only swaps the messages, so a reply being typed stays.
+      const shown = document.querySelector('#conversation-thread');
+      if (quiet && shown && conversation.dataset.id === id) {
+        if (shown.dataset.html !== bubbles) {
+          const nearEnd = shown.scrollHeight - shown.scrollTop - shown.clientHeight < 120;
+          shown.innerHTML = bubbles;
+          shown.dataset.html = bubbles;
+          if (nearEnd) shown.scrollTo({ top: shown.scrollHeight, behavior: 'smooth' });
+        }
+        return;
+      }
+      conversation.dataset.id = id;
+      conversation.innerHTML = `<div class="conversation-head"><b>${esc(user.name || 'بدون اسم')}</b><small dir="ltr">${esc(user.contact || user.id)}</small>${livePill}</div><div class="conversation-thread" id="conversation-thread">${bubbles}</div><form class="conversation-reply" id="reply-form"><textarea name="message" rows="2" maxlength="10000" required placeholder="اكتب ردك…"></textarea><button class="button primary">رد</button></form>`;
       const thread = document.querySelector('#conversation-thread');
+      thread.dataset.html = bubbles;
       thread.scrollTop = thread.scrollHeight;
       const form = document.querySelector('#reply-form');
       form.elements.message.onkeydown = (e) => {
@@ -447,9 +531,11 @@ async function messagesDashboard() {
             method: 'POST',
             body: JSON.stringify({ message }),
           });
+          form.elements.message.value = '';
+          button.disabled = false;
           await openConversation(id, true);
           loadThreads();
-          document.querySelector('#reply-form textarea')?.focus();
+          form.elements.message.focus();
         } catch (error) {
           toast(error.message);
           button.disabled = false;
@@ -466,10 +552,12 @@ async function messagesDashboard() {
   };
   loadThreads();
   if (openThread) openConversation(openThread);
-  const poll = setInterval(() => {
-    if (!document.body.contains(threadList)) return clearInterval(poll);
-    if (!document.hidden) loadThreads();
-  }, 30_000);
+  onLive({
+    threads: () => {
+      loadThreads();
+      if (openThread) openConversation(openThread, true);
+    },
+  });
   const emailForm = document.querySelector('#email-form'),
     target = emailForm.elements.target;
   emailForm.elements.mode.onchange = (e) => {
@@ -550,8 +638,68 @@ async function messagesDashboard() {
   };
 }
 async function syncDashboard() {
-  app.innerHTML = `<div class="admin-layout">${sidebar()}<main class="admin-main">${dhikrStrip()}<div class="admin-head"><div><span class="section-index">DRIVE SYNC</span><h1>${labels.sync}</h1></div><a class="button ghost" href="/lectures" target="_blank" rel="noopener">صفحة المحاضرات</a><button class="button" id="logout">تسجيل الخروج</button></div><div id="sync-body"><p class="admin-muted">جارٍ التحميل…</p></div></main></div>`;
+  app.innerHTML = `<div class="admin-layout">${sidebar()}<main class="admin-main">${dhikrStrip()}<div class="admin-head"><div><span class="section-index">DRIVE SYNC</span><h1>${labels.sync}</h1></div>${livePill}<a class="button ghost" href="/lectures" target="_blank" rel="noopener">صفحة المحاضرات</a><button class="button" id="logout">تسجيل الخروج</button></div><div id="sync-body"><p class="admin-muted">جارٍ التحميل…</p></div></main></div>`;
   wireShell();
+  startLive();
+  onLive({ sync: drawSync });
+  await drawSync();
+}
+// A one-second clock keeps the countdowns on the sync page moving between live checks.
+let syncTicker = 0;
+const span = (ms) => {
+  if (Number.isNaN(ms)) return '—';
+  const t = Math.max(0, Math.round(ms / 1000)),
+    h = Math.floor(t / 3600),
+    m = Math.floor((t % 3600) / 60),
+    sec = t % 60;
+  return `${h ? `${h}:` : ''}${String(m).padStart(h ? 2 : 1, '0')}:${String(sec).padStart(2, '0')}`;
+};
+function tickSync() {
+  clearInterval(syncTicker);
+  const tick = () => {
+    if (!document.querySelector('#sync-body')) return clearInterval(syncTicker);
+    document.querySelectorAll('[data-until]').forEach((el) => {
+      el.textContent = span(Date.parse(el.dataset.until) - Date.now());
+    });
+    document.querySelectorAll('[data-since]').forEach((el) => {
+      el.textContent = span(Date.now() - Date.parse(el.dataset.since));
+    });
+    document.querySelectorAll('[data-progress-from]').forEach((el) => {
+      const from = Date.parse(el.dataset.progressFrom),
+        to = Date.parse(el.dataset.progressTo);
+      el.style.setProperty('--p', Math.min(1, Math.max(0, (Date.now() - from) / (to - from))).toFixed(4));
+    });
+  };
+  tick();
+  syncTicker = setInterval(tick, 1000);
+}
+// The big status card at the top of the sync page: what the sync is doing right now.
+function syncHero(status) {
+  const run = status.latest;
+  let state = 'idle',
+    title = 'جاهزة',
+    detail = `التشغيل التلقائي الجاي بعد <b data-until="${esc(status.nextRun || '')}">…</b>`;
+  if (status.runningSince) {
+    state = 'running';
+    title = 'شغالة دلوقتي';
+    detail = `بقالها <b data-since="${esc(status.runningSince)}">…</b> · النتيجة بتظهر هنا لوحدها أول ما تخلص`;
+  } else if (status.runRequest) {
+    state = 'queued';
+    title = 'مستنية تبدأ';
+    detail = `هتبدأ خلال حوالي <b data-until="${esc(status.nextCheck || '')}">…</b>`;
+  } else if (status.paused) {
+    state = 'paused';
+    title = 'موقوفة مؤقتًا';
+    detail = 'مش هتشتغل لوحدها لحد ما تستأنفها.';
+  } else if (run?.status === 'failure') {
+    state = 'failed';
+    title = 'آخر تشغيل فشل';
+  }
+  const from = status.lastSyncAt || run?.finishedAt;
+  return `<section class="sync-hero sync-${state}"><div class="sync-orb" aria-hidden="true"><span></span><span></span><span></span><i ${from && status.nextRun ? `data-progress-from="${esc(from)}" data-progress-to="${esc(status.nextRun)}"` : ''}></i></div><div><span class="section-index">الحالة الآن</span><h2>${title}</h2><p>${detail}</p></div>${livePill}</section>`;
+}
+async function drawSync() {
+  if (!document.querySelector('#sync-body')) return;
   let status;
   try {
     status = await req('/api/admin/sync/status');
@@ -572,7 +720,7 @@ async function syncDashboard() {
     .join('');
   const stale = syncItems(run, 'stale');
   document.querySelector('#sync-body').innerHTML =
-    `${warnings.map((w) => `<p class="storage-status">${esc(w)}</p>`).join('')}
+    `${syncHero(status)}${warnings.map((w) => `<p class="storage-status">${esc(w)}</p>`).join('')}
   <section class="admin-box"><div class="admin-toolbar"><h2>آخر تشغيل</h2>${status.paused ? '<span class="storage-status">المزامنة موقوفة مؤقتًا</span>' : ''}</div>
   ${
     run
@@ -621,6 +769,7 @@ async function syncDashboard() {
       )
       .join('') || '<p class="admin-muted">لا يوجد.</p>'
   }</div></section>`;
+  tickSync();
   const dispatch = async (dryRun, button) => {
     const question = dryRun
       ? 'تشغيل تجربة؟ هتقرأ Drive وتطلع تقرير من غير ما تغيّر الموقع.'
@@ -636,7 +785,7 @@ async function syncDashboard() {
         toast(
           `اتسجّل طلب التشغيل ✓ هيبدأ الساعة ${clock(result.startsBy)} تقريبًا، والنتيجة تظهر هنا بعدها بـ 4 دقايق.`,
         );
-        syncDashboard();
+        drawSync();
       } else toast('اتبعت طلب التشغيل لـ GitHub. النتيجة هتظهر هنا لما يخلص (حوالي 4 دقايق).');
     } catch (error) {
       toast(githubErrors[error.code] || error.message);
@@ -652,7 +801,7 @@ async function syncDashboard() {
       try {
         await req('/api/admin/sync/run', { method: 'DELETE' });
         toast('اتلغى طلب التشغيل.');
-        syncDashboard();
+        drawSync();
       } catch (error) {
         toast(error.message);
         cancel.disabled = false;
@@ -669,7 +818,7 @@ async function syncDashboard() {
         body: JSON.stringify({ paused: !status.paused }),
       });
       toast(status.paused ? 'المزامنة رجعت تشتغل.' : 'المزامنة اتوقفت مؤقتًا.');
-      syncDashboard();
+      drawSync();
     } catch (error) {
       toast(error.message);
       button.disabled = false;

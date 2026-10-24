@@ -64,6 +64,19 @@ const json = (res, code, obj) => {
   res.writeHead(code, headers);
   res.end(text);
 };
+// Live updates: pages poll /api/live every few seconds. It only returns these change counters (no
+// database reads); a page fetches the real data again only when a counter it cares about moved.
+// They start at the boot time, so a restart (for example a new deploy) also tells pages to refresh.
+const boot = Date.now();
+const live = { site: boot, sync: boot, threads: boot, users: new Map() };
+const bump = (key, uid) => {
+  live[key] = Date.now();
+  if (uid) {
+    live.users.set(uid, Date.now());
+    // Keep the per-user map from growing without bound on a long-running server.
+    if (live.users.size > 5000) live.users.delete(live.users.keys().next().value);
+  }
+};
 const httpError = (status, message) => Object.assign(new Error(message), { status });
 async function body(req, limit = 2_000_000) {
   let b = [];
@@ -742,6 +755,15 @@ async function api(req, res, url) {
       });
     }
   }
+  if (req.method === 'GET' && url.pathname === '/api/live') {
+    const uid = String(url.searchParams.get('u') || '').slice(0, 128);
+    return json(res, 200, {
+      site: live.site,
+      sync: live.sync,
+      threads: live.threads,
+      user: (uid && live.users.get(uid)) || boot,
+    });
+  }
   if (req.method === 'GET' && url.pathname === '/api/site') {
     const db = await readDB();
     let driveFiles = [];
@@ -830,6 +852,7 @@ async function api(req, res, url) {
           adminReadAt: null,
         });
         await ref.set(threadUpdate('user', text), { merge: true });
+        bump('threads', decoded.uid);
         return json(res, 200, { ok: true, id: doc.id });
       }
       const readMessage = url.pathname.match(/^\/api\/firebase\/messages\/([A-Za-z0-9_-]+)\/read$/);
@@ -837,6 +860,7 @@ async function api(req, res, url) {
         const message = ref.collection('messages').doc(readMessage[1]);
         if (!(await message.get()).exists) return json(res, 404, { error: 'الرسالة مش موجودة.' });
         await message.update({ readAt: FieldValue.serverTimestamp() });
+        bump('threads', decoded.uid);
         return json(res, 200, { ok: true });
       }
       if (
@@ -971,6 +995,7 @@ async function api(req, res, url) {
         old.docs.forEach((doc) => batch.delete(doc.ref));
         await batch.commit();
       }
+      bump('sync');
       return json(res, 200, { ok: true, runId: run.runId });
     }
     if (req.method === 'GET' && url.pathname === '/api/sync/state') {
@@ -1000,6 +1025,7 @@ async function api(req, res, url) {
           lastSyncAt: snap.exists ? snap.get('lastSyncAt') || null : null,
         };
       });
+      if (result.request) bump('sync');
       return json(res, 200, {
         request: publicRunRequest(result.request),
         paused: result.paused,
@@ -1123,8 +1149,18 @@ async function api(req, res, url) {
           ...doc.data(),
           receivedAt: firestoreTime(doc.get('receivedAt')),
         }));
+        // A run counts as running from when it was started or claimed until its report arrives.
+        const started = Math.max(
+            Date.parse(firestoreTime(state.exists ? state.get('runStartedAt') : null) || 0) || 0,
+            Date.parse(firestoreTime(state.exists ? state.get('runRequestClaimedAt') : null) || 0) || 0,
+          ),
+          lastReport = Date.parse(all[0]?.receivedAt || 0) || 0;
         return json(res, 200, {
           ...config,
+          runningSince:
+            started > lastReport && Date.now() - started < 60 * 60_000
+              ? new Date(started).toISOString()
+              : null,
           paused: state.exists && state.get('paused') === true,
           runRequest: publicRunRequest(state.exists ? state.get('runRequest') : null),
           lastSyncAt: state.exists ? state.get('lastSyncAt') || null : null,
@@ -1154,6 +1190,7 @@ async function api(req, res, url) {
               { merge: true },
             );
           await audit(req, 'sync.run.queued', { dryRun, allowRemovals });
+          bump('sync');
           return json(res, 200, {
             ok: true,
             queued: true,
@@ -1184,6 +1221,13 @@ async function api(req, res, url) {
             code: `github_${response.status}`,
           });
         await audit(req, 'sync.run', { dryRun, allowRemovals });
+        // Remember when it started, so the dashboard can show it running until the report arrives.
+        if (firebaseConfigured())
+          await firebase()
+            .db.collection('syncState')
+            .doc('latest')
+            .set({ runStartedAt: FieldValue.serverTimestamp() }, { merge: true });
+        bump('sync');
         return json(res, 200, { ok: true, dryRun, allowRemovals });
       }
       if (req.method === 'DELETE' && url.pathname === '/api/admin/sync/run') {
@@ -1193,6 +1237,7 @@ async function api(req, res, url) {
           .doc('latest')
           .set({ runRequest: FieldValue.delete() }, { merge: true });
         await audit(req, 'sync.run.cancelled');
+        bump('sync');
         return json(res, 200, { ok: true });
       }
       if (req.method === 'POST' && url.pathname === '/api/admin/sync/github-token') {
@@ -1242,6 +1287,7 @@ async function api(req, res, url) {
           .doc('latest')
           .set({ paused: d.paused, pausedChangedAt: FieldValue.serverTimestamp() }, { merge: true });
         await audit(req, d.paused ? 'sync.pause' : 'sync.resume');
+        bump('sync');
         return json(res, 200, { ok: true, paused: d.paused });
       }
       return json(res, 404, { error: 'Not found' });
@@ -1306,6 +1352,7 @@ async function api(req, res, url) {
             .set(threadUpdate('admin', `${subject} — ${message}`), {
               merge: true,
             });
+          bump('threads', target.id);
           inAppDelivered++;
         } catch {
           continue;
@@ -1390,6 +1437,7 @@ async function api(req, res, url) {
           readAt: null,
         });
         await userRef.set(threadUpdate('admin', text), { merge: true });
+        bump('threads', userRef.id);
         return json(res, 200, { ok: true });
       }
       return json(res, 405, { error: 'Method not allowed' });
@@ -1422,12 +1470,14 @@ async function api(req, res, url) {
         if (id) db[key][index] = obj;
         else db[key].unshift(obj);
         await saveDB(db);
+        bump('site');
         return json(res, 200, obj);
       }
       if (req.method === 'DELETE' && id) {
         if (!db[key].some((x) => x.id === id)) return json(res, 404, { error: 'Not found' });
         db[key] = db[key].filter((x) => x.id !== id);
         await saveDB(db);
+        bump('site');
         return json(res, 200, { ok: true });
       }
     }

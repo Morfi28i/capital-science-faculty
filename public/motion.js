@@ -75,7 +75,7 @@ export function startMotion() {
   document.addEventListener('pointerdown', (e) => {
     if (
       !e.target.closest?.(
-        '.button,.type-filter,.filter,.quick-card,.drive-entry,.icon-btn,.admin-nav button,.thread-row',
+        '.button,.type-filter,.filter,.quick-card,.drive-entry,.icon-btn,.admin-nav button,.thread-row,.auth-choice,.suggest-chip',
       )
     )
       return;
@@ -93,7 +93,7 @@ export function startMotion() {
 }
 const spotTargets =
   '.group-card,.quick-card,.drive-entry,.stat,.dev-card,.profile-card,.contact-chip,.type-filter,.idea-band,' +
-  '.admin-box,.admin-row,.thread-row,.login-box';
+  '.admin-box,.admin-row,.thread-row,.login-box,.auth-choice';
 const tiltTargets =
-  '.quick-card,.group-card,.drive-entry,.stat,.dev-card,.contact-chip,.admin-row,.thread-row,.login-box';
+  '.quick-card,.group-card,.drive-entry,.stat,.dev-card,.contact-chip,.admin-row,.thread-row,.login-box,.auth-choice';
 const magnetTargets = '.button,.icon-btn,.type-filter,.filter,.avatar-mini,.admin-nav button';
