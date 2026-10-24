@@ -1951,6 +1951,112 @@ function generatedAvatar(gender) {
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160"><defs><linearGradient id="a" x2="1" y2="1"><stop stop-color="${accent}"/><stop offset="1" stop-color="#f2eadb"/></linearGradient></defs><rect width="160" height="160" rx="80" fill="url(#a)"/><circle cx="80" cy="67" r="31" fill="${skin}"/><path d="M48 63c1-33 63-42 65 1-12-8-19-21-20-26-9 12-25 21-45 25Z" fill="${coat}"/><path d="M30 160c2-39 22-57 50-57s49 18 51 57" fill="${coat}"/><path d="M66 86q14 10 28 0" fill="none" stroke="#805c50" stroke-width="2" stroke-linecap="round"/><circle cx="68" cy="69" r="2" fill="#453c39"/><circle cx="92" cy="69" r="2" fill="#453c39"/></svg>`;
   return 'data:image/svg+xml,' + encodeURIComponent(svg);
 }
+// ---------- Sign-in screen extras ----------
+// Short science facts that rotate on the green panel while someone signs up.
+const facts = [
+  [
+    'الضوء بياخد حوالي 8 دقايق و20 ثانية عشان يوصل من الشمس للأرض.',
+    'Sunlight takes about 8 minutes 20 seconds to reach Earth.',
+  ],
+  ['جسم الإنسان فيه حوالي 37 تريليون خلية.', 'The human body has about 37 trillion cells.'],
+  [
+    'الماس والجرافيت الاتنين كربون، الفرق في ترتيب الذرات بس.',
+    'Diamond and graphite are both carbon; only the atom arrangement differs.',
+  ],
+  ['الأخطبوط عنده 3 قلوب ودمه أزرق.', 'An octopus has three hearts and blue blood.'],
+  ['ذرة الهيدروجين أكتر عنصر موجود في الكون.', 'Hydrogen is the most abundant element in the universe.'],
+  [
+    'الماء هو المادة الوحيدة اللي بتتلاقى طبيعيًا في الحالات التلاتة على الأرض.',
+    'Water is the only substance found naturally in all three states on Earth.',
+  ],
+  ['صوت الرعد بيمشي حوالي 343 متر في الثانية.', 'Thunder travels at about 343 metres per second.'],
+  [
+    'الـ DNA لو اتفرد من خلية واحدة طوله حوالي 2 متر.',
+    'Uncoiled, the DNA in one cell is about 2 metres long.',
+  ],
+  ['π مالهاش آخر ولا بتتكرر أرقامها.', 'π never ends and never repeats.'],
+  ['النحلة بتزور حوالي 1000 زهرة في اليوم.', 'A bee visits about 1,000 flowers a day.'],
+];
+function rotateFacts(ov) {
+  const el = ov.querySelector('#fact');
+  if (!el) return;
+  let i = Math.floor(Math.random() * facts.length);
+  const show = () => {
+    el.classList.remove('in');
+    void el.offsetWidth;
+    el.textContent = facts[i++ % facts.length][lang === 'ar' ? 0 : 1];
+    el.classList.add('in');
+  };
+  show();
+  const timer = setInterval(() => (ov.isConnected ? show() : clearInterval(timer)), 5200);
+}
+// Run on every step: the title arrives word by word, a password field gets a strength meter, the
+// "check your email" step gets a flying letter, and the success step throws confetti.
+function decorateStep(step) {
+  const h1 = step.querySelector('h1');
+  if (h1 && !h1.dataset.split) {
+    h1.dataset.split = '1';
+    let w = 0;
+    for (const node of [...h1.childNodes]) {
+      if (node.nodeType === Node.TEXT_NODE && node.textContent.trim()) {
+        const frag = document.createDocumentFragment();
+        node.textContent.split(/(\s+)/).forEach((part) => {
+          if (!part.trim()) return frag.append(part);
+          const span = document.createElement('span');
+          span.className = 'word';
+          span.style.setProperty('--w', w++);
+          span.textContent = part;
+          frag.append(span);
+        });
+        node.replaceWith(frag);
+      } else if (node.nodeType === Node.ELEMENT_NODE && node.tagName !== 'BR') {
+        node.classList.add('word');
+        node.style.setProperty('--w', w++);
+      }
+    }
+  }
+  const password = step.querySelector('input[autocomplete="new-password"]');
+  if (password && !step.querySelector('.strength')) {
+    const meter = document.createElement('div');
+    meter.className = 'strength';
+    meter.setAttribute('aria-live', 'polite');
+    meter.innerHTML = '<span><i></i><i></i><i></i><i></i></span><small></small>';
+    password.closest('label').after(meter);
+    const words =
+      lang === 'ar' ? ['ضعيفة', 'مقبولة', 'كويسة', 'قوية جدًا'] : ['Weak', 'Fair', 'Good', 'Very strong'];
+    password.addEventListener('input', () => {
+      const v = password.value,
+        score = !v
+          ? 0
+          : 1 +
+            (v.length >= 10) +
+            (/[A-Z]/.test(v) && /[a-z]/.test(v)) +
+            (/\d/.test(v) && /[^A-Za-z0-9]/.test(v));
+      meter.dataset.score = score;
+      meter.querySelector('small').textContent = score ? words[score - 1] : '';
+    });
+  }
+  if (step.querySelector('#resend-link') && !step.querySelector('.mail-fly'))
+    step.insertAdjacentHTML(
+      'afterbegin',
+      `<div class="mail-fly" aria-hidden="true">${icon('mail')}<i></i><i></i><i></i></div>`,
+    );
+  if (step.querySelector('.signup-success') && !reduceMotion()) confetti(step.closest('.onboarding'));
+}
+function confetti(host) {
+  if (!host) return;
+  const colors = ['#e6b964', '#8fd1a6', '#5aa37a', '#f2efe4', '#f07fb5', '#86a9f0'],
+    layer = document.createElement('div');
+  layer.className = 'confetti';
+  layer.setAttribute('aria-hidden', 'true');
+  layer.innerHTML = Array.from(
+    { length: 70 },
+    (_, i) =>
+      `<i style="--x:${Math.random() * 100}%;--d:${1.8 + Math.random() * 1.6}s;--delay:${Math.random() * 0.5}s;--r:${Math.random() * 720 - 360}deg;--c:${colors[i % colors.length]};--w:${6 + Math.random() * 6}px"></i>`,
+  ).join('');
+  host.append(layer);
+  setTimeout(() => layer.remove(), 4200);
+}
 function onboarding(force = false, legacyProfile = null) {
   // An email sign-in link must always reopen the flow, even for a visitor who chose guest mode earlier.
   const signInLink = new URLSearchParams(location.search).get('mode') === 'signIn';
@@ -1960,9 +2066,17 @@ function onboarding(force = false, legacyProfile = null) {
   ov.setAttribute('role', 'dialog');
   ov.setAttribute('aria-modal', 'true');
   ov.setAttribute('aria-label', lang === 'ar' ? 'الدخول إلى Capital Science' : 'Join Capital Science');
-  ov.innerHTML = `<div class="onboard-left">${brand()}<div class="onboard-decoration" aria-hidden="true">${atom('small')}<p>${lang === 'ar' ? 'كل يوم بداية<br>اكتشاف جديد' : 'Every day, a new<br>discovery begins'}</p></div><span class="onboard-foot">A STUDENT COMMONS · EST 2026</span></div><div class="onboard-main"><button class="onboard-close" id="skip" aria-label="${lang === 'ar' ? 'إغلاق' : 'Close'}">${icon('close')}</button><div class="onboard-step" id="step"><span class="section-index">A SPACE FOR YOUR NEXT CHAPTER</span><h1>${t('welcome')},<br><em>curious mind.</em></h1><p>${t('intro')}</p><button class="button primary" id="begin">${t('continue')} ${icon('arrow')}</button><button class="skip-link" id="guest">${t('skip')}</button></div></div>`;
+  ov.innerHTML = `<div class="onboard-left">${brand()}<div class="onboard-decoration" aria-hidden="true">${atom('small')}<p>${lang === 'ar' ? 'كل يوم بداية<br>اكتشاف جديد' : 'Every day, a new<br>discovery begins'}</p></div><div class="onboard-facts"><span class="fact-label">${icon('spark')} ${lang === 'ar' ? 'تعرف إن…' : 'Did you know…'}</span><p class="fact" id="fact"></p></div><span class="onboard-foot">A STUDENT COMMONS · EST 2026</span></div><div class="onboard-main"><div class="onboard-progress" aria-hidden="true"><i></i></div><button class="onboard-close" id="skip" aria-label="${lang === 'ar' ? 'إغلاق' : 'Close'}">${icon('close')}</button><div class="onboard-step" id="step"><span class="section-index">A SPACE FOR YOUR NEXT CHAPTER</span><h1>${t('welcome')},<br><em>curious mind.</em></h1><p>${t('intro')}</p><button class="button primary" id="begin">${t('continue')} ${icon('arrow')}</button><button class="skip-link" id="guest">${t('skip')}</button></div></div>`;
   document.body.append(ov);
   moleculeField(ov.querySelector('.onboard-left'));
+  rotateFacts(ov);
+  const main = ov.querySelector('.onboard-main');
+  main.addEventListener('pointermove', (e) => {
+    const r = main.getBoundingClientRect();
+    main.style.setProperty('--mx', `${e.clientX - r.left}px`);
+    main.style.setProperty('--my', `${e.clientY - r.top}px`);
+  });
+  let stepsSeen = 0;
   const step = ov.querySelector('#step'),
     L = (ar, en) => (lang === 'ar' ? ar : en),
     errNode = () => ov.querySelector('#form-error');
@@ -1982,6 +2096,8 @@ function onboarding(force = false, legacyProfile = null) {
           .querySelectorAll('form')
           .forEach((form) => form.addEventListener('submit', (e) => e.preventDefault()));
         step.classList.remove('step-leave');
+        decorateStep(step);
+        ov.style.setProperty('--progress', Math.min(1, ++stepsSeen / 6));
         step.classList.add('step-enter');
         requestAnimationFrame(() => step.classList.add('step-ready'));
         setTimeout(() => {
@@ -1990,6 +2106,7 @@ function onboarding(force = false, legacyProfile = null) {
         }, 520);
       }, 220);
     });
+  decorateStep(step);
   const closeOverlay = () => {
     ov.classList.add('out');
     setTimeout(() => ov.remove(), 520);
