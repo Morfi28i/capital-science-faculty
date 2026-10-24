@@ -3,6 +3,7 @@ import { readFile, writeFile, mkdir, stat } from 'node:fs/promises';
 import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
+import { gzipSync } from 'node:zlib';
 import { applicationDefault, cert, getApps, initializeApp } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
 import { FieldValue, getFirestore } from 'firebase-admin/firestore';
@@ -48,12 +49,20 @@ const securityHeaders = {
   'Permissions-Policy': 'camera=(), microphone=(), geolocation=()',
 };
 const json = (res, code, obj) => {
-  res.writeHead(code, {
-    ...securityHeaders,
-    'Content-Type': 'application/json; charset=utf-8',
-    'Cache-Control': 'no-store',
-  });
-  res.end(JSON.stringify(obj));
+  const text = JSON.stringify(obj),
+    headers = {
+      ...securityHeaders,
+      'Content-Type': 'application/json; charset=utf-8',
+      'Cache-Control': 'no-store',
+    };
+  // /api/site carries the whole Drive catalog (over 1 MB); gzip shrinks it about tenfold, so pages
+  // that wait for it before drawing open much sooner.
+  if (text.length > 2048 && /\bgzip\b/.test(res.req?.headers['accept-encoding'] || '')) {
+    res.writeHead(code, { ...headers, 'Content-Encoding': 'gzip', Vary: 'Accept-Encoding' });
+    return res.end(gzipSync(text));
+  }
+  res.writeHead(code, headers);
+  res.end(text);
 };
 const httpError = (status, message) => Object.assign(new Error(message), { status });
 async function body(req, limit = 2_000_000) {

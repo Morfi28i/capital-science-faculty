@@ -121,7 +121,7 @@ def old_children_index(old):
 
 def from_old(row):
     """Turn a previous catalog row back into a crawl child, keeping its previous URL."""
-    return {'id': row['id'], 'name': row['title'], 'mime': FOLDER if row.get('type') == 'folder' else 'stale',
+    return {'id': row['id'], 'name': row['title'], 'mime': FOLDER if row.get('type') == 'folder' else row.get('mime') or 'stale',
             'url': row.get('url'), 'stale': True}
 
 
@@ -283,6 +283,8 @@ def build_catalog(old, lister=None, delay=0.4):
                 **base,
                 'note': ' › '.join(row['path']) if row['path'] else 'مجلد السنة',
                 **({'by': row['by']} if row.get('by') else {}),
+                # The Drive file type lets the site give every kind of file its own look.
+                **({'mime': row['mime']} if row['mime'] not in (FOLDER, 'stale') else {}),
             })
         fresh = sum(1 for row in rows if not row.get('stale'))
         info[year['category']] = {'problems': problems, 'stale': stale, 'fresh': fresh}

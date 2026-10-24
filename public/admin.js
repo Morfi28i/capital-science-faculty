@@ -1,6 +1,8 @@
 import { dhikrStrip, startDhikrRotation } from '/adhkar.js';
+import { startMotion } from '/motion.js';
 const app = document.querySelector('#app');
 startDhikrRotation();
+startMotion();
 let kind = 'subjects',
   items = [],
   editingId = null;

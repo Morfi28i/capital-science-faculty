@@ -862,6 +862,8 @@ body.menu-open::after {
   width: 100%;
   height: 100%;
   overflow: visible;
+  /* Its own layer: the moving electrons repaint only the drawing, not the glow or the cards. */
+  will-change: transform;
 }
 .atom-ring {
   fill: none;
@@ -869,12 +871,10 @@ body.menu-open::after {
   stroke-width: 1.5;
 }
 .atom-electron.gold {
-  fill: var(--gold);
-  filter: drop-shadow(0 0 6px var(--gold));
+  stop-color: var(--gold);
 }
 .atom-electron.mint {
-  fill: var(--mint);
-  filter: drop-shadow(0 0 6px var(--mint));
+  stop-color: var(--mint);
 }
 .atom-nucleus {
   position: relative;
@@ -907,13 +907,13 @@ body.menu-open::after {
   gap: 12px;
   padding: 12px 16px;
   border-radius: var(--radius);
-  background: color-mix(in oklab, var(--surface) 88%, transparent);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  /* Nearly opaque instead of a backdrop blur, which had to be redrawn on every animation frame. */
+  background: color-mix(in oklab, var(--surface) 96%, transparent);
   border: 1px solid var(--line);
   box-shadow: var(--shadow);
   font-size: 13px;
   animation: float 6s ease-in-out infinite;
+  will-change: transform;
 }
 .float-card b {
   display: block;
@@ -3693,5 +3693,1347 @@ button.profile-chip:hover {
   }
   .thread-list {
     max-height: 280px;
+  }
+}
+
+/* ---------- File types: each kind of file has its own colour, icon shape, label and motion ---------- */
+.type-card {
+  --tc: var(--primary);
+  --ts: color-mix(in oklab, var(--tc) 13%, var(--surface));
+}
+.type-pdf {
+  --tc: light-dark(#c8392f, #f0786d);
+}
+.type-video {
+  --tc: light-dark(#6a3fd1, #a98bf5);
+}
+.type-slides {
+  --tc: light-dark(#d4661b, #f3a062);
+}
+.type-doc {
+  --tc: light-dark(#2f63c8, #86a9f0);
+}
+.type-image {
+  --tc: light-dark(#0f8a6a, #5fd0ae);
+}
+.type-audio {
+  --tc: light-dark(#c2337a, #f07fb5);
+}
+.type-code {
+  --tc: light-dark(#4a5568, #b4bfd0);
+}
+.type-file {
+  --tc: light-dark(#6b6f76, #a9adb5);
+}
+.type-translation {
+  --tc: light-dark(#3d47c9, #97a0f7);
+}
+.type-mindmap {
+  --tc: light-dark(#1d8a3c, #6fd68b);
+}
+.type-deck {
+  --tc: light-dark(#b8860b, #f0c35a);
+}
+.type-keypoints {
+  --tc: light-dark(#c4421a, #f69a72);
+}
+.type-summary {
+  --tc: light-dark(#0c7c8c, #5ccbd9);
+}
+
+.type-card::before {
+  background: var(--tc);
+}
+.type-card::after {
+  content: '';
+  position: absolute;
+  inset-inline: 0;
+  top: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--tc), color-mix(in oklab, var(--tc) 0%, transparent));
+  opacity: 0.85;
+}
+.type-card:hover {
+  border-color: color-mix(in oklab, var(--tc) 45%, var(--line));
+  box-shadow:
+    var(--shadow),
+    0 14px 30px -18px color-mix(in oklab, var(--tc) 70%, transparent);
+}
+.type-card .card-icon {
+  position: relative;
+  background: var(--ts);
+  color: var(--tc);
+  transition:
+    transform 0.35s var(--ease),
+    border-radius 0.35s var(--ease);
+}
+.type-card .card-link {
+  color: var(--tc);
+}
+.type-badge {
+  margin-inline-end: auto;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--tc);
+  background: var(--ts);
+  border: 1px solid color-mix(in oklab, var(--tc) 30%, transparent);
+  white-space: nowrap;
+}
+
+/* Icon shapes: a folded page for PDFs, a circle for videos, a screen for slides, and so on. */
+.type-pdf .card-icon,
+.type-doc .card-icon,
+.type-summary .card-icon {
+  border-radius: 6px;
+  clip-path: polygon(0 0, 72% 0, 100% 28%, 100% 100%, 0 100%);
+}
+.type-pdf .card-icon::after,
+.type-doc .card-icon::after,
+.type-summary .card-icon::after {
+  content: '';
+  position: absolute;
+  /* Physical sides on purpose: the clip-path cuts the top-right corner in both directions. */
+  top: 0;
+  right: 0;
+  width: 28%;
+  height: 28%;
+  background: color-mix(in oklab, var(--tc) 35%, var(--surface));
+  border-bottom-left-radius: 4px;
+}
+.type-video .card-icon,
+.type-mindmap .card-icon {
+  border-radius: 50%;
+}
+.type-slides .card-icon,
+.type-deck .card-icon {
+  width: 46px;
+  border-radius: 8px;
+}
+.type-deck .card-icon {
+  box-shadow:
+    4px -4px 0 -1px color-mix(in oklab, var(--tc) 22%, var(--surface)),
+    8px -8px 0 -2px color-mix(in oklab, var(--tc) 12%, var(--surface));
+}
+.type-image .card-icon {
+  border-radius: 0;
+  clip-path: polygon(25% 4%, 75% 4%, 100% 50%, 75% 96%, 25% 96%, 0 50%);
+  width: 42px;
+}
+.type-audio .card-icon {
+  width: 50px;
+  border-radius: 999px;
+}
+.type-code .card-icon {
+  border-radius: 4px;
+  clip-path: polygon(14% 0, 86% 0, 100% 14%, 100% 86%, 86% 100%, 14% 100%, 0 86%, 0 14%);
+}
+.type-translation .card-icon {
+  border-radius: 50% 50% 50% 6px;
+}
+.type-keypoints .card-icon {
+  border-radius: 30%;
+  transform: rotate(-6deg);
+}
+.type-file .card-icon {
+  border-radius: 11px;
+}
+/* The mind-map ring and the video ring sit around the round icons. */
+.type-mindmap .card-icon::after,
+.type-video .card-icon::after {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  border: 1.5px dashed color-mix(in oklab, var(--tc) 55%, transparent);
+  opacity: 0.7;
+}
+.type-video .card-icon::after {
+  border-style: solid;
+  opacity: 0;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .type-pdf:hover .card-icon,
+  .type-doc:hover .card-icon,
+  .type-summary:hover .card-icon {
+    transform: perspective(200px) rotateY(-24deg) translateY(-1px);
+  }
+  .type-video:hover .card-icon::after {
+    animation: type-ring 1.3s var(--ease) infinite;
+  }
+  .type-mindmap:hover .card-icon::after {
+    animation: type-spin 6s linear infinite;
+  }
+  .type-slides:hover .card-icon,
+  .type-deck:hover .card-icon {
+    transform: translateY(-3px) scale(1.05);
+  }
+  .type-image:hover .card-icon {
+    transform: rotate(30deg);
+  }
+  .type-audio:hover .card-icon .ico {
+    animation: type-wave 0.8s ease-in-out infinite alternate;
+  }
+  .type-code:hover .card-icon {
+    transform: rotate(-8deg) scale(1.06);
+  }
+  .type-translation:hover .card-icon {
+    animation: type-bob 0.7s var(--ease);
+  }
+  .type-keypoints:hover .card-icon {
+    transform: rotate(8deg) scale(1.08);
+  }
+  .type-card:hover .type-badge {
+    background: var(--tc);
+    color: var(--surface);
+  }
+  .type-badge {
+    transition:
+      background 0.25s,
+      color 0.25s;
+  }
+}
+@keyframes type-ring {
+  from {
+    opacity: 0.9;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 0;
+    transform: scale(1.45);
+  }
+}
+@keyframes type-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes type-wave {
+  to {
+    transform: scaleY(0.55);
+  }
+}
+@keyframes type-bob {
+  40% {
+    transform: translateY(-5px) rotate(-6deg);
+  }
+  70% {
+    transform: translateY(1px) rotate(3deg);
+  }
+}
+
+/* The library's file-type panel: a bar showing the mix of types, then one filter per type. */
+.type-panel {
+  margin: 4px 0 22px;
+  display: grid;
+  gap: 14px;
+}
+.type-mix {
+  display: flex;
+  height: 10px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+}
+.type-mix span {
+  flex: var(--share) 1 0;
+  min-width: 4px;
+  background: var(--tc);
+  transform-origin: inline-start;
+}
+.type-mix span + span {
+  border-inline-start: 2px solid var(--surface);
+}
+.can-animate .type-panel.visible .type-mix span {
+  animation: type-grow 0.9s var(--ease) both;
+  animation-delay: calc(var(--i) * 70ms);
+}
+@keyframes type-grow {
+  from {
+    transform: scaleX(0);
+  }
+}
+.type-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.type-filter[data-type='all'] {
+  --tc: var(--primary);
+}
+.type-filter {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 12px 7px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--ink-2);
+  font-size: 13px;
+  transition:
+    background 0.2s,
+    border-color 0.2s,
+    color 0.2s,
+    transform 0.2s var(--ease);
+}
+.type-filter .ico {
+  width: 16px;
+  height: 16px;
+  color: var(--tc);
+}
+.type-filter b {
+  font-size: 11.5px;
+  font-weight: 600;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: color-mix(in oklab, var(--tc) 14%, var(--surface));
+  color: var(--tc);
+}
+.type-filter:hover {
+  border-color: var(--tc);
+  transform: translateY(-1px);
+}
+.type-filter.active {
+  background: var(--tc);
+  border-color: var(--tc);
+  color: var(--surface);
+}
+.type-filter.active .ico,
+.type-filter.active b {
+  color: var(--surface);
+}
+.type-filter.active b {
+  background: color-mix(in oklab, var(--surface) 22%, transparent);
+}
+@media (max-width: 640px) {
+  .type-filters {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding-bottom: 4px;
+    scrollbar-width: none;
+  }
+  .type-filter {
+    flex: none;
+  }
+}
+
+/* ---------- Site-wide motion and visuals ----------
+   Everything here is decoration: it only uses transform and opacity, and turns off for visitors who
+   ask for reduced motion. Scroll-linked effects are progressive enhancement (no fallback needed). */
+
+/* Background: three slow colour glows and floating science symbols behind every page. */
+.ambient {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  pointer-events: none;
+}
+.glow {
+  position: absolute;
+  width: 46vmax;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  opacity: 0.55;
+}
+.glow-a {
+  top: -18vmax;
+  inset-inline-end: -12vmax;
+  background: radial-gradient(circle, color-mix(in oklab, var(--primary) 26%, transparent), transparent 65%);
+}
+.glow-b {
+  bottom: -22vmax;
+  inset-inline-start: -14vmax;
+  background: radial-gradient(circle, color-mix(in oklab, var(--gold) 20%, transparent), transparent 65%);
+}
+.glow-c {
+  top: 38%;
+  left: 38%;
+  width: 30vmax;
+  background: radial-gradient(circle, color-mix(in oklab, var(--mint) 14%, transparent), transparent 65%);
+}
+.glyph {
+  position: absolute;
+  left: var(--x);
+  bottom: -60px;
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-size: calc(22px * var(--s));
+  color: color-mix(in oklab, var(--primary) 18%, transparent);
+  opacity: 0;
+  direction: ltr;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .glow-a {
+    animation: drift-a 26s ease-in-out infinite alternate;
+  }
+  .glow-b {
+    animation: drift-b 32s ease-in-out infinite alternate;
+  }
+  .glow-c {
+    animation: drift-c 22s ease-in-out infinite alternate;
+  }
+  .glyph {
+    animation: glyph-rise var(--d) linear infinite;
+    animation-delay: var(--o);
+  }
+}
+@keyframes drift-a {
+  to {
+    transform: translate(-8vmax, 10vmax) scale(1.15);
+  }
+}
+@keyframes drift-b {
+  to {
+    transform: translate(10vmax, -8vmax) scale(1.2);
+  }
+}
+@keyframes drift-c {
+  to {
+    transform: translate(-12vmax, -6vmax) scale(0.85);
+  }
+}
+@keyframes glyph-rise {
+  10% {
+    opacity: 1;
+  }
+  85% {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-110vh) rotate(24deg);
+  }
+}
+
+/* Reading progress: a thin gradient bar at the top that fills as the page scrolls. */
+.scroll-progress {
+  position: fixed;
+  inset-inline: 0;
+  top: 0;
+  z-index: 60;
+  height: 3px;
+  background: linear-gradient(90deg, var(--primary), var(--gold), var(--mint));
+  transform-origin: 0 50%;
+  scale: 0 1;
+  pointer-events: none;
+}
+[dir='rtl'] .scroll-progress {
+  transform-origin: 100% 50%;
+}
+@media (prefers-reduced-motion: no-preference) {
+  @supports ((animation-timeline: scroll()) and (animation-range: 0% 100%)) {
+    .scroll-progress {
+      animation: progress-fill linear both;
+      animation-timeline: scroll(root block);
+    }
+  }
+}
+@supports not ((animation-timeline: scroll()) and (animation-range: 0% 100%)) {
+  .scroll-progress {
+    display: none;
+  }
+}
+@keyframes progress-fill {
+  to {
+    scale: 1 1;
+  }
+}
+
+/* Hero: the title rises in word by word; the atom drifts and turns as the page scrolls past it. */
+.hero h1 .word {
+  display: inline-block;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .can-animate .hero h1 .word,
+  .can-animate .hero-accent {
+    animation: word-in 0.8s var(--ease) both;
+    animation-delay: calc(var(--w, 3) * 110ms + 80ms);
+  }
+  .can-animate .hero .eyebrow,
+  .can-animate .hero-copy > p,
+  .can-animate .hero-actions {
+    animation: rise 0.7s var(--ease) both;
+  }
+  .can-animate .hero-copy > p {
+    animation-delay: 0.45s;
+  }
+  .can-animate .hero-actions {
+    animation-delay: 0.6s;
+  }
+  .can-animate .hero-art {
+    animation: art-in 1.1s var(--ease) both 0.2s;
+  }
+  @supports ((animation-timeline: view()) and (animation-range: exit)) {
+    .hero-art .atom {
+      animation: atom-scroll linear both;
+      animation-timeline: view();
+      animation-range: exit -10% exit 100%;
+    }
+    .stats {
+      animation: stats-in linear both;
+      animation-timeline: view();
+      animation-range: entry 0% entry 80%;
+    }
+  }
+}
+@keyframes word-in {
+  from {
+    opacity: 0;
+    transform: translateY(0.6em) rotate(3deg);
+    filter: blur(6px);
+  }
+}
+@keyframes art-in {
+  from {
+    opacity: 0;
+    transform: scale(0.82) rotate(-12deg);
+  }
+}
+@keyframes atom-scroll {
+  to {
+    transform: translateY(70px) rotate(40deg) scale(0.9);
+    opacity: 0.3;
+  }
+}
+@keyframes stats-in {
+  from {
+    transform: translateY(40px) scale(0.96);
+    opacity: 0.3;
+  }
+}
+
+/* Numbers get a growing accent line under them. */
+.stat {
+  position: relative;
+}
+.stat::after {
+  content: '';
+  position: absolute;
+  inset-inline-start: 26px;
+  bottom: 14px;
+  width: 34px;
+  height: 3px;
+  border-radius: 3px;
+  background: linear-gradient(90deg, var(--primary), var(--gold));
+  transform-origin: inline-start;
+  transform: scaleX(0);
+  transition: transform 0.9s var(--ease) 0.3s;
+}
+.stat.visible::after {
+  transform: scaleX(1);
+}
+
+/* Spotlight: cards glow softly where the pointer is. */
+:is(
+  .group-card,
+  .quick-card,
+  .drive-entry,
+  .stat,
+  .dev-card,
+  .profile-card,
+  .contact-chip,
+  .idea-band
+):hover {
+  background-image: radial-gradient(
+    260px circle at var(--mx, 50%) var(--my, 50%),
+    color-mix(in oklab, var(--tc, var(--primary)) 13%, transparent),
+    transparent 70%
+  );
+}
+
+/* Page headings: the element tile flips in, the title slides in after it. */
+@media (prefers-reduced-motion: no-preference) {
+  .can-animate .page-heading .element-badge {
+    animation: badge-flip 0.9s var(--ease) both;
+  }
+  .can-animate .page-heading h1,
+  .can-animate .page-heading p {
+    animation: rise 0.7s var(--ease) both 0.15s;
+  }
+  .page-heading .element-badge {
+    transition: transform 0.4s var(--ease);
+  }
+  .page-heading .element-badge:hover {
+    transform: rotate(-6deg) scale(1.06);
+  }
+  @supports ((animation-timeline: view()) and (animation-range: entry)) {
+    .bottom-heading,
+    .contacts h2,
+    .idea-band {
+      animation: heading-in linear both;
+      animation-timeline: view();
+      animation-range: entry 0% entry 70%;
+    }
+  }
+}
+@keyframes badge-flip {
+  from {
+    opacity: 0;
+    transform: perspective(500px) rotateY(-100deg) scale(0.8);
+  }
+}
+@keyframes heading-in {
+  from {
+    opacity: 0;
+    transform: translateY(36px);
+  }
+}
+
+/* Buttons: a light sweep crosses on hover; the primary button breathes a soft halo. */
+.button::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    110deg,
+    transparent 30%,
+    color-mix(in oklab, #fff 35%, transparent) 50%,
+    transparent 70%
+  );
+  transform: translateX(-120%);
+  pointer-events: none;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .button:hover:not(:disabled)::before {
+    transition: transform 0.7s var(--ease);
+    transform: translateX(120%);
+  }
+  .hero .button.primary {
+    animation: halo 2.8s ease-in-out infinite;
+  }
+}
+@keyframes halo {
+  50% {
+    box-shadow: 0 0 0 8px color-mix(in oklab, var(--primary) 18%, transparent);
+  }
+}
+
+/* Navigation: links lift slightly, and the brand logo orbit spins on hover. */
+@media (prefers-reduced-motion: no-preference) {
+  .nav a {
+    transition:
+      color 0.2s,
+      background 0.2s,
+      transform 0.25s var(--ease);
+  }
+  .nav a:hover {
+    transform: translateY(-1px);
+  }
+  .brand:hover .brand-logo-orbit {
+    animation: spin 2.4s linear infinite;
+    transform-box: fill-box;
+    transform-origin: center;
+  }
+  .brand:hover .brand-logo-dot {
+    animation: halo-dot 1s ease-in-out infinite alternate;
+    transform-box: fill-box;
+    transform-origin: center;
+  }
+}
+@keyframes halo-dot {
+  to {
+    transform: scale(1.4);
+  }
+}
+
+/* Home tiles: the symbol lifts and the icon swings when hovered. */
+@media (prefers-reduced-motion: no-preference) {
+  .quick-card .tile-symbol,
+  .quick-card .tile-icon {
+    transition: transform 0.45s var(--ease);
+  }
+  .quick-card:hover .tile-symbol {
+    transform: translateY(-6px) scale(1.08) rotate(-4deg);
+  }
+  .quick-card:hover .tile-icon {
+    transform: rotate(-12deg) scale(1.1);
+  }
+}
+
+/* Drive folders: the folder icon pops and the arrow nudges forward. */
+@media (prefers-reduced-motion: no-preference) {
+  .drive-entry-icon,
+  .drive-entry-arrow {
+    transition: transform 0.35s var(--ease);
+  }
+  .drive-entry:hover .drive-entry-icon {
+    transform: translateY(-3px) rotate(-8deg) scale(1.08);
+  }
+  .drive-entry:hover .drive-entry-arrow {
+    transform: translateX(4px);
+  }
+  [dir='rtl'] .drive-entry:hover .drive-entry-arrow {
+    transform: translateX(-4px) scaleX(-1);
+  }
+  .group-card .card-icon {
+    transition: transform 0.35s var(--ease);
+  }
+  .group-card:not(.type-card):hover .card-icon {
+    transform: rotate(-8deg) scale(1.08);
+  }
+}
+
+/* Cards in long lists also rise into place as they scroll in (browsers with scroll timelines). */
+@media (prefers-reduced-motion: no-preference) {
+  @supports ((animation-timeline: view()) and (animation-range: entry)) {
+    .drive-browser-grid > .group-card,
+    .card-grid > .group-card {
+      animation: card-in linear both;
+      animation-timeline: view();
+      animation-range: entry 0% entry 60%;
+    }
+  }
+}
+@keyframes card-in {
+  from {
+    opacity: 0;
+    transform: translateY(30px) scale(0.97);
+  }
+}
+
+/* Developer card: the orbit inside the monogram turns. Profile photo: a slowly turning gradient ring. */
+.profile-avatar-wrap {
+  isolation: isolate;
+}
+.profile-avatar-wrap::before {
+  content: '';
+  position: absolute;
+  inset: -5px;
+  z-index: -1;
+  border-radius: 50%;
+  background: conic-gradient(from 0deg, var(--primary), var(--gold), var(--mint), var(--primary));
+  opacity: 0.8;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .profile-avatar-wrap::before {
+    animation: spin 8s linear infinite;
+  }
+  .dev-monogram i {
+    animation: monogram-orbit 9s linear infinite;
+  }
+}
+@keyframes monogram-orbit {
+  from {
+    transform: rotate(-30deg) scaleY(0.4);
+  }
+  to {
+    transform: rotate(330deg) scaleY(0.4);
+  }
+}
+
+/* Footer: a thin animated gradient line across its top edge. */
+.footer {
+  position: relative;
+}
+.footer::before {
+  content: '';
+  position: absolute;
+  inset-inline: 0;
+  top: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--primary), var(--gold), var(--mint), transparent);
+  background-size: 200% 100%;
+  opacity: 0.7;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .footer::before {
+    animation: line-flow 6s linear infinite;
+  }
+}
+@keyframes line-flow {
+  to {
+    background-position: -200% 0;
+  }
+}
+
+/* ---------- Second motion pass: pointer effects, borders, shimmer and scroll-linked details ---------- */
+
+/* A soft light that trails the mouse across the page. */
+.cursor-glow {
+  position: fixed;
+  top: -180px;
+  left: -180px;
+  z-index: 0;
+  width: 360px;
+  height: 360px;
+  border-radius: 50%;
+  pointer-events: none;
+  background: radial-gradient(circle, color-mix(in oklab, var(--primary) 16%, transparent), transparent 62%);
+  opacity: 0;
+  transition:
+    opacity 0.4s,
+    translate 0.18s linear;
+}
+.cursor-glow.on {
+  opacity: 1;
+}
+
+/* Sparks thrown out from a click. */
+.spark-burst {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 70;
+  pointer-events: none;
+}
+.spark-burst i {
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  margin: -3px;
+  border-radius: 50%;
+  background: var(--gold);
+  animation: spark 0.75s var(--ease) forwards;
+}
+.spark-burst i:nth-child(3n) {
+  background: var(--mint);
+}
+.spark-burst i:nth-child(3n + 1) {
+  background: var(--primary);
+}
+@keyframes spark {
+  to {
+    transform: rotate(var(--a)) translateX(var(--r)) scale(0.2);
+    opacity: 0;
+  }
+}
+
+/* The molecule network behind the hero. */
+.hero {
+  position: relative;
+  isolation: isolate;
+}
+.molecule-field {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  mask-image: radial-gradient(ellipse at center, #000 35%, transparent 80%);
+  opacity: 0.7;
+}
+
+/* 3D tilt toward the pointer, and buttons that lean to it. */
+@media (prefers-reduced-motion: no-preference) and (pointer: fine) {
+  .quick-card:hover {
+    transform: perspective(900px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg)) translateY(-8px)
+      scale(1.02);
+  }
+  :is(.group-card, .drive-entry):hover {
+    transform: perspective(900px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg)) translateY(-4px);
+  }
+  :is(.stat, .dev-card, .contact-chip):hover {
+    transform: perspective(900px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg));
+  }
+  :is(.quick-card, .group-card, .drive-entry, .stat, .dev-card, .contact-chip) {
+    transition:
+      transform 0.25s var(--ease),
+      box-shadow 0.35s var(--ease),
+      border-color 0.35s;
+  }
+  :is(.button, .icon-btn, .type-filter, .filter, .avatar-mini) {
+    transition:
+      translate 0.25s var(--ease),
+      transform 0.25s var(--ease),
+      background 0.25s,
+      border-color 0.25s,
+      color 0.25s,
+      box-shadow 0.25s;
+  }
+}
+
+/* A colour ring runs around cards while hovered. */
+@property --angle {
+  syntax: '<angle>';
+  inherits: false;
+  initial-value: 0deg;
+}
+@media (prefers-reduced-motion: no-preference) {
+  :is(.group-card, .quick-card, .drive-entry, .dev-card, .idea-band):hover {
+    border-color: transparent;
+    background:
+      radial-gradient(
+          260px circle at var(--mx, 50%) var(--my, 50%),
+          color-mix(in oklab, var(--tc, var(--primary)) 14%, transparent),
+          transparent 70%
+        )
+        padding-box,
+      linear-gradient(var(--surface), var(--surface)) padding-box,
+      conic-gradient(
+          from var(--angle),
+          var(--tc, var(--primary)),
+          var(--gold),
+          var(--mint),
+          var(--tc, var(--primary))
+        )
+        border-box;
+    animation: ring-turn 3s linear infinite;
+  }
+}
+@keyframes ring-turn {
+  to {
+    --angle: 360deg;
+  }
+}
+
+/* The hero's coloured words shimmer; its eyebrow dot pulses. */
+.hero-accent {
+  background: linear-gradient(
+    100deg,
+    var(--primary) 20%,
+    var(--mint) 40%,
+    var(--gold) 55%,
+    var(--primary) 75%
+  );
+  background-size: 250% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  /* Room for Arabic dots below the line, which the text clip would otherwise cut off. */
+  padding-block: 0.08em 0.3em;
+  margin-block: -0.08em -0.3em;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .can-animate .hero-accent {
+    animation:
+      word-in 0.8s var(--ease) both 0.4s,
+      shimmer 6s linear infinite 1.2s;
+  }
+  .eyebrow-dot {
+    animation: dot-pulse 1.8s ease-out infinite;
+  }
+  .section-index {
+    background: linear-gradient(90deg, currentColor 30%, var(--gold) 50%, currentColor 70%);
+    background-size: 300% 100%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: shimmer 5s linear infinite;
+  }
+}
+@keyframes shimmer {
+  to {
+    background-position: -250% 0;
+  }
+}
+@keyframes dot-pulse {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in oklab, var(--mint) 70%, transparent);
+  }
+  100% {
+    box-shadow: 0 0 0 10px transparent;
+  }
+}
+
+/* The header gains a shadow and a coloured edge once the page scrolls. */
+@media (prefers-reduced-motion: no-preference) {
+  @supports ((animation-timeline: scroll()) and (animation-range: 0px 120px)) {
+    .topbar {
+      animation: header-lift linear both;
+      animation-timeline: scroll(root block);
+      animation-range: 0px 140px;
+    }
+    .brand-logo {
+      animation: logo-turn linear both;
+      animation-timeline: scroll(root block);
+    }
+  }
+}
+@keyframes header-lift {
+  to {
+    box-shadow:
+      0 10px 30px -18px #0008,
+      inset 0 -1px 0 color-mix(in oklab, var(--primary) 45%, transparent);
+  }
+}
+@keyframes logo-turn {
+  to {
+    rotate: 360deg;
+  }
+}
+
+/* A light sweep crosses the dhikr strip every few seconds. */
+.dhikr {
+  position: relative;
+  overflow: hidden;
+}
+.dhikr::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    110deg,
+    transparent 35%,
+    color-mix(in oklab, #fff 18%, transparent) 50%,
+    transparent 65%
+  );
+  transform: translateX(-100%);
+  pointer-events: none;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .dhikr::after {
+    animation: sweep 5s ease-in-out infinite 1s;
+  }
+}
+@keyframes sweep {
+  40%,
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+/* Home tiles: a little electron orbits each tile's symbol. */
+.element-tile .tile-symbol {
+  position: relative;
+}
+.element-tile .tile-symbol::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 7px;
+  height: 7px;
+  margin: -3.5px;
+  border-radius: 50%;
+  background: var(--gold);
+  box-shadow: 0 0 10px var(--gold);
+  opacity: 0;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .element-tile .tile-symbol::after {
+    opacity: 0.9;
+    animation: tile-orbit 4s linear infinite;
+  }
+  .element-tile:nth-child(2n) .tile-symbol::after {
+    animation-duration: 5.5s;
+    animation-direction: reverse;
+    background: var(--mint);
+    box-shadow: 0 0 10px var(--mint);
+  }
+}
+@keyframes tile-orbit {
+  from {
+    transform: rotate(0deg) translateX(46px) rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg) translateX(46px) rotate(-360deg);
+  }
+}
+
+/* Section titles draw a gradient line under themselves as they scroll in. */
+.bottom-heading h2,
+.contacts h2,
+.profile-section-head h2 {
+  position: relative;
+  padding-bottom: 10px;
+}
+.bottom-heading h2::after,
+.contacts h2::after,
+.profile-section-head h2::after {
+  content: '';
+  position: absolute;
+  inset-inline-start: 0;
+  bottom: 0;
+  width: 64px;
+  height: 3px;
+  border-radius: 3px;
+  background: linear-gradient(90deg, var(--primary), var(--gold), var(--mint));
+  transform-origin: inline-start;
+}
+@media (prefers-reduced-motion: no-preference) {
+  @supports ((animation-timeline: view()) and (animation-range: entry)) {
+    .bottom-heading h2::after,
+    .contacts h2::after,
+    .profile-section-head h2::after {
+      animation: line-draw linear both;
+      animation-timeline: view();
+      animation-range: entry 20% cover 40%;
+    }
+  }
+}
+@keyframes line-draw {
+  from {
+    transform: scaleX(0);
+  }
+}
+
+/* Stronger page changes: the new page zooms and un-blurs into place. */
+@media (prefers-reduced-motion: no-preference) {
+  ::view-transition-new(page) {
+    animation: 0.5s var(--ease) both page-zoom-in;
+  }
+  ::view-transition-old(page) {
+    animation: 0.22s ease both page-zoom-out;
+  }
+}
+@keyframes page-zoom-in {
+  from {
+    opacity: 0;
+    transform: translateY(18px) scale(0.98);
+    filter: blur(8px);
+  }
+}
+@keyframes page-zoom-out {
+  to {
+    opacity: 0;
+    transform: scale(1.02);
+    filter: blur(4px);
+  }
+}
+
+/* The type filter that is switched on bounces once. */
+@media (prefers-reduced-motion: no-preference) {
+  .type-filter.active,
+  .filter.active {
+    animation: pop 0.45s var(--ease);
+  }
+}
+@keyframes pop {
+  40% {
+    transform: scale(1.12);
+  }
+}
+
+/* Folder entries: the folder icon lid wiggles open while hovered. */
+@media (prefers-reduced-motion: no-preference) {
+  .drive-entry:hover .drive-entry-icon .ico {
+    animation: lid 0.9s var(--ease) infinite alternate;
+    transform-origin: 20% 80%;
+  }
+}
+@keyframes lid {
+  to {
+    transform: rotate(-10deg) translateY(-1px);
+  }
+}
+
+/* ---------- Dashboard motion ---------- */
+.admin-side {
+  overflow: hidden;
+  isolation: isolate;
+}
+/* A slow colour wash runs down the sidebar behind the menu. */
+.admin-side::before {
+  content: '';
+  position: absolute;
+  inset: -40% -60%;
+  z-index: -1;
+  background: conic-gradient(
+    from 0deg at 50% 50%,
+    color-mix(in oklab, var(--primary) 10%, transparent),
+    transparent 30%,
+    color-mix(in oklab, var(--gold) 10%, transparent) 55%,
+    transparent 80%
+  );
+  pointer-events: none;
+}
+.admin-nav button {
+  position: relative;
+  overflow: hidden;
+  transition:
+    background 0.25s,
+    color 0.25s,
+    translate 0.25s var(--ease),
+    padding 0.25s var(--ease);
+}
+.admin-nav button::before {
+  content: '';
+  position: absolute;
+  inset-block: 8px;
+  inset-inline-start: 0;
+  width: 3px;
+  border-radius: 3px;
+  background: var(--gold);
+  transform: scaleY(0);
+  transition: transform 0.3s var(--ease);
+}
+.admin-nav button:hover {
+  padding-inline-start: 20px;
+}
+.admin-nav button:hover::before,
+.admin-nav button.active::before {
+  transform: scaleY(1);
+}
+.admin-box,
+.admin-row,
+.thread-row,
+.stat,
+.login-box {
+  position: relative;
+}
+.login-box {
+  isolation: isolate;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .admin-side::before {
+    animation: spin 30s linear infinite;
+  }
+  .admin-nav button {
+    animation: slide-in 0.5s var(--ease) both;
+  }
+  .admin-nav button:nth-child(2) {
+    animation-delay: 60ms;
+  }
+  .admin-nav button:nth-child(3) {
+    animation-delay: 120ms;
+  }
+  .admin-nav button:nth-child(4) {
+    animation-delay: 180ms;
+  }
+  .admin-nav button:nth-child(5) {
+    animation-delay: 240ms;
+  }
+  .admin-nav button:nth-child(6) {
+    animation-delay: 300ms;
+  }
+  .admin-nav button:nth-child(n + 7) {
+    animation-delay: 360ms;
+  }
+  .admin-head,
+  .admin-main > .admin-box,
+  #sync-body > * {
+    animation: rise 0.6s var(--ease) both;
+  }
+  .admin-main > .admin-box:nth-of-type(2),
+  #sync-body > :nth-child(2) {
+    animation-delay: 0.12s;
+  }
+  .admin-main > .admin-box:nth-of-type(3),
+  #sync-body > :nth-child(n + 3) {
+    animation-delay: 0.24s;
+  }
+  /* List rows cascade in one after another. */
+  .admin-list > *,
+  .thread-list > * {
+    animation: row-in 0.5s var(--ease) both;
+  }
+  .admin-list > :nth-child(1),
+  .thread-list > :nth-child(1) {
+    animation-delay: 0.04s;
+  }
+  .admin-list > :nth-child(2),
+  .thread-list > :nth-child(2) {
+    animation-delay: 0.08s;
+  }
+  .admin-list > :nth-child(3),
+  .thread-list > :nth-child(3) {
+    animation-delay: 0.12s;
+  }
+  .admin-list > :nth-child(4),
+  .thread-list > :nth-child(4) {
+    animation-delay: 0.16s;
+  }
+  .admin-list > :nth-child(5),
+  .thread-list > :nth-child(5) {
+    animation-delay: 0.2s;
+  }
+  .admin-list > :nth-child(6),
+  .thread-list > :nth-child(6) {
+    animation-delay: 0.24s;
+  }
+  .admin-list > :nth-child(n + 7),
+  .thread-list > :nth-child(n + 7) {
+    animation-delay: 0.28s;
+  }
+  /* Chat bubbles pop in from their own side. */
+  .admin-bubble {
+    animation: bubble-in 0.45s var(--ease) both;
+  }
+  .admin-bubble.mine {
+    transform-origin: 100% 100%;
+  }
+  .admin-bubble.theirs {
+    transform-origin: 0 100%;
+  }
+  /* The login card floats, with a colour ring running round its edge. */
+  .login-box {
+    border: 2px solid transparent;
+    background:
+      linear-gradient(var(--surface), var(--surface)) padding-box,
+      conic-gradient(from var(--angle), var(--primary), var(--gold), var(--mint), var(--primary)) border-box;
+    animation:
+      login-in 0.9s var(--ease) both,
+      float 7s ease-in-out infinite 1s,
+      ring-turn 4s linear infinite;
+  }
+  .login-box .brand-logo {
+    animation: spin 12s linear infinite;
+  }
+  .storage-status {
+    animation: rise 0.5s var(--ease) both;
+  }
+}
+/* Hover: rows and boxes get the colour ring, rows also tilt toward the pointer. */
+@media (prefers-reduced-motion: no-preference) {
+  :is(.admin-row, .thread-row):hover {
+    border-color: transparent;
+    background:
+      radial-gradient(
+          220px circle at var(--mx, 50%) var(--my, 50%),
+          color-mix(in oklab, var(--primary) 14%, transparent),
+          transparent 70%
+        )
+        padding-box,
+      linear-gradient(var(--surface), var(--surface)) padding-box,
+      conic-gradient(from var(--angle), var(--primary), var(--gold), var(--mint), var(--primary)) border-box;
+    animation: ring-turn 3s linear infinite;
+  }
+  .admin-box:hover {
+    background-image: radial-gradient(
+      420px circle at var(--mx, 50%) var(--my, 50%),
+      color-mix(in oklab, var(--primary) 8%, transparent),
+      transparent 70%
+    );
+  }
+}
+@media (prefers-reduced-motion: no-preference) and (pointer: fine) {
+  :is(.admin-row, .thread-row) {
+    transition:
+      transform 0.25s var(--ease),
+      box-shadow 0.3s;
+  }
+  :is(.admin-row, .thread-row):hover {
+    transform: perspective(900px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg)) translateY(-2px);
+    box-shadow: var(--shadow);
+  }
+}
+@keyframes slide-in {
+  from {
+    opacity: 0;
+    transform: translateX(24px);
+  }
+}
+[dir='ltr'] .admin-nav button {
+  animation-name: slide-in-ltr;
+}
+@keyframes slide-in-ltr {
+  from {
+    opacity: 0;
+    transform: translateX(-24px);
+  }
+}
+@keyframes row-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.98);
+  }
+}
+@keyframes bubble-in {
+  from {
+    opacity: 0;
+    transform: scale(0.6) translateY(10px);
+  }
+}
+@keyframes login-in {
+  from {
+    opacity: 0;
+    transform: translateY(40px) scale(0.92) rotateX(12deg);
   }
 }

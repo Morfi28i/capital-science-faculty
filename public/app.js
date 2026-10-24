@@ -1,4 +1,5 @@
 import { dhikrStrip, startDhikrRotation } from '/adhkar.js';
+import { startMotion } from '/motion.js';
 const app = document.querySelector('#app');
 const dict = {
   ar: {
@@ -355,7 +356,33 @@ document.addEventListener('click', (e) => {
 });
 const paths = ['/', '/subjects', '/lectures', '/advising', '/official', '/developer', '/profile'];
 let siteSnapshot = '';
-async function refreshSiteData() {
+// The last site data is kept in the browser so the next visit can draw at once: the API runs on a free
+// host that can take seconds to wake up, and the page used to stay blank until it answered.
+const siteCacheKey = 'cs-site-cache';
+function applySite(text) {
+  db = JSON.parse(text);
+  siteSnapshot = text;
+  emailConfigured = db.emailNotificationsEnabled === true;
+  firebaseEnabled = db.firebaseAuthEnabled === true;
+  phoneAuthEnabled = db.phoneAuthEnabled === true;
+  try {
+    localStorage.setItem(siteCacheKey, text);
+  } catch {}
+}
+function cachedSite() {
+  try {
+    const text = localStorage.getItem(siteCacheKey);
+    if (text) return (applySite(text), true);
+  } catch {}
+  return false;
+}
+// Several triggers (start-up, tab focus, other tabs) can ask at once; they share one request.
+let refreshing = null;
+function refreshSiteData() {
+  refreshing ||= fetchSiteData().finally(() => (refreshing = null));
+  return refreshing;
+}
+async function fetchSiteData() {
   try {
     const response = await fetch(`/api/site?fresh=${Date.now()}`, {
       cache: 'no-store',
@@ -365,11 +392,7 @@ async function refreshSiteData() {
     // Re-render only when content actually changed, and never while a visitor is typing in a form,
     // otherwise returning to the tab would wipe half-filled profile fields or the open Drive folder.
     if (text === siteSnapshot) return;
-    siteSnapshot = text;
-    db = JSON.parse(text);
-    emailConfigured = db.emailNotificationsEnabled === true;
-    firebaseEnabled = db.firebaseAuthEnabled === true;
-    phoneAuthEnabled = db.phoneAuthEnabled === true;
+    applySite(text);
     if (document.activeElement?.matches('input,select,textarea') || document.querySelector('.onboarding'))
       return;
     render();
@@ -462,6 +485,23 @@ const iconPaths = {
   refresh: '<path d="M20 12a8 8 0 1 1-2.3-5.7M20 4v5h-5"/>',
   check: '<path d="m5 12.5 4.5 4.5L19 7.5"/>',
   logout: '<path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3M10 16l-4-4 4-4M6 12h10"/>',
+  pdf: '<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8Z"/><path d="M14 3v5h5"/><path d="M8.5 17v-4h1.3a1.2 1.2 0 0 1 0 2.4H8.5M13 13v4h.8a1.6 1.6 0 0 0 1.6-1.6v-.8a1.6 1.6 0 0 0-1.6-1.6Z"/>',
+  play: '<circle cx="12" cy="12" r="9"/><path d="m10 8.5 5.5 3.5-5.5 3.5Z" fill="currentColor"/>',
+  slides:
+    '<rect x="3" y="4" width="18" height="12" rx="1.5"/><path d="M12 16v4M8.5 20h7M7 12.5l3-3 2.5 2 4.5-4"/>',
+  doc: '<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8Z"/><path d="M14 3v5h5M8.5 12h7M8.5 15h7M8.5 18h4"/>',
+  image:
+    '<rect x="3.5" y="4.5" width="17" height="15" rx="2"/><circle cx="9" cy="10" r="1.8"/><path d="m4 18 5.5-5 4 3.5 2.5-2 4 3.5"/>',
+  audio: '<path d="M4 10v4M8 7v10M12 4v16M16 8v8M20 11v2"/>',
+  code: '<path d="m8.5 7-5 5 5 5M15.5 7l5 5-5 5M13.5 4.5l-3 15"/>',
+  translate:
+    '<path d="M3.5 5.5h9M8 3.5v2M10.5 5.5c-.8 3.6-3 6.4-6.5 8M6 8.5c1 2.2 2.8 3.9 5 5"/><path d="m12.5 20.5 4-9.5 4 9.5M14 17h5"/>',
+  mindmap:
+    '<circle cx="12" cy="12" r="2.6"/><circle cx="4.5" cy="6" r="1.8"/><circle cx="19.5" cy="6" r="1.8"/><circle cx="4.5" cy="18" r="1.8"/><circle cx="19.5" cy="18" r="1.8"/><path d="m6 7.2 4 3.2M18 7.2l-4 3.2M6 16.8l4-3.2M18 16.8l-4-3.2"/>',
+  deck: '<rect x="6.5" y="3.5" width="14" height="10" rx="1.5"/><path d="M3.5 7.5v10a1.5 1.5 0 0 0 1.5 1.5h12"/><path d="m10.5 10.5 2-2 1.8 1.4 3-3"/>',
+  star: '<path d="m12 3.5 2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.8l-5.2 2.8 1-5.8-4.3-4.1 5.9-.9Z"/>',
+  notes:
+    '<rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 2.5v3M15 2.5v3M8.5 10h7M8.5 13.5h7M8.5 17h4"/>',
 };
 function icon(name, cls = '') {
   return `<svg class="ico ${cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${iconPaths[name] || iconPaths.spark}</svg>`;
@@ -665,12 +705,52 @@ function kindIcon(item) {
   if (item.kind === 'drive' || item.file) return item.kind === 'drive' && !item.type ? 'drive' : 'file';
   return 'chat';
 }
+// Every kind of file gets its own colour, icon, icon shape and label. Study aids made from a book are
+// recognised by their name; everything else by its Drive file type, or its extension for older rows.
+const fileTypes = {
+  translation: { icon: 'translate', ar: 'ترجمة', en: 'Translation' },
+  mindmap: { icon: 'mindmap', ar: 'خريطة ذهنية', en: 'Mind map' },
+  deck: { icon: 'deck', ar: 'سلايدز ملخص', en: 'Summary deck' },
+  keypoints: { icon: 'star', ar: 'أهم النقاط', en: 'Key points' },
+  summary: { icon: 'notes', ar: 'ملخص', en: 'Summary' },
+  pdf: { icon: 'pdf', ar: 'PDF', en: 'PDF' },
+  video: { icon: 'play', ar: 'فيديو', en: 'Video', action: ['شاهد الفيديو', 'Watch'] },
+  slides: { icon: 'slides', ar: 'عرض تقديمي', en: 'Slides' },
+  doc: { icon: 'doc', ar: 'مستند', en: 'Document' },
+  image: { icon: 'image', ar: 'صورة', en: 'Image', action: ['اعرض الصورة', 'View'] },
+  audio: { icon: 'audio', ar: 'تسجيل صوتي', en: 'Audio', action: ['اسمع', 'Listen'] },
+  code: { icon: 'code', ar: 'كود', en: 'Code' },
+  file: { icon: 'file', ar: 'ملف', en: 'File' },
+};
+function fileType(item) {
+  if (!item.file) return '';
+  const name = `${item.title || ''} ${item.titleAr || ''}`,
+    mime = item.mime || '',
+    ext = (name.trim().match(/\.(\w{2,5})$/)?.[1] || '').toLowerCase(),
+    pdf = mime === 'application/pdf' || ext === 'pdf';
+  if (pdf && /ترجمة|translation/i.test(name)) return 'translation';
+  if (pdf && /خريطة ذهنية|mind ?map/i.test(name)) return 'mindmap';
+  if (pdf && /سلايدز|slide ?deck/i.test(name)) return 'deck';
+  if (pdf && /أهم النقاط|key ?points/i.test(name)) return 'keypoints';
+  if (pdf && /ملخص|summary/i.test(name)) return 'summary';
+  if (mime.startsWith('video/') || /^(mp4|mov|mkv|webm|3gp|avi)$/.test(ext)) return 'video';
+  if (mime.startsWith('audio/') || /^(mp3|m4a|wav|ogg)$/.test(ext)) return 'audio';
+  if (mime.startsWith('image/') || /^(jpe?g|png|gif|webp|heic)$/.test(ext)) return 'image';
+  if (/presentation|powerpoint/.test(mime) || /^(pptx?|key)$/.test(ext)) return 'slides';
+  if (pdf) return 'pdf';
+  if (/document|msword|text\/plain|rtf/.test(mime) || /^(docx?|txt|rtf)$/.test(ext)) return 'doc';
+  if (/python|javascript|html|json/.test(mime) || /^(py|js|html|cpp|java|json|m)$/.test(ext)) return 'code';
+  return 'file';
+}
+const typeLabel = (type) => (lang === 'ar' ? fileTypes[type].ar : fileTypes[type].en);
 const safeHref = (u) => (/^https?:\/\//i.test(String(u || '')) ? attr(u) : '#');
 function card(item, i) {
   const title = itemTitle(item),
     isFolder = item.type === 'folder',
-    note = cardNote(item);
-  return `<article class="group-card reveal kind-${attr(item.kind || 'link')}" data-category="${attr(item.category || '')}" style="--delay:${Math.min(i % 6, 5) * 50}ms"><div class="card-top"><span class="card-icon">${icon(kindIcon(item))}</span><span class="card-category">${esc(categoryTitle(item))}</span></div><h3>${esc(title)}</h3>${note ? `<p>${esc(note)}</p>` : ''}<a class="card-link" href="${safeHref(item.url)}" target="_blank" rel="noopener noreferrer">${item.file ? t('download') : isFolder ? t('browseDrive') : t('open')} ${icon('arrow')}<span class="visually-hidden"> · ${esc(title)}</span></a></article>`;
+    note = cardNote(item),
+    type = fileType(item),
+    action = type && fileTypes[type].action ? fileTypes[type].action[lang === 'ar' ? 0 : 1] : '';
+  return `<article class="group-card reveal kind-${attr(item.kind || 'link')}${type ? ` type-card type-${type}` : ''}" data-category="${attr(item.category || '')}" style="--delay:${Math.min(i % 6, 5) * 50}ms"><div class="card-top"><span class="card-icon">${icon(type ? fileTypes[type].icon : kindIcon(item))}</span>${type ? `<span class="type-badge">${esc(typeLabel(type))}</span>` : ''}<span class="card-category">${esc(categoryTitle(item))}</span></div><h3>${esc(title)}</h3>${note ? `<p>${esc(note)}</p>` : ''}<a class="card-link" href="${safeHref(item.url)}" target="_blank" rel="noopener noreferrer">${action || (item.file ? t('download') : isFolder ? t('browseDrive') : t('open'))} ${icon('arrow')}<span class="visually-hidden"> · ${esc(title)}</span></a></article>`;
 }
 function esc(s = '') {
   return String(s).replace(
@@ -685,13 +765,22 @@ function attr(s = '') {
 function atom(size = '') {
   const orbit = 'M20 200a180 66 0 1 0 360 0a180 66 0 1 0-360 0';
   const ring = (deg, dur, cls) =>
-    `<g transform="rotate(${deg} 200 200)"><ellipse cx="200" cy="200" rx="180" ry="66" class="atom-ring"/><circle r="7" class="atom-electron ${cls}"><animateMotion dur="${dur}s" repeatCount="indefinite" path="${orbit}"/></circle></g>`;
-  return `<div class="atom ${size}"><svg viewBox="0 0 400 400" aria-hidden="true">${ring(0, 7, 'gold')}${ring(60, 9, 'mint')}${ring(120, 11, 'gold')}</svg><div class="atom-nucleus"><span>C</span></div></div>`;
+    `<g transform="rotate(${deg} 200 200)"><ellipse cx="200" cy="200" rx="180" ry="66" class="atom-ring"/><circle r="13" fill="url(#glow-${cls})"><animateMotion dur="${dur}s" repeatCount="indefinite" path="${orbit}"/></circle></g>`;
+  // The electron glow is a gradient, not a CSS filter, so the moving dots stay cheap to draw.
+  const glow = (cls) =>
+    `<radialGradient id="glow-${cls}"><stop offset="0.5" class="atom-electron ${cls}"/><stop offset="0.6" class="atom-electron ${cls}" stop-opacity="0.45"/><stop offset="1" class="atom-electron ${cls}" stop-opacity="0"/></radialGradient>`;
+  return `<div class="atom ${size}"><svg viewBox="0 0 400 400" aria-hidden="true"><defs>${glow('gold')}${glow('mint')}</defs>${ring(0, 7, 'gold')}${ring(60, 9, 'mint')}${ring(120, 11, 'gold')}</svg><div class="atom-nucleus"><span>C</span></div></div>`;
 }
 function atomArt() {
   // Three tilted orbits with electrons; the nucleus carries the brand letter.
   return `<div class="hero-art" aria-hidden="true">${atom()}<div class="float-card float-one"><span class="float-icon">${icon('users')}</span><span><b>${fmt(db.subjects?.length)} ${t('statGroups')}</b><small>${t('latest')}</small></span></div><div class="float-card float-two"><span class="float-icon gold">${icon('shield')}</span><span><b>${t('officialLabel')}</b><small>2026 — 2030</small></span></div></div>`;
 }
+// Each word of the hero title rises in on its own, one after another.
+const words = (text) =>
+  text
+    .split(' ')
+    .map((w, i) => `<span class="word" style="--w:${i}">${esc(w)}</span>`)
+    .join(' ');
 function home() {
   const stats = [
     [db.subjects?.length, 'statGroups'],
@@ -699,7 +788,7 @@ function home() {
     [db.advising?.length, 'statAdvising'],
     [db.official?.length, 'statOfficial'],
   ];
-  return `<main class="home"><section class="hero"><div class="hero-copy"><div class="eyebrow"><span class="eyebrow-dot"></span>${t('heroTag')}</div><h1 tabindex="-1">${t('heroLead')}<br><span class="hero-accent">${t('heroAccent')}<svg viewBox="0 0 300 18" preserveAspectRatio="none" aria-hidden="true"><path d="M3 13C60 5 140 3 297 9"/></svg></span>.</h1><p>${t('heroCopy')}</p><div class="hero-actions"><a class="button primary" href="/subjects" data-route="/subjects">${t('explore')} ${icon('arrow')}</a><a class="button ghost" href="/lectures" data-route="/lectures">${icon('folder')} ${t('lectures')}</a></div></div>${atomArt()}</section><section class="stats" aria-label="${lang === 'ar' ? 'أرقام الموقع' : 'Site numbers'}">${stats.map(([n, k]) => `<div class="stat reveal"><b>${fmt(n)}</b><span>${t(k)}</span></div>`).join('')}</section><section class="home-bottom"><div class="bottom-heading"><span class="section-index">${t('heroKicker')}</span><h2>${t('sectionsTitle')}</h2><p>${t('sectionsCopy')}</p></div><div class="quick-grid">${sections
+  return `<main class="home"><section class="hero"><div class="hero-copy"><div class="eyebrow"><span class="eyebrow-dot"></span>${t('heroTag')}</div><h1 tabindex="-1">${words(t('heroLead'))}<br><span class="hero-accent">${t('heroAccent')}<svg viewBox="0 0 300 18" preserveAspectRatio="none" aria-hidden="true"><path d="M3 13C60 5 140 3 297 9"/></svg></span>.</h1><p>${t('heroCopy')}</p><div class="hero-actions"><a class="button primary" href="/subjects" data-route="/subjects">${t('explore')} ${icon('arrow')}</a><a class="button ghost" href="/lectures" data-route="/lectures">${icon('folder')} ${t('lectures')}</a></div></div>${atomArt()}</section><section class="stats" aria-label="${lang === 'ar' ? 'أرقام الموقع' : 'Site numbers'}">${stats.map(([n, k]) => `<div class="stat reveal"><b data-count="${Number(n) || 0}">${fmt(n)}</b><span>${t(k)}</span></div>`).join('')}</section><section class="home-bottom"><div class="bottom-heading"><span class="section-index">${t('heroKicker')}</span><h2>${t('sectionsTitle')}</h2><p>${t('sectionsCopy')}</p></div><div class="quick-grid">${sections
     .map(
       (s, i) =>
         `<a class="quick-card element-tile reveal" href="${s.path}" data-route="${s.path}" style="--delay:${i * 70}ms"><span class="tile-num">${s.num}</span><span class="tile-icon">${icon(s.icon)}</span><span class="tile-symbol" aria-hidden="true">${s.sym}</span><span class="quick-name">${t(s.key)}<small>${t(s.sub)}</small></span>${icon('arrow', 'quick-arrow')}</a>`,
@@ -730,12 +819,24 @@ function filterRow(categories, items, placeholder) {
       '',
     )}</div><label class="search">${icon('search')}<input id="search" type="search" placeholder="${placeholder}" aria-label="${placeholder}"></label></div>`;
 }
+// One coloured segment per file type, sized by how many files of that type the library holds.
+function typeFilters(items) {
+  const counts = {};
+  for (const item of items) {
+    const type = fileType(item);
+    if (type) counts[type] = (counts[type] || 0) + 1;
+  }
+  const types = Object.keys(fileTypes).filter((type) => counts[type]),
+    total = types.reduce((sum, type) => sum + counts[type], 0);
+  if (!types.length) return '';
+  return `<div class="type-panel reveal"><div class="type-mix" role="img" aria-label="${lang === 'ar' ? 'توزيع أنواع الملفات' : 'File types in the library'}">${types.map((type, i) => `<span class="type-${type}" style="--share:${counts[type] / total};--i:${i}" title="${attr(typeLabel(type))} · ${fmt(counts[type])}"></span>`).join('')}</div><div class="type-filters" role="group" aria-label="${lang === 'ar' ? 'تصفية حسب نوع الملف' : 'Filter by file type'}"><button class="type-filter active" type="button" data-type="all" aria-pressed="true">${icon('spark')}<span>${lang === 'ar' ? 'كل الأنواع' : 'All types'}</span><b>${fmt(total)}</b></button>${types.map((type) => `<button class="type-filter type-${type}" type="button" data-type="${type}" aria-pressed="false">${icon(fileTypes[type].icon)}<span>${esc(typeLabel(type))}</span><b>${fmt(counts[type])}</b></button>`).join('')}</div></div>`;
+}
 function lectureLibrary(title, desc) {
   const items = db.driveFiles || db.lectures || [],
     categories = [...new Set(items.map((x) => x.category).filter(Boolean))];
   return `<main class="page lecture-library">${pageHeading('lectures', title, desc, `<p class="drive-path-note">${icon('drive')} <span>${fmt(items.length)} ${t('indexedItems')} · ${t('flatLibrary')}</span></p>`)}${
     items.length
-      ? `${filterRow(categories, items, t('searchFiles'))}<div id="drive-tree" class="drive-tree"></div>`
+      ? `${filterRow(categories, items, t('searchFiles'))}${typeFilters(items)}<div id="drive-tree" class="drive-tree"></div>`
       : `<div class="empty-state">${icon('folder')}<h2>${t('emptyFiles')}</h2></div>`
   }</main>`;
 }
@@ -1378,6 +1479,8 @@ function render() {
   // The menu backdrop lives on <body>, which render() does not rebuild; clear it on every page change.
   document.body.classList.remove('menu-open');
   app.innerHTML = shell(content);
+  startMotion();
+  moleculeField();
   document.querySelectorAll('[data-route]').forEach((a) =>
     a.addEventListener('click', (e) => {
       if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
@@ -1530,8 +1633,10 @@ function wireLectureFilters() {
     search = document.querySelector('#search');
   let filter = 'all',
     query = '',
-    current = 'root';
+    current = 'root',
+    typeFilter = 'all';
   const hierarchy = driveHierarchy(items);
+  for (const node of hierarchy.nodes) node.fileType = fileType(node.item);
   function draw() {
     const selected = hierarchy.nodes.filter((n) => filter === 'all' || n.item.category === filter),
       q = query.trim().toLocaleLowerCase();
@@ -1547,22 +1652,28 @@ function wireLectureFilters() {
         // Year roots always appear oldest first: 2024/2025, 2025/2026, 2026/2027.
         (parent ? 0 : String(x.item.category).localeCompare(String(y.item.category))),
     );
-    if (q)
+    // A search or a file-type filter looks through every folder, not just the open one.
+    const typed = typeFilter !== 'all',
+      flat = q || typed;
+    if (flat)
       entries = hierarchy.nodes.filter(
         (n) =>
           (filter === 'all' || n.item.category === filter) &&
-          `${n.item.title || ''} ${n.item.titleAr || ''} ${n.item.titleEn || ''} ${n.item.note || ''} ${n.item.category || ''}`
-            .toLocaleLowerCase()
-            .includes(q),
+          (!typed || n.fileType === typeFilter) &&
+          (!q ||
+            `${n.item.title || ''} ${n.item.titleAr || ''} ${n.item.titleEn || ''} ${n.item.note || ''} ${n.item.category || ''}`
+              .toLocaleLowerCase()
+              .includes(q)),
       );
+    if (typed) parent = null;
     // Searching 2,000+ catalog rows can match hundreds of cards; render the first batch to stay responsive.
     const total = entries.length,
       limit = 120;
-    if (q && total > limit) entries = entries.slice(0, limit);
-    const searchNote = q
+    if (flat && total > limit) entries = entries.slice(0, limit);
+    const searchNote = flat
       ? `<p class="search-count" role="status">${lang === 'ar' ? `${fmt(total)} نتيجة${total > limit ? ` · يظهر أول ${fmt(limit)}، دقّق البحث للمزيد` : ''}` : `${fmt(total)} results${total > limit ? ` · showing the first ${fmt(limit)}, refine your search` : ''}`}</p>`
       : '';
-    const crumb = (parent ? driveCrumbs(parent, hierarchy.nodes) : '') + searchNote;
+    const crumb = (parent && !typed ? driveCrumbs(parent, hierarchy.nodes) : '') + searchNote;
     tree.innerHTML = `${crumb}${parent ? `<div class="drive-current"><span>${lang === 'ar' ? 'محتويات المجلد' : 'Folder contents'}</span><a href="${safeHref(parent.item.url)}" target="_blank" rel="noopener noreferrer">${t('browseDrive')} ${icon('arrow')}</a></div>` : ''}<div class="drive-browser-grid">${entries.map((n) => (n.item.type === 'folder' ? driveFolderCard(n) : card(n.item, n.index))).join('') || `<div class="empty-state compact">${q ? t('noResults') : lang === 'ar' ? 'هذا المجلد فارغ.' : 'This folder is empty.'}</div>`}</div>`;
     observe();
   }
@@ -1581,6 +1692,18 @@ function wireLectureFilters() {
       (b.onclick = () => {
         setActiveFilter(b);
         filter = b.dataset.filter;
+        current = 'root';
+        draw();
+      }),
+  );
+  document.querySelectorAll('.type-filter').forEach(
+    (b) =>
+      (b.onclick = () => {
+        document.querySelectorAll('.type-filter').forEach((x) => {
+          x.classList.toggle('active', x === b);
+          x.setAttribute('aria-pressed', String(x === b));
+        });
+        typeFilter = b.dataset.type;
         current = 'root';
         draw();
       }),
@@ -1608,8 +1731,112 @@ function observe() {
     { threshold: 0.08 },
   );
   document.querySelectorAll('.reveal').forEach((e) => io.observe(e));
+  countUp();
   // SVG motion paths ignore CSS media queries, so stop the orbiting electrons explicitly.
   if (reduceMotion()) document.querySelectorAll('.atom svg').forEach((svg) => svg.pauseAnimations?.());
+}
+// Behind the home hero: a drifting network of atoms joined by bonds, drawn on a canvas. It only runs
+// while the hero is on screen and the tab is visible, and stays still for reduced-motion visitors.
+function moleculeField() {
+  const hero = document.querySelector('.hero');
+  if (!hero) return;
+  const canvas = document.createElement('canvas');
+  canvas.className = 'molecule-field';
+  canvas.setAttribute('aria-hidden', 'true');
+  hero.prepend(canvas);
+  const ctx = canvas.getContext('2d'),
+    css = getComputedStyle(document.documentElement),
+    colors = ['--primary', '--gold', '--mint'].map((v) => css.getPropertyValue(v).trim() || '#7fc8a0');
+  let w = 0,
+    h = 0,
+    running = false,
+    raf = 0;
+  const nodes = Array.from({ length: 46 }, (_, i) => ({
+    x: Math.random(),
+    y: Math.random(),
+    vx: (Math.random() - 0.5) * 0.0006,
+    vy: (Math.random() - 0.5) * 0.0006,
+    r: 1.5 + Math.random() * 2.5,
+    c: colors[i % 3],
+  }));
+  const size = () => {
+    const dpr = Math.min(devicePixelRatio || 1, 2);
+    w = hero.clientWidth;
+    h = hero.clientHeight;
+    canvas.width = w * dpr;
+    canvas.height = h * dpr;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  };
+  const draw = () => {
+    // The hero is rebuilt on every page change; a canvas left behind stops its loop.
+    if (!canvas.isConnected) return (running = false);
+    ctx.clearRect(0, 0, w, h);
+    for (const n of nodes) {
+      n.x = (n.x + n.vx + 1) % 1;
+      n.y = (n.y + n.vy + 1) % 1;
+    }
+    ctx.lineWidth = 1;
+    for (let i = 0; i < nodes.length; i++)
+      for (let j = i + 1; j < nodes.length; j++) {
+        const a = nodes[i],
+          b = nodes[j],
+          d = Math.hypot((a.x - b.x) * w, (a.y - b.y) * h);
+        if (d > 130) continue;
+        ctx.globalAlpha = (1 - d / 130) * 0.35;
+        ctx.strokeStyle = a.c;
+        ctx.beginPath();
+        ctx.moveTo(a.x * w, a.y * h);
+        ctx.lineTo(b.x * w, b.y * h);
+        ctx.stroke();
+      }
+    ctx.globalAlpha = 0.8;
+    for (const n of nodes) {
+      ctx.fillStyle = n.c;
+      ctx.beginPath();
+      ctx.arc(n.x * w, n.y * h, n.r, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    if (running) raf = requestAnimationFrame(draw);
+  };
+  size();
+  draw();
+  if (reduceMotion()) return;
+  const setRunning = (on) => {
+    if (on === running) return;
+    running = on;
+    if (on) raf = requestAnimationFrame(draw);
+    else cancelAnimationFrame(raf);
+  };
+  let onScreen = true;
+  new IntersectionObserver(([e]) => {
+    onScreen = e.isIntersecting;
+    setRunning(onScreen && document.visibilityState === 'visible' && canvas.isConnected);
+  }).observe(canvas);
+  document.addEventListener('visibilitychange', () =>
+    setRunning(onScreen && document.visibilityState === 'visible' && canvas.isConnected),
+  );
+  new ResizeObserver(size).observe(hero);
+}
+// The home-page numbers count up from zero the first time they come into view.
+function countUp() {
+  const numbers = [...document.querySelectorAll('[data-count]')];
+  if (!numbers.length || reduceMotion()) return;
+  const io = new IntersectionObserver((entries) => {
+    for (const entry of entries) {
+      if (!entry.isIntersecting) continue;
+      io.unobserve(entry.target);
+      const el = entry.target,
+        target = Number(el.dataset.count),
+        start = performance.now();
+      const step = (now) => {
+        const p = Math.min(1, (now - start) / 1400);
+        el.textContent = fmt(Math.round(target * (1 - (1 - p) ** 3)));
+        if (p < 1) requestAnimationFrame(step);
+      };
+      requestAnimationFrame(step);
+    }
+  });
+  numbers.forEach((n) => io.observe(n));
 }
 function verifyProfilePersistence() {
   try {
@@ -2294,14 +2521,14 @@ function onboarding(force = false, legacyProfile = null) {
 (async () => {
   importMovedData();
   await resetOldProfileSession();
-  try {
-    siteSnapshot = await fetch('/api/site').then((r) => r.text());
-    db = JSON.parse(siteSnapshot);
-    emailConfigured = db.emailNotificationsEnabled === true;
-    firebaseEnabled = db.firebaseAuthEnabled === true;
-    phoneAuthEnabled = db.phoneAuthEnabled === true;
-  } catch {}
+  const fromCache = cachedSite();
+  if (!fromCache)
+    try {
+      applySite(await fetch('/api/site').then((r) => r.text()));
+    } catch {}
   render();
   verifyProfilePersistence();
   onboarding();
+  // A page drawn from the saved copy fetches fresh data straight away and redraws only if it changed.
+  if (fromCache) refreshSiteData();
 })();

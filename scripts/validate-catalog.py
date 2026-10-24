@@ -145,7 +145,7 @@ def structure_errors(catalog, year_roots):
 
 
 def key(row):
-    return (row.get('id'), row.get('parentId'), row.get('title'), row.get('type'), row.get('url'))
+    return (row.get('id'), row.get('parentId'), row.get('title'), row.get('type'), row.get('url'), row.get('mime'))
 
 
 def summary(row):
@@ -174,7 +174,7 @@ def diff(old, new, year_roots):
                 buckets['renamed'].append({**summary(b), 'from': a.get('title')})
             if a.get('parentId') != b.get('parentId'):
                 buckets['moved'].append({**summary(b), 'fromNote': a.get('note')})
-            if (a.get('type'), a.get('url')) != (b.get('type'), b.get('url')):
+            if (a.get('type'), a.get('url'), a.get('mime')) != (b.get('type'), b.get('url'), b.get('mime')):
                 buckets['changed'].append(summary(b))
         # Stable order inside each bucket so the same Drive state always gives the same report.
         for name in buckets:
