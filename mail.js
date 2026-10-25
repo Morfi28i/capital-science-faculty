@@ -1,23 +1,68 @@
 // Branded emails (sign-in link, password reset, email confirmation, new message) sent from the site's own Gmail.
-// Needs GMAIL_USER and GMAIL_APP_PASSWORD (a Google "app password"). Without them the browser falls back to
-// Firebase's built-in plain emails. For local testing, MAIL_PREVIEW_DIR writes each email as an .html file.
+// Needs GMAIL_USER plus either GMAIL_CLIENT_ID/GMAIL_CLIENT_SECRET/GMAIL_REFRESH_TOKEN (Gmail API over HTTPS,
+// which works on hosts that block SMTP, such as Render's free plan) or GMAIL_APP_PASSWORD (SMTP). Without them
+// the browser falls back to Firebase's built-in plain emails. For local testing, MAIL_PREVIEW_DIR writes each email as an .html file.
 import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import nodemailer from 'nodemailer';
+import MailComposer from 'nodemailer/lib/mail-composer/index.js';
 
 const SITE = 'https://capital-science-faculty.vercel.app';
 const FROM_NAME = 'Capital Science · كلية العلوم';
 
+const gmailApiConfigured = () =>
+  Boolean(process.env.GMAIL_CLIENT_ID && process.env.GMAIL_CLIENT_SECRET && process.env.GMAIL_REFRESH_TOKEN);
+
 export const mailConfigured = () =>
-  Boolean((process.env.GMAIL_USER && process.env.GMAIL_APP_PASSWORD) || process.env.MAIL_PREVIEW_DIR);
+  Boolean(
+    (process.env.GMAIL_USER && (gmailApiConfigured() || process.env.GMAIL_APP_PASSWORD)) ||
+      process.env.MAIL_PREVIEW_DIR,
+  );
 
 let transport;
 function transporter() {
   transport ||= nodemailer.createTransport({
     service: 'gmail',
     auth: { user: process.env.GMAIL_USER, pass: process.env.GMAIL_APP_PASSWORD.replace(/\s+/g, '') },
+    // Fail fast when SMTP is blocked so the browser falls back to Firebase's email instead of hanging for minutes.
+    connectionTimeout: 8000,
+    greetingTimeout: 8000,
+    socketTimeout: 15000,
   });
   return transport;
+}
+
+let gmailToken = { value: '', expires: 0 };
+async function gmailAccessToken() {
+  if (gmailToken.value && Date.now() < gmailToken.expires) return gmailToken.value;
+  const response = await fetch('https://oauth2.googleapis.com/token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      client_id: process.env.GMAIL_CLIENT_ID,
+      client_secret: process.env.GMAIL_CLIENT_SECRET,
+      refresh_token: process.env.GMAIL_REFRESH_TOKEN,
+      grant_type: 'refresh_token',
+    }),
+    signal: AbortSignal.timeout(10000),
+  });
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(`Gmail token refresh failed: ${result.error || response.status}`);
+  gmailToken = { value: result.access_token, expires: Date.now() + (result.expires_in - 60) * 1000 };
+  return gmailToken.value;
+}
+
+async function sendViaGmailApi(message) {
+  const raw = (await new MailComposer(message).compile().build()).toString('base64url');
+  const response = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/send', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${await gmailAccessToken()}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ raw }),
+    signal: AbortSignal.timeout(15000),
+  });
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(`Gmail API send failed: ${result.error?.message || response.status}`);
+  return result;
 }
 
 const esc = (value) =>
@@ -139,7 +184,7 @@ export async function sendAuthEmail(kind, email, link, extra = {}) {
     await writeFile(file, html);
     return { preview: file };
   }
-  return transporter().sendMail({
+  const message = {
     from: { name: FROM_NAME, address: process.env.GMAIL_USER },
     to: email,
     subject: extra.subject
@@ -147,5 +192,6 @@ export async function sendAuthEmail(kind, email, link, extra = {}) {
       : copy[kind].subject,
     html,
     text: authEmailText(kind, email, link, extra),
-  });
+  };
+  return gmailApiConfigured() ? sendViaGmailApi(message) : transporter().sendMail(message);
 }
