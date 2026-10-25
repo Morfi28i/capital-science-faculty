@@ -1951,7 +1951,85 @@ function generatedAvatar(gender) {
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160"><defs><linearGradient id="a" x2="1" y2="1"><stop stop-color="${accent}"/><stop offset="1" stop-color="#f2eadb"/></linearGradient></defs><rect width="160" height="160" rx="80" fill="url(#a)"/><circle cx="80" cy="67" r="31" fill="${skin}"/><path d="M48 63c1-33 63-42 65 1-12-8-19-21-20-26-9 12-25 21-45 25Z" fill="${coat}"/><path d="M30 160c2-39 22-57 50-57s49 18 51 57" fill="${coat}"/><path d="M66 86q14 10 28 0" fill="none" stroke="#805c50" stroke-width="2" stroke-linecap="round"/><circle cx="68" cy="69" r="2" fill="#453c39"/><circle cx="92" cy="69" r="2" fill="#453c39"/></svg>`;
   return 'data:image/svg+xml,' + encodeURIComponent(svg);
 }
+// ---------- Password rules ----------
+// A new password needs 8+ characters with both letters and numbers, and must not be a common password
+// or the email's name part. Each rule is shown as a live checklist under the field.
+const commonPasswords = new Set([
+  '12345678',
+  '123456789',
+  '1234567890',
+  'password',
+  'password1',
+  'password123',
+  'qwerty123',
+  'qwertyui',
+  '11111111',
+  '00000000',
+  'abcd1234',
+  'abc12345',
+  'iloveyou',
+  'admin123',
+  'welcome1',
+  'ahmed1234',
+  'mohamed123',
+  'egypt123',
+  '12341234',
+  'aa123456',
+  'a1234567',
+  'p@ssw0rd',
+  'passw0rd',
+  '1q2w3e4r',
+]);
+const passwordRules = [
+  ['len', (v) => v.length >= 8, ['٨ حروف أو أكتر', '8 or more characters']],
+  ['letter', (v) => /\p{L}/u.test(v), ['فيها حروف', 'Contains a letter']],
+  ['digit', (v) => /\d/.test(v), ['فيها أرقام', 'Contains a number']],
+  [
+    'common',
+    (v, email = '') =>
+      Boolean(v) &&
+      !commonPasswords.has(v.toLowerCase()) &&
+      new Set(v.toLowerCase()).size >= 4 &&
+      !(
+        email &&
+        v.toLowerCase().includes(email.split('@')[0].toLowerCase()) &&
+        email.split('@')[0].length > 2
+      ),
+    ['مش سهلة التخمين', 'Not easy to guess'],
+  ],
+];
+function passwordProblem(value, email = '') {
+  const failed = passwordRules.find(([, ok]) => !ok(value, email));
+  if (!failed) return '';
+  return {
+    len: L2('كلمة المرور لازم تكون ٨ حروف أو أكتر.', 'Use at least 8 characters.'),
+    letter: L2('كلمة المرور لازم يكون فيها حروف.', 'Include at least one letter.'),
+    digit: L2('كلمة المرور لازم يكون فيها أرقام.', 'Include at least one number.'),
+    common: L2(
+      'كلمة المرور دي سهلة التخمين. اختار واحدة تانية.',
+      'That password is too easy to guess. Choose another.',
+    ),
+  }[failed[0]];
+}
+const L2 = (ar, en) => (lang === 'ar' ? ar : en);
 // ---------- Sign-in screen extras ----------
+// The sign-up stages shown in the stepper: icon, Arabic and English name.
+const obStages = [
+  ['compass', 'الطريقة', 'Method'],
+  ['mail', 'التحقق', 'Verify'],
+  ['shield', 'كلمة المرور', 'Password'],
+  ['user', 'بياناتك', 'Details'],
+  ['spark', 'صورتك', 'Photo'],
+];
+function obStageOf(step) {
+  if (step.querySelector('.signup-success')) return obStages.length + 1;
+  if (step.querySelector('#photo-form')) return 5;
+  if (step.querySelector('#details-form')) return 4;
+  if (step.querySelector('#password-form')) return 3;
+  if (step.querySelector('#email-form, #phone-form, #resend-link, #email-link-form, #login-form')) return 2;
+  if (step.querySelector('.auth-choice-grid')) return 1;
+  return 0;
+}
 // Short science facts that rotate on the green panel while someone signs up.
 const facts = [
   [
@@ -1993,6 +2071,57 @@ function rotateFacts(ov) {
 // Run on every step: the title arrives word by word, a password field gets a strength meter, the
 // "check your email" step gets a flying letter, and the success step throws confetti.
 function decorateStep(step) {
+  // The stepper shows the real stage of the current screen, so reopening from an email link or going
+  // back never makes it jump.
+  const ov = step.closest('.onboarding');
+  if (ov) {
+    const stage = obStageOf(step);
+    ov.dataset.stage = stage;
+    ov.style.setProperty('--progress', stage / obStages.length);
+    ov.querySelectorAll('.ob-stepper li').forEach((li, i) => {
+      li.classList.toggle('done', i + 1 < stage);
+      li.classList.toggle('current', i + 1 === stage);
+      li.toggleAttribute('aria-current', i + 1 === stage);
+    });
+  }
+  // Fields: an example email types itself into an empty email box, and every keystroke makes the
+  // field glow for a moment.
+  const emailBox = step.querySelector('input[type="email"]:not([readonly])');
+  if (emailBox && !emailBox.dataset.typing && !reduceMotion()) {
+    emailBox.dataset.typing = '1';
+    const samples = ['ahmed.mohamed@gmail.com', 'sara.science@outlook.com', 'student2026@yahoo.com'],
+      original = emailBox.placeholder;
+    let n = 0,
+      k = 0;
+    const timer = setInterval(() => {
+      if (!emailBox.isConnected) return clearInterval(timer);
+      if (emailBox.value || document.activeElement === emailBox) return (emailBox.placeholder = original);
+      const word = samples[n % samples.length];
+      k = k > word.length + 12 ? 0 : k + 1;
+      if (!k) n++;
+      emailBox.placeholder = word.slice(0, Math.min(k, word.length)) + (k <= word.length ? '|' : '');
+    }, 110);
+  }
+  step.querySelectorAll('input:not([type="hidden"]), textarea').forEach((field) => {
+    if (field.dataset.glow) return;
+    field.dataset.glow = '1';
+    field.addEventListener('input', () => {
+      field.classList.remove('keypulse');
+      void field.offsetWidth;
+      field.classList.add('keypulse');
+    });
+  });
+  // A shown error shakes the step once.
+  const error = step.querySelector('#form-error');
+  if (error && !error.dataset.watch) {
+    error.dataset.watch = '1';
+    new MutationObserver(() => {
+      if (!error.textContent.trim()) return;
+      step.classList.remove('shake');
+      void step.offsetWidth;
+      step.classList.add('shake');
+    }).observe(error, { childList: true, characterData: true, subtree: true });
+  }
   const h1 = step.querySelector('h1');
   if (h1 && !h1.dataset.split) {
     h1.dataset.split = '1';
@@ -2020,7 +2149,9 @@ function decorateStep(step) {
     const meter = document.createElement('div');
     meter.className = 'strength';
     meter.setAttribute('aria-live', 'polite');
-    meter.innerHTML = '<span><i></i><i></i><i></i><i></i></span><small></small>';
+    meter.innerHTML = `<span><i></i><i></i><i></i><i></i></span><small></small><ul class="pw-rules">${passwordRules
+      .map(([key, , [ar, en]]) => `<li data-rule="${key}">${lang === 'ar' ? ar : en}</li>`)
+      .join('')}</ul>`;
     password.closest('label').after(meter);
     const words =
       lang === 'ar' ? ['ضعيفة', 'مقبولة', 'كويسة', 'قوية جدًا'] : ['Weak', 'Fair', 'Good', 'Very strong'];
@@ -2032,8 +2163,14 @@ function decorateStep(step) {
             (v.length >= 10) +
             (/[A-Z]/.test(v) && /[a-z]/.test(v)) +
             (/\d/.test(v) && /[^A-Za-z0-9]/.test(v));
-      meter.dataset.score = score;
-      meter.querySelector('small').textContent = score ? words[score - 1] : '';
+      const email = step.closest('.onboarding')?.dataset.email || '';
+      passwordRules.forEach(([key, ok]) =>
+        meter.querySelector(`[data-rule="${key}"]`).classList.toggle('ok', ok(v, email)),
+      );
+      // A password that breaks a rule never shows as strong.
+      const capped = passwordProblem(v, email) ? Math.min(score, 1) : score;
+      meter.dataset.score = capped;
+      meter.querySelector('small').textContent = capped ? words[capped - 1] : '';
     });
   }
   if (step.querySelector('#resend-link') && !step.querySelector('.mail-fly'))
@@ -2066,9 +2203,9 @@ function onboarding(force = false, legacyProfile = null) {
   ov.setAttribute('role', 'dialog');
   ov.setAttribute('aria-modal', 'true');
   ov.setAttribute('aria-label', lang === 'ar' ? 'الدخول إلى Capital Science' : 'Join Capital Science');
-  ov.innerHTML = `<div class="onboard-left">${brand()}<div class="onboard-decoration" aria-hidden="true">${atom('small')}<p>${lang === 'ar' ? 'كل يوم بداية<br>اكتشاف جديد' : 'Every day, a new<br>discovery begins'}</p></div><div class="onboard-facts"><span class="fact-label">${icon('spark')} ${lang === 'ar' ? 'تعرف إن…' : 'Did you know…'}</span><p class="fact" id="fact"></p></div><span class="onboard-foot">A STUDENT COMMONS · EST 2026</span></div><div class="onboard-main"><div class="onboard-progress" aria-hidden="true"><i></i></div><button class="onboard-close" id="skip" aria-label="${lang === 'ar' ? 'إغلاق' : 'Close'}">${icon('close')}</button><div class="onboard-step" id="step"><span class="section-index">A SPACE FOR YOUR NEXT CHAPTER</span><h1>${t('welcome')},<br><em>curious mind.</em></h1><p>${t('intro')}</p><button class="button primary" id="begin">${t('continue')} ${icon('arrow')}</button><button class="skip-link" id="guest">${t('skip')}</button></div></div>`;
+  ov.innerHTML = `<div class="ob-bg" aria-hidden="true"><span class="ob-blob a"></span><span class="ob-blob b"></span><span class="ob-blob c"></span><span class="ob-grid"></span></div><div class="ob-shell"><div class="onboard-left">${brand()}<div class="stars" aria-hidden="true">${'<i></i>'.repeat(7)}</div><div class="onboard-decoration" aria-hidden="true">${atom('small')}<div class="helix">${Array.from({ length: 14 }, (_, i) => `<i style="--i:${i}"></i>`).join('')}</div><p>${lang === 'ar' ? 'كل يوم بداية<br>اكتشاف جديد' : 'Every day, a new<br>discovery begins'}</p></div><div class="onboard-facts"><span class="fact-label">${icon('spark')} ${lang === 'ar' ? 'تعرف إن…' : 'Did you know…'}</span><p class="fact" id="fact"></p></div><span class="onboard-foot">A STUDENT COMMONS · EST 2026</span></div><div class="onboard-main"><header class="ob-head"><ol class="ob-stepper" aria-label="${lang === 'ar' ? 'خطوات التسجيل' : 'Sign-up steps'}">${obStages.map(([ic, ar, en], i) => `<li style="--i:${i}"><span class="ob-num">${icon(ic)}</span><b>${lang === 'ar' ? ar : en}</b></li>`).join('')}</ol><button class="onboard-close" id="skip" aria-label="${lang === 'ar' ? 'إغلاق' : 'Close'}">${icon('close')}</button></header><div class="onboard-progress" aria-hidden="true"><i></i></div><div class="bubbles" aria-hidden="true">${Array.from({ length: 14 }, (_, i) => `<i style="--x:${(i * 37) % 100}%;--s:${8 + ((i * 7) % 22)}px;--d:${9 + ((i * 5) % 9)}s;--o:${-(i * 1.3)}s"></i>`).join('')}</div><div class="onboard-step" id="step"><span class="section-index">A SPACE FOR YOUR NEXT CHAPTER</span><h1>${t('welcome')},<br><em>curious mind.</em></h1><p>${t('intro')}</p><button class="button primary" id="begin">${t('continue')} ${icon('arrow')}</button><button class="skip-link" id="guest">${t('skip')}</button></div></div></div>`;
   document.body.append(ov);
-  moleculeField(ov.querySelector('.onboard-left'));
+  moleculeField(ov.querySelector('.ob-bg'));
   rotateFacts(ov);
   const main = ov.querySelector('.onboard-main');
   main.addEventListener('pointermove', (e) => {
@@ -2076,7 +2213,6 @@ function onboarding(force = false, legacyProfile = null) {
     main.style.setProperty('--mx', `${e.clientX - r.left}px`);
     main.style.setProperty('--my', `${e.clientY - r.top}px`);
   });
-  let stepsSeen = 0;
   const step = ov.querySelector('#step'),
     L = (ar, en) => (lang === 'ar' ? ar : en),
     errNode = () => ov.querySelector('#form-error');
@@ -2097,7 +2233,6 @@ function onboarding(force = false, legacyProfile = null) {
           .forEach((form) => form.addEventListener('submit', (e) => e.preventDefault()));
         step.classList.remove('step-leave');
         decorateStep(step);
-        ov.style.setProperty('--progress', Math.min(1, ++stepsSeen / 6));
         step.classList.add('step-enter');
         requestAnimationFrame(() => step.classList.add('step-ready'));
         setTimeout(() => {
@@ -2349,8 +2484,12 @@ function onboarding(force = false, legacyProfile = null) {
         button.disabled = false;
       }
     };
+    // Opened on the same device that asked for the link: the email is already known, so confirm at once.
+    if (savedEmail) step.querySelector('#email-link-form').requestSubmit();
   };
   const showPassword = async () => {
+    // The checklist under the password needs the email to warn against using its name part.
+    ov.dataset.email = email;
     await fadeTo(
       `<span class="section-index">${L('تم التحقق · كلمة المرور', 'VERIFIED · PASSWORD')}</span><h1>${L('أنشئ كلمة مرور', 'Create a password')}</h1><p>${L('اختر كلمة مرور لحماية حسابك. المثال للتوضيح فقط؛ لا تستخدمه كما هو.', 'Choose a password for your account. The example is only a reference; do not use it as-is.')}</p><form id="password-form"><label>${L('كلمة المرور', 'Password')}<input name="password" type="password" minlength="8" autocomplete="new-password" required placeholder="${L('مثال: Ahmed1234', 'Example: Ahmed1234')}"></label><label>${L('تأكيد كلمة المرور', 'Confirm password')}<input name="confirmPassword" type="password" minlength="8" autocomplete="new-password" required></label><p class="form-error" id="form-error" aria-live="polite"></p><button class="button primary" type="submit">${L('متابعة', 'Continue')} ${icon('arrow')}</button></form>`,
     );
@@ -2359,12 +2498,9 @@ function onboarding(force = false, legacyProfile = null) {
       const f = new FormData(e.currentTarget),
         password = String(f.get('password') || ''),
         confirmation = String(f.get('confirmPassword') || '');
-      if (password.length < 8 || password !== confirmation) {
-        showError(
-          password.length < 8
-            ? L('كلمة المرور يجب ألا تقل عن ٨ أحرف.', 'Use at least 8 characters.')
-            : L('كلمتا المرور غير متطابقتين.', 'The passwords do not match.'),
-        );
+      const problem = passwordProblem(password, email);
+      if (problem || password !== confirmation) {
+        showError(problem || L('كلمتا المرور غير متطابقتين.', 'The passwords do not match.'));
         return;
       }
       profileDraft = { ...profileDraft, password };

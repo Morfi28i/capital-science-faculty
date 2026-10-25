@@ -39,6 +39,7 @@ const mime = {
   '.png': 'image/png',
   '.jpg': 'image/jpeg',
   '.webp': 'image/webp',
+  '.gif': 'image/gif',
   '.pdf': 'application/pdf',
   '.webmanifest': 'application/manifest+json',
 };
@@ -412,7 +413,7 @@ async function saveDB(d) {
   }
   await writeFile(dbPath, JSON.stringify(d, null, 2));
 }
-const emailNotificationsEnabled = () => Boolean(process.env.RESEND_API_KEY);
+const emailNotificationsEnabled = () => Boolean(process.env.RESEND_API_KEY) || mailConfigured();
 // The generated config only changes at build time, so read it once instead of on every request.
 let generatedWebConfig;
 function firebaseWebConfig() {
@@ -528,6 +529,12 @@ async function sendRegistrationEmail(profile, isUpdate = false, photoAttachment 
   return response.json();
 }
 async function sendManagedEmail(to, subject, message) {
+  // The site's Gmail sends a branded notice with the message; Resend stays as the older fallback.
+  if (mailConfigured())
+    return sendAuthEmail('message', to, `${NEW_SITE}/profile`, {
+      subject: subject.slice(0, 180),
+      message: message.slice(0, 10000),
+    });
   const response = await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: {
@@ -608,6 +615,15 @@ async function api(req, res, url) {
     });
   // Branded sign-in and password-reset emails. Firebase makes the one-time link; we send it from the site's
   // Gmail. When that mail account isn't set up, the browser falls back to Firebase's own email.
+  // Links in emails lead back to whichever of our addresses the request came from.
+  const linkOrigin = () => {
+    try {
+      const from = new URL(req.headers.origin || '');
+      if (from.host === req.headers.host || trustedOrigins.has(from.host) || from.hostname === 'localhost')
+        return from.origin;
+    } catch {}
+    return NEW_SITE;
+  };
   if (req.method === 'POST' && url.pathname === '/api/auth/send-link') {
     try {
       if (!firebaseConfigured() || !mailConfigured())
@@ -617,21 +633,27 @@ async function api(req, res, url) {
         email = String(d.email || '')
           .trim()
           .toLowerCase(),
-        kind = d.kind === 'reset' ? 'reset' : 'signin';
+        kind = ['reset', 'verify'].includes(d.kind) ? d.kind : 'signin';
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
         return json(res, 400, { error: 'اكتب بريد إلكتروني صحيح.' });
       if (!withinRate(authMailRate, clientIp(req), 10) || !withinRate(authMailRate, email, 5))
         return json(res, 429, { error: 'طلبات كتير في وقت قصير. استنى شوية وجرّب تاني.' });
-      // Links lead back to whichever of our addresses the request came from.
-      let origin = NEW_SITE;
-      try {
-        const from = new URL(req.headers.origin || '');
-        if (from.host === req.headers.host || trustedOrigins.has(from.host) || from.hostname === 'localhost')
-          origin = from.origin;
-      } catch {}
+      const origin = linkOrigin();
       const { auth } = firebase();
       let link;
-      if (kind === 'reset') {
+      if (kind === 'verify') {
+        // Only an existing, still unverified account gets a verification email; others get a silent ok so
+        // the endpoint never reveals which addresses have accounts.
+        let user;
+        try {
+          user = await auth.getUserByEmail(email);
+        } catch (error) {
+          if (error.code === 'auth/user-not-found') return json(res, 200, { ok: true });
+          throw error;
+        }
+        if (user.emailVerified) return json(res, 200, { ok: true });
+        link = await auth.generateEmailVerificationLink(email, { url: `${origin}/profile` });
+      } else if (kind === 'reset') {
         try {
           await auth.getUserByEmail(email);
         } catch (error) {
@@ -820,6 +842,33 @@ async function api(req, res, url) {
       if (req.method === 'GET' && url.pathname === '/api/firebase/profile') {
         const snap = await ref.get();
         return json(res, 200, { profile: snap.exists ? snap.data() : null });
+      }
+      // Changing the account email: the confirmation link goes to the new address in the branded design.
+      if (req.method === 'POST' && url.pathname === '/api/firebase/email-change') {
+        if (!mailConfigured())
+          return json(res, 503, { code: 'mail-off', error: 'Branded email is not configured.' });
+        const d = await body(req, 4000),
+          newEmail = String(d.newEmail || '')
+            .trim()
+            .toLowerCase();
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newEmail))
+          return json(res, 400, { error: 'اكتب بريد إلكتروني صحيح.' });
+        if (!withinRate(authMailRate, decoded.uid, 5))
+          return json(res, 429, { error: 'طلبات كتير في وقت قصير. استنى شوية وجرّب تاني.' });
+        const { auth } = firebase(),
+          user = await auth.getUser(decoded.uid);
+        if (!user.email) return json(res, 400, { error: 'الحساب ده مالوش بريد حالي.' });
+        try {
+          await auth.getUserByEmail(newEmail);
+          return json(res, 409, { error: 'البريد ده مستخدم في حساب تاني.' });
+        } catch (error) {
+          if (error.code !== 'auth/user-not-found') throw error;
+        }
+        const link = await auth.generateVerifyAndChangeEmailLink(user.email, newEmail, {
+          url: `${linkOrigin()}/profile`,
+        });
+        await sendAuthEmail('verify', newEmail, link);
+        return json(res, 200, { ok: true });
       }
       if (req.method === 'GET' && url.pathname === '/api/firebase/messages') {
         const snap = await ref.collection('messages').orderBy('createdAt', 'desc').limit(150).get();
@@ -1489,7 +1538,9 @@ const publicRoot = path.join(root, 'public');
 async function sendFile(res, file, status = 200, extraHeaders = {}) {
   const ext = path.extname(file);
   // Code and pages must revalidate so a new deploy shows up at once; images rarely change and can be cached.
-  const cache = ['.svg', '.png', '.jpg', '.webp'].includes(ext) ? 'public, max-age=86400' : 'no-cache';
+  const cache = ['.svg', '.png', '.jpg', '.webp', '.gif'].includes(ext)
+    ? 'public, max-age=86400'
+    : 'no-cache';
   res.writeHead(status, {
     ...securityHeaders,
     'Content-Type': mime[ext] || 'application/octet-stream',

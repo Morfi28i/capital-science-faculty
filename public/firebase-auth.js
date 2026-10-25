@@ -119,6 +119,18 @@ export async function sendPasswordReset(email) {
 export async function requestEmailChange(newEmail) {
   const { auth, authSdk } = await services();
   if (!auth.currentUser) throw new Error('Sign in before changing your email.');
+  // The site's own Gmail sends the confirmation in the site's design; Firebase's plain email is the fallback.
+  const response = await fetch('/api/firebase/email-change', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${await auth.currentUser.getIdToken()}`,
+    },
+    body: JSON.stringify({ newEmail }),
+  });
+  if (response.ok) return;
+  const result = await response.json().catch(() => ({}));
+  if (response.status !== 503) throw new Error(result.error || 'تعذر إرسال رسالة التأكيد.');
   await authSdk.verifyBeforeUpdateEmail(auth.currentUser, newEmail);
 }
 
@@ -179,7 +191,7 @@ export async function signInEmail(email, password) {
   const result = await authSdk.signInWithEmailAndPassword(auth, email, password);
   if (!result.user.emailVerified) {
     try {
-      await authSdk.sendEmailVerification(result.user);
+      if (!(await sendBrandedEmail('verify', email))) await authSdk.sendEmailVerification(result.user);
     } finally {
       await authSdk.signOut(auth);
     }
