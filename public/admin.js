@@ -6,6 +6,12 @@ startMotion();
 let kind = 'subjects',
   items = [],
   editingId = null;
+// Google sends the admin back with #gmail=<result> after the "Connect Gmail" button.
+let gmailResult = (location.hash.match(/^#gmail=(\w+)$/) || [])[1];
+if (gmailResult) {
+  kind = 'messages';
+  history.replaceState(null, '', location.pathname);
+}
 const labels = {
   subjects: 'جروبات المواد',
   lectures: 'ملفات المحاضرات',
@@ -455,11 +461,99 @@ function chatTime(m) {
       })
     : '';
 }
+// The site's Gmail, connected once from here so branded emails go out through the Gmail API (Render's free
+// plan blocks SMTP). The secret is pasted once, kept on the server and never sent back to the browser.
+const GMAIL_CLIENT_ID = '510740844931-osj0pg080aapeqrc58cguf1oqsgsqqtt.apps.googleusercontent.com';
+const gmailClientPage = `https://console.cloud.google.com/auth/clients/${GMAIL_CLIENT_ID}?project=capital-science-mail`;
+const gmailResults = {
+  connected: 'اتربط ✓ إيميلات الموقع بقت بتتبعت من Gmail.',
+  denied: 'الربط اتلغى من شاشة Google. جرّب تاني واختار "Continue".',
+  expired: 'الطلب خلص وقته. دوس "اربط Gmail" تاني.',
+  scope: 'لازم تسيب علامة الصح على "Send email on your behalf" في شاشة Google. جرّب تاني.',
+  failed: 'Google رفض الربط. اتأكد إن الـ Client secret صح وجرّب تاني.',
+};
+const gmailErrors = {
+  bad_client: 'ده مش شكل Client ID.',
+  bad_secret: 'ده مش شكل Client secret. بيبدأ عادةً بـ GOCSPX-',
+};
+async function drawGmail() {
+  const box = document.querySelector('#gmail-box');
+  if (!box) return;
+  let st;
+  try {
+    st = await req('/api/admin/gmail');
+  } catch (error) {
+    box.innerHTML = `<h2>إيميل الموقع</h2><p class="storage-status">${esc(error.message)}</p>`;
+    return;
+  }
+  const test = `<form class="admin-form" id="gmail-test"><label class="wide">ابعت إيميل تجربة على<input name="to" type="email" dir="ltr" required placeholder="you@gmail.com"></label><div class="admin-form-actions"><button class="button primary">ابعت تجربة</button></div></form>`;
+  if (st.mode === 'env')
+    box.innerHTML = `<h2>إيميل الموقع</h2><div class="admin-row"><span>متربط ✓<small>عن طريق إعدادات Render</small></span></div>${test}`;
+  else if (st.connected)
+    box.innerHTML = `<h2>إيميل الموقع</h2><div class="admin-row"><span>متربط ✓<small dir="ltr">${esc(st.account || '')}</small></span><button class="delete" id="gmail-disconnect">فك الربط</button></div>${test}`;
+  else
+    box.innerHTML = `<h2>إيميل الموقع: اربط Gmail</h2><p>عشان إيميلات الدخول والتأكيد تتبعت من إيميل الموقع بالتصميم بتاعه. بتتعمل مرة واحدة بس:</p><ol class="admin-steps"><li>الصق الـ <b>Client secret</b> اللي نسخته من Google Cloud (بيبدأ بـ GOCSPX-). لو ضاع منك افتح <a href="${gmailClientPage}" target="_blank" rel="noopener">صفحة الـ Client</a> ودوس <b>Add secret</b>.</li><li>دوس <b>اربط Gmail</b> واختار حساب الموقع <b dir="ltr">capital.science.faculty@gmail.com</b>.</li><li>لو ظهرلك "Google hasn't verified this app" دوس <b>Advanced</b> وبعدين <b>Go to Capital Science</b>، وبعدين <b>Continue</b>.</li></ol><form class="admin-form" id="gmail-connect"><label class="wide">Client ID<input name="clientId" dir="ltr" autocomplete="off" spellcheck="false" value="${esc(st.clientId || GMAIL_CLIENT_ID)}" required></label><label class="wide">Client secret<input name="clientSecret" type="password" dir="ltr" autocomplete="off" spellcheck="false" placeholder="GOCSPX-…" ${st.clientId ? '' : 'required'}></label><div class="admin-form-actions"><button class="button primary">اربط Gmail</button></div></form><p class="admin-muted">الـ secret بيتحفظ على السيرفر بس ومبيرجعش للمتصفح.</p>`;
+  const connect = box.querySelector('#gmail-connect');
+  if (connect)
+    connect.onsubmit = async (e) => {
+      e.preventDefault();
+      const button = connect.querySelector('button');
+      button.disabled = true;
+      try {
+        const { url } = await req('/api/admin/gmail/connect', {
+          method: 'POST',
+          body: JSON.stringify({
+            clientId: connect.elements.clientId.value.trim(),
+            clientSecret: connect.elements.clientSecret.value.trim(),
+          }),
+        });
+        location.href = url;
+      } catch (error) {
+        toast(gmailErrors[error.code] || error.message);
+        button.disabled = false;
+      }
+    };
+  const testForm = box.querySelector('#gmail-test');
+  if (testForm)
+    testForm.onsubmit = async (e) => {
+      e.preventDefault();
+      const button = testForm.querySelector('button');
+      button.disabled = true;
+      try {
+        await req('/api/admin/gmail/test', {
+          method: 'POST',
+          body: JSON.stringify({ to: testForm.elements.to.value.trim() }),
+        });
+        toast('اتبعت ✓ بص على الإيميل (ولو مش لاقيه بص في الـ Spam).');
+      } catch (error) {
+        toast(error.message);
+      }
+      button.disabled = false;
+    };
+  const disconnect = box.querySelector('#gmail-disconnect');
+  if (disconnect)
+    disconnect.onclick = async () => {
+      if (!confirm('فك ربط Gmail؟ الإيميلات هترجع تتبعت بالشكل العادي بتاع Firebase.')) return;
+      try {
+        await req('/api/admin/gmail', { method: 'DELETE' });
+        toast('اتفك الربط.');
+        drawGmail();
+      } catch (error) {
+        toast(error.message);
+      }
+    };
+}
 let openThread = null;
 async function messagesDashboard() {
-  app.innerHTML = `<div class="admin-layout">${sidebar()}<main class="admin-main">${dhikrStrip()}<div class="admin-head"><div><span class="section-index">MESSAGES</span><h1>${labels.messages}</h1></div>${livePill}<a class="button ghost" href="/" target="_blank" rel="noopener">عرض الموقع</a><button class="button" id="logout">تسجيل الخروج</button></div><section class="admin-box admin-chat"><div class="admin-threads"><div class="admin-toolbar"><h2>المحادثات</h2><button class="button ghost" id="refresh-threads" type="button">تحديث</button></div><div id="thread-list" class="thread-list"><p class="admin-muted">جارٍ التحميل…</p></div></div><div class="admin-conversation" id="conversation"><p class="admin-muted conversation-empty">اختار محادثة من القايمة عشان تقراها وترد.</p></div></section><section class="admin-box"><h2>رسالة جديدة</h2><p>الرسالة بتوصل جوه الموقع في صفحة الطالب، والطالب يقدر يرد عليها. لو الإيميل متوصل بتتبعت كمان على إيميله.</p><form class="admin-form" id="email-form"><label>نوع الإرسال<select name="mode"><option value="private">شخص محدد</option><option value="all">كل المستخدمين</option></select></label><label>المستلم: ID أو بريد أو هاتف<input name="target" placeholder="معرّف الحساب أو البريد أو +20…" dir="ltr"></label><label class="wide">عنوان الرسالة<input name="subject" maxlength="180" required></label><label class="wide">نص الرسالة<textarea name="message" maxlength="10000" rows="5" required></textarea></label><div class="admin-form-actions"><button class="button primary">إرسال الرسالة</button></div></form><div class="admin-toolbar"><input id="user-search" type="search" placeholder="ابحث عن حساب بالاسم أو ID أو البريد أو الهاتف"><button class="button ghost" id="load-users">بحث</button></div><div class="admin-list" id="user-results"></div></section></main></div>`;
+  app.innerHTML = `<div class="admin-layout">${sidebar()}<main class="admin-main">${dhikrStrip()}<div class="admin-head"><div><span class="section-index">MESSAGES</span><h1>${labels.messages}</h1></div>${livePill}<a class="button ghost" href="/" target="_blank" rel="noopener">عرض الموقع</a><button class="button" id="logout">تسجيل الخروج</button></div><section class="admin-box admin-chat"><div class="admin-threads"><div class="admin-toolbar"><h2>المحادثات</h2><button class="button ghost" id="refresh-threads" type="button">تحديث</button></div><div id="thread-list" class="thread-list"><p class="admin-muted">جارٍ التحميل…</p></div></div><div class="admin-conversation" id="conversation"><p class="admin-muted conversation-empty">اختار محادثة من القايمة عشان تقراها وترد.</p></div></section><section class="admin-box" id="gmail-box"><h2>إيميل الموقع</h2><p class="admin-muted">جارٍ التحميل…</p></section><section class="admin-box"><h2>رسالة جديدة</h2><p>الرسالة بتوصل جوه الموقع في صفحة الطالب، والطالب يقدر يرد عليها. لو الإيميل متوصل بتتبعت كمان على إيميله.</p><form class="admin-form" id="email-form"><label>نوع الإرسال<select name="mode"><option value="private">شخص محدد</option><option value="all">كل المستخدمين</option></select></label><label>المستلم: ID أو بريد أو هاتف<input name="target" placeholder="معرّف الحساب أو البريد أو +20…" dir="ltr"></label><label class="wide">عنوان الرسالة<input name="subject" maxlength="180" required></label><label class="wide">نص الرسالة<textarea name="message" maxlength="10000" rows="5" required></textarea></label><div class="admin-form-actions"><button class="button primary">إرسال الرسالة</button></div></form><div class="admin-toolbar"><input id="user-search" type="search" placeholder="ابحث عن حساب بالاسم أو ID أو البريد أو الهاتف"><button class="button ghost" id="load-users">بحث</button></div><div class="admin-list" id="user-results"></div></section></main></div>`;
   wireShell();
   startLive();
+  drawGmail();
+  if (gmailResult && gmailResults[gmailResult]) {
+    toast(gmailResults[gmailResult]);
+    document.querySelector('#gmail-box').scrollIntoView({ block: 'center' });
+    gmailResult = null;
+  }
   const threadList = document.querySelector('#thread-list'),
     conversation = document.querySelector('#conversation');
   let shownThreads = '';

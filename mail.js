@@ -10,14 +10,28 @@ import MailComposer from 'nodemailer/lib/mail-composer/index.js';
 const SITE = 'https://capital-science-faculty.vercel.app';
 const FROM_NAME = 'Capital Science · كلية العلوم';
 
-const gmailApiConfigured = () =>
-  Boolean(process.env.GMAIL_CLIENT_ID && process.env.GMAIL_CLIENT_SECRET && process.env.GMAIL_REFRESH_TOKEN);
+// Gmail API credentials come from the environment, or from the dashboard's "Connect Gmail" button (saved in
+// Firestore by server.js and handed over with useSavedGmail).
+let savedGmail = null;
+let gmailToken = { value: '', expires: 0 };
+export function useSavedGmail(creds) {
+  savedGmail = creds?.clientId && creds?.clientSecret && creds?.refreshToken ? creds : null;
+  gmailToken = { value: '', expires: 0 };
+}
+const gmailApi = () =>
+  process.env.GMAIL_CLIENT_ID && process.env.GMAIL_CLIENT_SECRET && process.env.GMAIL_REFRESH_TOKEN
+    ? {
+        clientId: process.env.GMAIL_CLIENT_ID,
+        clientSecret: process.env.GMAIL_CLIENT_SECRET,
+        refreshToken: process.env.GMAIL_REFRESH_TOKEN,
+      }
+    : savedGmail;
+const sender = () => process.env.GMAIL_USER || savedGmail?.account;
+export const gmailMode = () =>
+  process.env.GMAIL_REFRESH_TOKEN ? 'env' : savedGmail ? 'dashboard' : process.env.GMAIL_APP_PASSWORD ? 'smtp' : null;
 
 export const mailConfigured = () =>
-  Boolean(
-    (process.env.GMAIL_USER && (gmailApiConfigured() || process.env.GMAIL_APP_PASSWORD)) ||
-      process.env.MAIL_PREVIEW_DIR,
-  );
+  Boolean((sender() && (gmailApi() || process.env.GMAIL_APP_PASSWORD)) || process.env.MAIL_PREVIEW_DIR);
 
 let transport;
 function transporter() {
@@ -32,16 +46,16 @@ function transporter() {
   return transport;
 }
 
-let gmailToken = { value: '', expires: 0 };
 async function gmailAccessToken() {
   if (gmailToken.value && Date.now() < gmailToken.expires) return gmailToken.value;
+  const creds = gmailApi();
   const response = await fetch('https://oauth2.googleapis.com/token', {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: new URLSearchParams({
-      client_id: process.env.GMAIL_CLIENT_ID,
-      client_secret: process.env.GMAIL_CLIENT_SECRET,
-      refresh_token: process.env.GMAIL_REFRESH_TOKEN,
+      client_id: creds.clientId,
+      client_secret: creds.clientSecret,
+      refresh_token: creds.refreshToken,
       grant_type: 'refresh_token',
     }),
     signal: AbortSignal.timeout(10000),
@@ -185,7 +199,7 @@ export async function sendAuthEmail(kind, email, link, extra = {}) {
     return { preview: file };
   }
   const message = {
-    from: { name: FROM_NAME, address: process.env.GMAIL_USER },
+    from: { name: FROM_NAME, address: sender() },
     to: email,
     subject: extra.subject
       ? `${copy[kind].subject.split(' · ')[0]}: ${extra.subject}`.slice(0, 180)
@@ -193,5 +207,5 @@ export async function sendAuthEmail(kind, email, link, extra = {}) {
     html,
     text: authEmailText(kind, email, link, extra),
   };
-  return gmailApiConfigured() ? sendViaGmailApi(message) : transporter().sendMail(message);
+  return gmailApi() ? sendViaGmailApi(message) : transporter().sendMail(message);
 }

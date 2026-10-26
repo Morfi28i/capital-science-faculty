@@ -7,7 +7,7 @@ import { gzipSync } from 'node:zlib';
 import { applicationDefault, cert, getApps, initializeApp } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
 import { FieldValue, getFirestore } from 'firebase-admin/firestore';
-import { mailConfigured, sendAuthEmail } from './mail.js';
+import { gmailMode, mailConfigured, sendAuthEmail, useSavedGmail } from './mail.js';
 
 const root = process.cwd(),
   dbPath = path.join(root, 'data/site.json'),
@@ -366,6 +366,39 @@ async function dispatchToken() {
     ? { token: saved.token, source: 'dashboard', last4: saved.last4 }
     : { token: null, source: null };
 }
+// The Gmail API connection made with the dashboard's "Connect Gmail" button (Firestore syncSecrets/gmail,
+// server-only). Render's free plan blocks SMTP, so this is how the site's own Gmail sends email there.
+const GMAIL_SCOPES = 'openid email https://www.googleapis.com/auth/gmail.send';
+const gmailRedirect = () => `${NEW_SITE}/api/gmail/callback`;
+const gmailStates = new Map();
+let savedGmailAt = 0;
+async function loadSavedGmail(force = false) {
+  if (!firebaseConfigured() || (!force && Date.now() - savedGmailAt < 5 * 60_000)) return;
+  savedGmailAt = Date.now();
+  try {
+    const doc = await firebase().db.collection('syncSecrets').doc('gmail').get();
+    useSavedGmail(doc.exists ? doc.data() : null);
+  } catch (error) {
+    console.error('Reading the saved Gmail connection failed:', error.message);
+  }
+}
+function gmailAuthUrl(clientId, account) {
+  const state = crypto.randomBytes(24).toString('hex');
+  for (const [key, expires] of gmailStates) if (expires < Date.now()) gmailStates.delete(key);
+  gmailStates.set(state, Date.now() + 15 * 60_000);
+  const auth = new URL('https://accounts.google.com/o/oauth2/v2/auth');
+  auth.search = new URLSearchParams({
+    client_id: clientId,
+    redirect_uri: gmailRedirect(),
+    response_type: 'code',
+    scope: GMAIL_SCOPES,
+    access_type: 'offline',
+    prompt: 'consent',
+    state,
+    ...(account ? { login_hint: account } : {}),
+  });
+  return auth.toString();
+}
 const githubHeaders = (token) => ({
   Authorization: `Bearer ${token}`,
   Accept: 'application/vnd.github+json',
@@ -604,6 +637,59 @@ function safeUrl(u) {
   }
 }
 async function api(req, res, url) {
+  await loadSavedGmail();
+  if (req.method === 'GET' && url.pathname === '/api/gmail/callback') {
+    // Google sends the admin back here after "Connect Gmail". The one-time state proves the request started
+    // from the dashboard, since the admin cookie isn't sent on this cross-site redirect.
+    const back = (result) => {
+      res.writeHead(302, { Location: `${NEW_SITE}/admin#gmail=${result}`, 'Cache-Control': 'no-store' });
+      res.end();
+    };
+    const state = url.searchParams.get('state') || '',
+      code = url.searchParams.get('code');
+    if (!(gmailStates.get(state) > Date.now())) return back('expired');
+    gmailStates.delete(state);
+    if (!code) return back(url.searchParams.get('error') === 'access_denied' ? 'denied' : 'failed');
+    try {
+      const ref = firebase().db.collection('syncSecrets').doc('gmail'),
+        saved = (await ref.get()).data() || {};
+      const response = await fetch('https://oauth2.googleapis.com/token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({
+          code,
+          client_id: saved.clientId,
+          client_secret: saved.clientSecret,
+          redirect_uri: gmailRedirect(),
+          grant_type: 'authorization_code',
+        }),
+        signal: AbortSignal.timeout(15000),
+      });
+      const tokens = await response.json().catch(() => ({}));
+      if (!response.ok || !tokens.refresh_token) {
+        console.error('Gmail connect failed:', tokens.error || response.status);
+        return back('failed');
+      }
+      if (!String(tokens.scope || '').includes('gmail.send')) return back('scope');
+      // The id_token comes straight from Google's token endpoint over TLS, so its email can be read as is.
+      const payload = String(tokens.id_token || '').split('.')[1],
+        claims = payload ? JSON.parse(Buffer.from(payload, 'base64url').toString()) : {};
+      await ref.set(
+        {
+          refreshToken: tokens.refresh_token,
+          account: String(claims.email || '').toLowerCase(),
+          connectedAt: FieldValue.serverTimestamp(),
+        },
+        { merge: true },
+      );
+      await loadSavedGmail(true);
+      await audit(req, 'gmail.connect');
+      return back('connected');
+    } catch (error) {
+      console.error('Gmail connect failed:', error.message);
+      return back('failed');
+    }
+  }
   if (req.method === 'GET' && url.pathname === '/api/firebase-config')
     return json(res, 200, {
       enabled: firebaseConfigured(),
@@ -1164,6 +1250,60 @@ async function api(req, res, url) {
         total: accounts.length,
         matched: matches.length,
       });
+    }
+    if (url.pathname.startsWith('/api/admin/gmail')) {
+      if (!firebaseConfigured()) return json(res, 503, { error: 'Firebase is not configured.' });
+      if (req.method !== 'GET' && !strictSameOrigin(req))
+        return json(res, 403, { error: 'Cross-site request blocked.' });
+      const ref = firebase().db.collection('syncSecrets').doc('gmail');
+      if (req.method === 'GET' && url.pathname === '/api/admin/gmail') {
+        const saved = (await ref.get()).data() || {};
+        return json(res, 200, {
+          mode: gmailMode(),
+          connected: Boolean(saved.refreshToken),
+          account: saved.account || null,
+          clientId: saved.clientId || null,
+          redirectUri: gmailRedirect(),
+        });
+      }
+      if (req.method === 'POST' && url.pathname === '/api/admin/gmail/connect') {
+        const d = await body(req, 4000),
+          saved = (await ref.get()).data() || {},
+          clientId = String(d.clientId || saved.clientId || '').trim(),
+          clientSecret = String(d.clientSecret || saved.clientSecret || '').trim();
+        if (!/^[\w-]+\.apps\.googleusercontent\.com$/.test(clientId))
+          return json(res, 400, { code: 'bad_client', error: 'This does not look like a Google Client ID.' });
+        if (!/^[\w-]{20,100}$/.test(clientSecret))
+          return json(res, 400, { code: 'bad_secret', error: 'This does not look like a Google client secret.' });
+        await ref.set({ clientId, clientSecret }, { merge: true });
+        await audit(req, 'gmail.client.save');
+        return json(res, 200, { url: gmailAuthUrl(clientId, process.env.GMAIL_USER) });
+      }
+      if (req.method === 'DELETE' && url.pathname === '/api/admin/gmail') {
+        await ref.delete();
+        await loadSavedGmail(true);
+        await audit(req, 'gmail.disconnect');
+        return json(res, 200, { ok: true });
+      }
+      if (req.method === 'POST' && url.pathname === '/api/admin/gmail/test') {
+        const d = await body(req, 2000),
+          to = String(d.to || '')
+            .trim()
+            .toLowerCase();
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to)) return json(res, 400, { error: 'اكتب بريد إلكتروني صحيح.' });
+        if (!mailConfigured()) return json(res, 503, { error: 'Gmail مش متربط لسه.' });
+        try {
+          await sendAuthEmail('message', to, `${NEW_SITE}/profile`, {
+            subject: 'رسالة تجربة',
+            message: 'لو الرسالة دي وصلتك يبقى إيميل الموقع شغال تمام ✓',
+          });
+        } catch (error) {
+          console.error('Gmail test failed:', error.message);
+          return json(res, 502, { error: `فشل الإرسال: ${error.message}` });
+        }
+        return json(res, 200, { ok: true });
+      }
+      return json(res, 404, { error: 'Not found' });
     }
     if (url.pathname.startsWith('/api/admin/sync/')) {
       if (req.method !== 'GET' && !strictSameOrigin(req))
