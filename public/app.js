@@ -2034,43 +2034,63 @@ function obStageOf(step) {
   if (step.querySelector('.auth-choice-grid')) return 1;
   return 0;
 }
-// Short science facts that rotate on the green panel while someone signs up.
-const facts = [
-  [
-    'الضوء بياخد حوالي 8 دقايق و20 ثانية عشان يوصل من الشمس للأرض.',
-    'Sunlight takes about 8 minutes 20 seconds to reach Earth.',
-  ],
-  ['جسم الإنسان فيه حوالي 37 تريليون خلية.', 'The human body has about 37 trillion cells.'],
-  [
-    'الماس والجرافيت الاتنين كربون، الفرق في ترتيب الذرات بس.',
-    'Diamond and graphite are both carbon; only the atom arrangement differs.',
-  ],
-  ['الأخطبوط عنده 3 قلوب ودمه أزرق.', 'An octopus has three hearts and blue blood.'],
-  ['ذرة الهيدروجين أكتر عنصر موجود في الكون.', 'Hydrogen is the most abundant element in the universe.'],
-  [
-    'الماء هو المادة الوحيدة اللي بتتلاقى طبيعيًا في الحالات التلاتة على الأرض.',
-    'Water is the only substance found naturally in all three states on Earth.',
-  ],
-  ['صوت الرعد بيمشي حوالي 343 متر في الثانية.', 'Thunder travels at about 343 metres per second.'],
-  [
-    'الـ DNA لو اتفرد من خلية واحدة طوله حوالي 2 متر.',
-    'Uncoiled, the DNA in one cell is about 2 metres long.',
-  ],
-  ['π مالهاش آخر ولا بتتكرر أرقامها.', 'π never ends and never repeats.'],
-  ['النحلة بتزور حوالي 1000 زهرة في اليوم.', 'A bee visits about 1,000 flowers a day.'],
-];
-function rotateFacts(ov) {
-  const el = ov.querySelector('#fact');
+// Science facts on the green panel: a fresh order every session, unseen ones first, a new one every minute.
+const FACT_MS = 60_000;
+async function rotateFacts(ov) {
+  const el = ov.querySelector('#fact'),
+    card = el?.closest('.onboard-facts');
   if (!el) return;
-  let i = Math.floor(Math.random() * facts.length);
-  const show = () => {
-    el.classList.remove('in');
-    void el.offsetWidth;
-    el.textContent = facts[i++ % facts.length][lang === 'ar' ? 0 : 1];
-    el.classList.add('in');
+  let facts, factCategories;
+  try {
+    ({ facts, factCategories } = await import('/facts.js?v=1'));
+  } catch {
+    card.hidden = true;
+    return;
+  }
+  let seen = [];
+  try {
+    seen = JSON.parse(localStorage.getItem('cs-facts-seen') || '[]');
+  } catch {}
+  const shuffle = (list) => {
+    for (let i = list.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [list[i], list[j]] = [list[j], list[i]];
+    }
+    return list;
   };
+  const all = facts.map((_, i) => i),
+    unseen = shuffle(all.filter((i) => !seen.includes(i)));
+  // Once every fact has been shown, start a new shuffled round.
+  let queue = unseen.length ? unseen : shuffle(all);
+  if (!unseen.length) seen = [];
+  const cat = ov.querySelector('#fact-cat');
+  let timer;
+  const show = () => {
+    if (!queue.length) {
+      queue = shuffle(all.filter((i) => i !== seen.at(-1)));
+      seen = [];
+    }
+    const i = queue.shift(),
+      [kind, ar, en] = facts[i],
+      ix = lang === 'ar' ? 0 : 1;
+    el.classList.remove('in');
+    card.classList.remove('ticking');
+    void el.offsetWidth;
+    el.textContent = lang === 'ar' ? ar : en;
+    cat.textContent = factCategories[kind][ix];
+    card.dataset.kind = kind;
+    el.classList.add('in');
+    card.classList.add('ticking');
+    seen.push(i);
+    try {
+      localStorage.setItem('cs-facts-seen', JSON.stringify(seen));
+    } catch {}
+    clearTimeout(timer);
+    timer = setTimeout(() => ov.isConnected && show(), FACT_MS);
+  };
+  card.style.setProperty('--fact-ms', `${FACT_MS}ms`);
+  ov.querySelector('#fact-next').onclick = show;
   show();
-  const timer = setInterval(() => (ov.isConnected ? show() : clearInterval(timer)), 5200);
 }
 // Run on every step: the title arrives word by word, a password field gets a strength meter, the
 // "check your email" step gets a flying letter, and the success step throws confetti.
@@ -2207,7 +2227,7 @@ function onboarding(force = false, legacyProfile = null) {
   ov.setAttribute('role', 'dialog');
   ov.setAttribute('aria-modal', 'true');
   ov.setAttribute('aria-label', lang === 'ar' ? 'الدخول إلى Capital Science' : 'Join Capital Science');
-  ov.innerHTML = `<div class="ob-bg" aria-hidden="true"><span class="ob-blob a"></span><span class="ob-blob b"></span><span class="ob-blob c"></span><span class="ob-grid"></span></div><div class="ob-shell"><div class="onboard-left">${brand()}<div class="stars" aria-hidden="true">${'<i></i>'.repeat(7)}</div><div class="onboard-decoration" aria-hidden="true">${atom('small')}<div class="helix">${Array.from({ length: 14 }, (_, i) => `<i style="--i:${i}"></i>`).join('')}</div><p>${lang === 'ar' ? 'كل يوم بداية<br>اكتشاف جديد' : 'Every day, a new<br>discovery begins'}</p></div><div class="onboard-facts"><span class="fact-label">${icon('spark')} ${lang === 'ar' ? 'تعرف إن…' : 'Did you know…'}</span><p class="fact" id="fact"></p></div><span class="onboard-foot">A STUDENT COMMONS · EST 2026</span></div><div class="onboard-main"><header class="ob-head"><ol class="ob-stepper" aria-label="${lang === 'ar' ? 'خطوات التسجيل' : 'Sign-up steps'}">${obStages.map(([ic, ar, en], i) => `<li style="--i:${i}"><span class="ob-num">${icon(ic)}</span><b>${lang === 'ar' ? ar : en}</b></li>`).join('')}</ol><button class="onboard-close" id="skip" aria-label="${lang === 'ar' ? 'إغلاق' : 'Close'}">${icon('close')}</button></header><div class="onboard-progress" aria-hidden="true"><i></i></div><div class="bubbles" aria-hidden="true">${Array.from({ length: 14 }, (_, i) => `<i style="--x:${(i * 37) % 100}%;--s:${8 + ((i * 7) % 22)}px;--d:${9 + ((i * 5) % 9)}s;--o:${-(i * 1.3)}s"></i>`).join('')}</div><div class="onboard-step" id="step"><span class="section-index">A SPACE FOR YOUR NEXT CHAPTER</span><h1>${t('welcome')},<br><em>curious mind.</em></h1><p>${t('intro')}</p><button class="button primary" id="begin">${t('continue')} ${icon('arrow')}</button><button class="skip-link" id="guest">${t('skip')}</button></div></div></div>`;
+  ov.innerHTML = `<div class="ob-bg" aria-hidden="true"><span class="ob-blob a"></span><span class="ob-blob b"></span><span class="ob-blob c"></span><span class="ob-grid"></span></div><div class="ob-shell"><div class="onboard-left">${brand()}<div class="stars" aria-hidden="true">${'<i></i>'.repeat(7)}</div><div class="onboard-decoration" aria-hidden="true">${atom('small')}<div class="helix">${Array.from({ length: 14 }, (_, i) => `<i style="--i:${i}"></i>`).join('')}</div><p>${lang === 'ar' ? 'كل يوم بداية<br>اكتشاف جديد' : 'Every day, a new<br>discovery begins'}</p></div><div class="onboard-facts" aria-live="polite"><div class="fact-top"><span class="fact-label">${icon('spark')} ${lang === 'ar' ? 'تعرف إن…' : 'Did you know…'}</span><span class="fact-cat" id="fact-cat"></span><button class="fact-next" id="fact-next" type="button" aria-label="${lang === 'ar' ? 'معلومة تانية' : 'Another fact'}">${icon('refresh')}</button></div><p class="fact" id="fact"></p><i class="fact-timer" aria-hidden="true"></i></div><span class="onboard-foot">A STUDENT COMMONS · EST 2026</span></div><div class="onboard-main"><header class="ob-head"><ol class="ob-stepper" aria-label="${lang === 'ar' ? 'خطوات التسجيل' : 'Sign-up steps'}">${obStages.map(([ic, ar, en], i) => `<li style="--i:${i}"><span class="ob-num">${icon(ic)}</span><b>${lang === 'ar' ? ar : en}</b></li>`).join('')}</ol><button class="onboard-close" id="skip" aria-label="${lang === 'ar' ? 'إغلاق' : 'Close'}">${icon('close')}</button></header><div class="onboard-progress" aria-hidden="true"><i></i></div><div class="bubbles" aria-hidden="true">${Array.from({ length: 14 }, (_, i) => `<i style="--x:${(i * 37) % 100}%;--s:${8 + ((i * 7) % 22)}px;--d:${9 + ((i * 5) % 9)}s;--o:${-(i * 1.3)}s"></i>`).join('')}</div><div class="onboard-step" id="step"><span class="section-index">A SPACE FOR YOUR NEXT CHAPTER</span><h1>${t('welcome')},<br><em>curious mind.</em></h1><p>${t('intro')}</p><button class="button primary" id="begin">${t('continue')} ${icon('arrow')}</button><button class="skip-link" id="guest">${t('skip')}</button></div></div></div>`;
   document.body.append(ov);
   moleculeField(ov.querySelector('.ob-bg'));
   rotateFacts(ov);

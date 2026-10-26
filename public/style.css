@@ -6746,3 +6746,99 @@ html {
     animation: none;
   }
 }
+
+/* Fact card: category chip, skip button and a bar that fills over the minute until the next fact. */
+.onboard-facts {
+  overflow: hidden;
+  --fact-tint: #e6b964;
+}
+.onboard-facts[data-kind='physics'] { --fact-tint: #8fc8ff; }
+.onboard-facts[data-kind='chemistry'] { --fact-tint: #c7a6ff; }
+.onboard-facts[data-kind='biology'] { --fact-tint: #8fd1a6; }
+.onboard-facts[data-kind='body'] { --fact-tint: #ff9f9f; }
+.onboard-facts[data-kind='space'] { --fact-tint: #b9b4ff; }
+.onboard-facts[data-kind='earth'] { --fact-tint: #e3b07a; }
+.onboard-facts[data-kind='math'] { --fact-tint: #ffd36e; }
+.onboard-facts[data-kind='animals'] { --fact-tint: #9fe0c8; }
+.onboard-facts[data-kind='history'] { --fact-tint: #f0c48a; }
+.fact-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.fact-cat {
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--fact-tint);
+  background: color-mix(in srgb, var(--fact-tint) 16%, transparent);
+  border: 1px solid color-mix(in srgb, var(--fact-tint) 35%, transparent);
+  transition:
+    color 0.5s,
+    background 0.5s,
+    border-color 0.5s;
+}
+.fact-cat:empty {
+  display: none;
+}
+.fact-next {
+  margin-inline-start: auto;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border-radius: 50%;
+  border: 1px solid #ffffff2e;
+  background: #ffffff10;
+  color: #f2efe4;
+  cursor: pointer;
+  transition:
+    background 0.25s,
+    transform 0.25s var(--ease);
+}
+.fact-next .ico {
+  width: 14px;
+  height: 14px;
+}
+.fact-next .ico {
+  transition: transform 0.5s var(--ease);
+}
+.fact-next:hover {
+  background: #ffffff24;
+}
+.fact-next:hover .ico {
+  transform: rotate(180deg);
+}
+.fact-next:active {
+  transform: scale(0.9);
+}
+.fact-next:focus-visible {
+  outline: 2px solid var(--fact-tint);
+  outline-offset: 2px;
+}
+.fact-timer {
+  position: absolute;
+  inset-inline-start: 0;
+  bottom: 0;
+  height: 2px;
+  width: 100%;
+  background: linear-gradient(90deg, transparent, var(--fact-tint));
+  transform: scaleX(0);
+  transform-origin: var(--start-edge, left);
+  opacity: 0.8;
+}
+.onboard-facts.ticking .fact-timer {
+  animation: fact-timer var(--fact-ms, 60s) linear both;
+}
+@keyframes fact-timer {
+  to {
+    transform: scaleX(1);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .onboard-facts.ticking .fact-timer {
+    animation: none;
+  }
+}
