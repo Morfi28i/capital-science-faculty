@@ -1351,7 +1351,7 @@ function wireProfile() {
       sessionStorage.setItem('cs-pending-email-change', value);
       document.querySelector('#refresh-email-change').hidden = false;
       emailStatus.textContent = L(
-        'أرسلنا رابط التأكيد إلى البريد الجديد. لن يتغير بريد الحساب قبل فتح الرابط.',
+        'أرسلنا رابط التأكيد إلى البريد الجديد. لن يتغير بريد الحساب قبل فتح الرابط. لو مش لاقيه بص في الـ Spam.',
         'A verification link was sent to the new email. Your account will keep the current email until the link is opened.',
       );
     } catch (error) {
@@ -2014,6 +2014,10 @@ function passwordProblem(value, email = '') {
 const L2 = (ar, en) => (lang === 'ar' ? ar : en);
 // ---------- Sign-in screen extras ----------
 // The sign-up stages shown in the stepper: icon, Arabic and English name.
+// The site's email is still new to Gmail, so the first one can land in Spam. Telling people where to look
+// (and to press "Not spam") gets them in, and every press teaches Gmail to trust the sender.
+const spamTip = (L) =>
+  `<div class="spam-tip">${icon('mail')}<p><b>${L('الإيميل مجاش؟', 'No email yet?')}</b> ${L('بص في <b>Spam</b> أو <b>الرسائل غير المرغوب فيها</b>، ولو لقيته هناك دوس <b>"Not spam"</b> عشان اللي بعده يوصل الوارد على طول.', 'Check your <b>Spam</b> folder. If it is there, press <b>"Not spam"</b> so the next one lands in your inbox.')}</p></div>`;
 const obStages = [
   ['compass', 'الطريقة', 'Method'],
   ['mail', 'التحقق', 'Verify'],
@@ -2271,8 +2275,8 @@ function onboarding(force = false, legacyProfile = null) {
         'No account was found for this email. Go back and create an account.',
       ),
       'auth/email-not-verified': L(
-        'الحساب يحتاج تأكيد البريد. أرسلنا رسالة تحقق جديدة؛ افتحها ثم سجّل الدخول.',
-        'Your email must be verified. We sent a new verification email; open it, then sign in.',
+        'الحساب يحتاج تأكيد البريد. أرسلنا رسالة تحقق جديدة؛ افتحها ثم سجّل الدخول. لو مش لاقيها بص في الـ Spam.',
+        'Your email must be verified. We sent a new verification email; open it, then sign in. Not there? Check Spam.',
       ),
       'auth/too-many-requests': L(
         'محاولات كثيرة. انتظر قليلًا ثم حاول مرة أخرى.',
@@ -2424,7 +2428,7 @@ function onboarding(force = false, legacyProfile = null) {
   };
   const showEmailLinkSent = async () => {
     await fadeTo(
-      `<span class="section-index">${L('تحقق من بريدك', 'CHECK YOUR EMAIL')}</span><h1>${L('افتح رابط التأكيد', 'Open the verification link')}</h1><p>${L('أرسلنا رابط تسجيل آمن إلى', 'A secure sign-in link was sent to')} <b>${esc(email)}</b>. ${L('افتحه في هذا المتصفح؛ ستنتقل تلقائيًا لإكمال التسجيل.', 'Open it in this browser to continue your registration.')}</p><button class="button primary" id="resend-link">${L('إعادة إرسال الرابط', 'Resend link')} ${icon('arrow')}</button><p class="form-error" id="form-error" aria-live="polite"></p><button class="skip-link" id="change-email">${L('استخدم بريدًا آخر', 'Use another email')}</button>`,
+      `<span class="section-index">${L('تحقق من بريدك', 'CHECK YOUR EMAIL')}</span><h1>${L('افتح رابط التأكيد', 'Open the verification link')}</h1><p>${L('أرسلنا رابط تسجيل آمن إلى', 'A secure sign-in link was sent to')} <b>${esc(email)}</b>. ${L('افتحه في هذا المتصفح؛ ستنتقل تلقائيًا لإكمال التسجيل.', 'Open it in this browser to continue your registration.')}</p>${spamTip(L)}<button class="button primary" id="resend-link">${L('إعادة إرسال الرابط', 'Resend link')} ${icon('arrow')}</button><p class="form-error" id="form-error" aria-live="polite"></p><button class="skip-link" id="change-email">${L('استخدم بريدًا آخر', 'Use another email')}</button>`,
     );
     step.querySelector('#resend-link').onclick = () => {
       showEmail().then(() => {
