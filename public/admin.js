@@ -1,5 +1,5 @@
 import { dhikrStrip, startDhikrRotation } from '/adhkar.js';
-import { startMotion } from '/motion.js';
+import { startMotion } from '/motion.js?v=perf-1';
 const app = document.querySelector('#app');
 startDhikrRotation();
 startMotion();

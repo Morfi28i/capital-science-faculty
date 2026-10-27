@@ -15,14 +15,22 @@ export function startMotion() {
       .join('')}</div>`,
   );
   // Cards light up under the pointer: the position is passed to CSS, which draws the glow.
+  // Measured once per frame at most: reading the card's position on every pointer event forced extra layouts.
+  let spotEvent = null;
   document.addEventListener(
     'pointermove',
     (e) => {
-      const el = e.target.closest?.(spotTargets);
-      if (!el) return;
-      const r = el.getBoundingClientRect();
-      el.style.setProperty('--mx', `${e.clientX - r.left}px`);
-      el.style.setProperty('--my', `${e.clientY - r.top}px`);
+      if (!spotEvent)
+        requestAnimationFrame(() => {
+          const ev = spotEvent;
+          spotEvent = null;
+          const el = ev.target.closest?.(spotTargets);
+          if (!el) return;
+          const r = el.getBoundingClientRect();
+          el.style.setProperty('--mx', `${ev.clientX - r.left}px`);
+          el.style.setProperty('--my', `${ev.clientY - r.top}px`);
+        });
+      spotEvent = e;
     },
     { passive: true },
   );

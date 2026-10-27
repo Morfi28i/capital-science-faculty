@@ -6842,3 +6842,13 @@ html {
     animation: none;
   }
 }
+
+/* ---------- Performance: same motion, less work ----------
+   Sections scrolled out of view, and the page hidden under the opaque sign-in panel, stop repainting their
+   looping animations; they carry on from where they were as soon as they can be seen again. */
+.anim-off,
+.anim-off *,
+body:has(> .onboarding:not(.out)) :is(#app, .ambient) *,
+body:has(> .onboarding:not(.out)) .ambient {
+  animation-play-state: paused !important;
+}

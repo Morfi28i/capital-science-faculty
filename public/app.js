@@ -1,5 +1,5 @@
 import { dhikrStrip, startDhikrRotation } from '/adhkar.js';
-import { startMotion } from '/motion.js';
+import { startMotion } from '/motion.js?v=perf-1';
 const app = document.querySelector('#app');
 const dict = {
   ar: {
@@ -1815,10 +1815,27 @@ function observe() {
     { threshold: 0.08 },
   );
   document.querySelectorAll('.reveal').forEach((e) => io.observe(e));
+  pauseOffscreen();
   countUp();
   // SVG motion paths ignore CSS media queries, so stop the orbiting electrons explicitly.
   if (reduceMotion()) document.querySelectorAll('.atom svg').forEach((svg) => svg.pauseAnimations?.());
 }
+// Looping animations keep repainting even when they are scrolled out of sight, which is what made long pages
+// stutter on phones. Sections out of view get .anim-off (CSS pauses everything inside) and resume on return.
+let offscreenIO;
+function pauseOffscreen() {
+  // Rebuilt for each render so sections from the previous page are let go.
+  offscreenIO?.disconnect();
+  offscreenIO = new IntersectionObserver(
+    (es) => es.forEach((e) => e.target.classList.toggle('anim-off', !e.isIntersecting)),
+    { rootMargin: '200px 0px' },
+  );
+  document.querySelectorAll('#page section, #page .reveal').forEach((e) => offscreenIO.observe(e));
+}
+// Phones and low-end machines draw the background network at half the frame rate and a lower pixel density;
+// the drift is time-based, so it moves at the same speed and looks the same.
+const lowPower =
+  matchMedia('(pointer: coarse)').matches || navigator.hardwareConcurrency <= 4 || navigator.deviceMemory <= 4;
 // Behind the home hero and the sign-in panel: a drifting network of atoms joined by bonds, drawn on a canvas. It only runs
 // while the hero is on screen and the tab is visible, and stays still for reduced-motion visitors.
 function moleculeField(hero = document.querySelector('.hero')) {
@@ -1833,7 +1850,10 @@ function moleculeField(hero = document.querySelector('.hero')) {
   let w = 0,
     h = 0,
     running = false,
-    raf = 0;
+    raf = 0,
+    lastFrame = 0;
+  // The sign-in panel is opaque, so the hero network under it is skipped while it is open.
+  const covered = () => !canvas.closest('.onboarding') && document.querySelector('body > .onboarding:not(.out)');
   const nodes = Array.from({ length: 46 }, (_, i) => ({
     x: Math.random(),
     y: Math.random(),
@@ -1843,27 +1863,37 @@ function moleculeField(hero = document.querySelector('.hero')) {
     c: colors[i % 3],
   }));
   const size = () => {
-    const dpr = Math.min(devicePixelRatio || 1, 2);
+    const dpr = Math.min(devicePixelRatio || 1, lowPower ? 1.5 : 2);
     w = hero.clientWidth;
     h = hero.clientHeight;
     canvas.width = w * dpr;
     canvas.height = h * dpr;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   };
-  const draw = () => {
+  const draw = (now = 0) => {
     // The hero is rebuilt on every page change; a canvas left behind stops its loop.
     if (!canvas.isConnected) return (running = false);
+    if (now && (covered() || (lowPower && now - lastFrame < 30))) {
+      if (running) raf = requestAnimationFrame(draw);
+      return;
+    }
+    // Steps are scaled to the time since the last frame (one step = 1/60 s), capped after a pause.
+    const steps = lastFrame && now ? Math.min((now - lastFrame) / 16.7, 4) : 1;
+    lastFrame = now;
     ctx.clearRect(0, 0, w, h);
     for (const n of nodes) {
-      n.x = (n.x + n.vx + 1) % 1;
-      n.y = (n.y + n.vy + 1) % 1;
+      n.x = (n.x + n.vx * steps + 1) % 1;
+      n.y = (n.y + n.vy * steps + 1) % 1;
     }
     ctx.lineWidth = 1;
     for (let i = 0; i < nodes.length; i++)
       for (let j = i + 1; j < nodes.length; j++) {
         const a = nodes[i],
           b = nodes[j],
-          d = Math.hypot((a.x - b.x) * w, (a.y - b.y) * h);
+          dx = (a.x - b.x) * w,
+          dy = (a.y - b.y) * h;
+        if (dx > 130 || dx < -130 || dy > 130 || dy < -130) continue;
+        const d = Math.hypot(dx, dy);
         if (d > 130) continue;
         ctx.globalAlpha = (1 - d / 130) * 0.35;
         ctx.strokeStyle = a.c;
@@ -1887,6 +1917,7 @@ function moleculeField(hero = document.querySelector('.hero')) {
   const setRunning = (on) => {
     if (on === running) return;
     running = on;
+    lastFrame = 0;
     if (on) raf = requestAnimationFrame(draw);
     else cancelAnimationFrame(raf);
   };
