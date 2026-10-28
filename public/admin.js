@@ -486,7 +486,7 @@ async function drawGmail() {
     box.innerHTML = `<h2>إيميل الموقع</h2><p class="storage-status">${esc(error.message)}</p>`;
     return;
   }
-  const test = `<form class="admin-form" id="gmail-test"><label class="wide">ابعت إيميل تجربة على<input name="to" type="email" dir="ltr" required placeholder="you@gmail.com"></label><div class="admin-form-actions"><button class="button primary">ابعت تجربة</button></div></form>`;
+  const test = `<form class="admin-form" id="gmail-test"><label class="wide">ابعت إيميل تجربة على<input name="to" type="email" dir="ltr" required placeholder="you@gmail.com"></label><div class="admin-form-actions"><button class="button primary" value="message">ابعت تجربة</button><button class="button" value="profile">تجربة إشعار تسجيل</button></div></form>`;
   if (st.mode === 'env')
     box.innerHTML = `<h2>إيميل الموقع</h2><div class="admin-row"><span>متربط ✓<small>عن طريق إعدادات Render</small></span></div>${test}`;
   else if (st.connected)
@@ -517,12 +517,13 @@ async function drawGmail() {
   if (testForm)
     testForm.onsubmit = async (e) => {
       e.preventDefault();
-      const button = testForm.querySelector('button');
+      // Either button sends: a plain test message, or a sample of the new-registration notice.
+      const button = e.submitter || testForm.querySelector('button');
       button.disabled = true;
       try {
         await req('/api/admin/gmail/test', {
           method: 'POST',
-          body: JSON.stringify({ to: testForm.elements.to.value.trim() }),
+          body: JSON.stringify({ to: testForm.elements.to.value.trim(), kind: button.value }),
         });
         toast('اتبعت ✓ بص على الإيميل (ولو مش لاقيه بص في الـ Spam).');
       } catch (error) {

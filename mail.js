@@ -28,7 +28,13 @@ const gmailApi = () =>
     : savedGmail;
 const sender = () => process.env.GMAIL_USER || savedGmail?.account;
 export const gmailMode = () =>
-  process.env.GMAIL_REFRESH_TOKEN ? 'env' : savedGmail ? 'dashboard' : process.env.GMAIL_APP_PASSWORD ? 'smtp' : null;
+  process.env.GMAIL_REFRESH_TOKEN
+    ? 'env'
+    : savedGmail
+      ? 'dashboard'
+      : process.env.GMAIL_APP_PASSWORD
+        ? 'smtp'
+        : null;
 
 export const mailConfigured = () =>
   Boolean((sender() && (gmailApi() || process.env.GMAIL_APP_PASSWORD)) || process.env.MAIL_PREVIEW_DIR);
@@ -138,18 +144,18 @@ function requestedAt() {
   });
 }
 
-// Table layout and inline styles only: that is what Gmail, Outlook and phone mail apps render reliably.
-export function authEmailHtml(kind, email, link, extra = {}) {
-  const c = copy[kind];
-  const font = "'Segoe UI',Tahoma,'IBM Plex Sans Arabic',Arial,sans-serif";
-  return `<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light only"><meta name="supported-color-schemes" content="light only"><title>${esc(c.title)}</title>
+const font = "'Segoe UI',Tahoma,'IBM Plex Sans Arabic',Arial,sans-serif";
+
+// The branded frame shared by every email: page head and styles, the green header with the moving atom, and
+// the gold bar. emailFoot closes it. Apple Mail and iOS play the animations; Gmail and others show them still.
+function emailHead(title, preheader, styles = '') {
+  return `<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light only"><meta name="supported-color-schemes" content="light only"><title>${esc(title)}</title>
 <style>
-/* Apple Mail and iOS play this; Gmail and others simply show the still button. */
 @keyframes pulse{0%,100%{box-shadow:0 8px 20px -8px rgba(29,70,50,.6)}50%{box-shadow:0 0 0 8px rgba(230,185,100,.25),0 8px 20px -8px rgba(29,70,50,.6)}}
-.cta{animation:pulse 2.4s ease-in-out infinite}
+.cta{animation:pulse 2.4s ease-in-out infinite}${styles}
 </style></head>
 <body style="margin:0;padding:0;background:#f1efe6;font-family:${font};">
-<div style="display:none;max-height:0;overflow:hidden;opacity:0">${esc(c.preheader)}</div>
+<div style="display:none;max-height:0;overflow:hidden;opacity:0">${esc(preheader)}</div>
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f1efe6;padding:28px 12px"><tr><td align="center">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#fffdf8;border-radius:22px;overflow:hidden;border:1px solid #e2dfd1">
   <tr><td style="background:#1d4632;padding:20px 20px" dir="ltr">
@@ -162,7 +168,22 @@ export function authEmailHtml(kind, email, link, extra = {}) {
       </td>
     </tr></table>
   </td></tr>
-  <tr><td style="background:#e6b964;height:3px;line-height:3px;font-size:0">&nbsp;</td></tr>
+  <tr><td style="background:#e6b964;height:3px;line-height:3px;font-size:0">&nbsp;</td></tr>`;
+}
+function emailFoot(why) {
+  return `  <tr><td style="padding:0 30px" dir="rtl"><div style="border-top:1px dashed #e6b964;padding:16px 0;text-align:center;font:600 15px ${font};color:#a8732a">متنساش تصلي على النبي ﷺ</div></td></tr>
+  <tr><td style="background:#f6f4ec;padding:18px 30px;text-align:center;font:12px/1.8 ${font};color:#7c8676" dir="rtl">
+    Capital Science · مساحة طلاب كلية العلوم<br><a href="${SITE}" style="color:#1d4632;font-weight:600;text-decoration:none" dir="ltr">capital-science-faculty.vercel.app</a>
+  </td></tr>
+</table>
+<div style="max-width:560px;margin:14px auto 0;text-align:center;font:11px/1.7 ${font};color:#9aa092" dir="rtl">${esc(why)}</div>
+</td></tr></table></body></html>`;
+}
+
+// Table layout and inline styles only: that is what Gmail, Outlook and phone mail apps render reliably.
+export function authEmailHtml(kind, email, link, extra = {}) {
+  const c = copy[kind];
+  return `${emailHead(c.title, c.preheader)}
   <tr><td style="padding:34px 30px 8px" dir="rtl" align="right">
     <div style="display:inline-block;background:#e3ecdf;color:#1d4632;border-radius:999px;padding:4px 12px;font:600 12px ${font}">${esc(c.eyebrow)}</div>
     <h1 style="margin:14px 0 10px;font:700 26px/1.4 ${font};color:#17241c">${esc(c.title)}</h1>
@@ -182,13 +203,7 @@ export function authEmailHtml(kind, email, link, extra = {}) {
     <p style="margin:20px 0 16px;font:13px/1.8 ${font};color:#66705f">الزرار مش شغال؟ <a href="${esc(link)}" style="color:#1d4632;font-weight:700">دوس هنا</a> بدل منه.</p>
     ${kind === 'message' ? '' : `<p style="margin:0 0 26px;font:13px/1.8 ${font};color:#66705f">لو مش انت اللي طلبت ده، تجاهل الرسالة ومحدش هيقدر يدخل حسابك من غير الرابط ده.</p>`}
   </td></tr>
-  <tr><td style="padding:0 30px" dir="rtl"><div style="border-top:1px dashed #e6b964;padding:16px 0;text-align:center;font:600 15px ${font};color:#a8732a">متنساش تصلي على النبي ﷺ</div></td></tr>
-  <tr><td style="background:#f6f4ec;padding:18px 30px;text-align:center;font:12px/1.8 ${font};color:#7c8676" dir="rtl">
-    Capital Science · مساحة طلاب كلية العلوم<br><a href="${SITE}" style="color:#1d4632;font-weight:600;text-decoration:none" dir="ltr">capital-science-faculty.vercel.app</a>
-  </td></tr>
-</table>
-<div style="max-width:560px;margin:14px auto 0;text-align:center;font:11px/1.7 ${font};color:#9aa092" dir="rtl">وصلتك الرسالة دي عشان البريد ده مسجّل على Capital Science.</div>
-</td></tr></table></body></html>`;
+${emailFoot('وصلتك الرسالة دي عشان البريد ده مسجّل على Capital Science.')}`;
 }
 
 function authEmailText(kind, email, link, extra = {}) {
@@ -209,11 +224,131 @@ export async function sendAuthEmail(kind, email, link, extra = {}) {
     from: { name: FROM_NAME, address: sender() },
     replyTo: sender(),
     to: email,
-    subject: extra.subject
-      ? `${extra.subject} · Capital Science`.slice(0, 180)
-      : copy[kind].subject,
+    subject: extra.subject ? `${extra.subject} · Capital Science`.slice(0, 180) : copy[kind].subject,
     html,
     text: authEmailText(kind, email, link, extra),
+  };
+  return gmailApi() ? sendViaGmailApi(message) : transporter().sendMail(message);
+}
+
+// The notice the site owner gets when a student signs up or edits their profile: the same branded frame, a card
+// with the student's photo (or initials) and every detail, changed values marked in gold, and a dashboard button.
+const fieldLabels = [
+  ['firstName', 'الاسم الأول'],
+  ['fatherName', 'اسم الأب'],
+  ['lastName', 'اسم العيلة'],
+  ['name', 'الاسم بالكامل'],
+  ['email', 'البريد الإلكتروني'],
+  ['phone', 'رقم التليفون'],
+  ['gender', 'النوع'],
+  ['picture', 'الصورة'],
+];
+const providerNames = {
+  password: 'إيميل وباسورد',
+  'google.com': 'Google',
+  phone: 'رقم التليفون',
+  emailLink: 'رابط على الإيميل',
+};
+
+export function profileNoticeHtml(profile, { isUpdate = false, changed = [], photo = '' } = {}) {
+  const title = isUpdate ? 'طالب عدّل بياناته' : 'طالب جديد انضم للموقع',
+    first = String(profile.firstName || profile.name || '؟')
+      .trim()
+      .charAt(0),
+    value = (key) => {
+      const v = profile[key];
+      if (key === 'gender') return v === 'female' ? 'أنثى' : v === 'male' ? 'ذكر' : 'مش محدد';
+      if (key === 'picture') return photo ? 'صورة شخصية مرفوعة' : v ? 'صورة من الصور الجاهزة' : 'مفيش';
+      if (key === 'email' || key === 'phone')
+        return v ? `<span dir="ltr" style="display:inline-block">${esc(v)}</span>` : 'مش متسجل';
+      return esc(v || '—');
+    },
+    rows = fieldLabels
+      .map(([key, label], i) => {
+        const hot = changed.includes(key);
+        return `<tr class="row" style="animation-delay:${0.15 + i * 0.07}s"><td style="padding:11px 14px;border-bottom:1px solid #efeadb;font:13px ${font};color:#7c8676;white-space:nowrap;width:1%;${hot ? 'background:#fbf1dc;' : ''}">${label}</td><td style="padding:11px 14px;border-bottom:1px solid #efeadb;font:600 15px/1.6 ${font};color:#17241c;${hot ? 'background:#fbf1dc;' : ''}">${value(key)}${hot ? ` <span style="display:inline-block;margin-inline-start:6px;background:#e6b964;color:#3a2a08;border-radius:999px;padding:1px 9px;font:700 11px ${font}">اتغيّر</span>` : ''}</td></tr>`;
+      })
+      .join(''),
+    avatar = photo
+      ? `<img src="${photo}" width="84" height="84" alt="" style="display:block;width:84px;height:84px;border-radius:50%;border:3px solid #e6b964;object-fit:cover">`
+      : `<div style="width:84px;height:84px;line-height:84px;border-radius:50%;background:#1d4632;border:3px solid #e6b964;text-align:center;font:700 34px/84px ${font};color:#fffdf8">${esc(first)}</div>`,
+    provider = (profile.providers || []).map((p) => providerNames[p] || p).join('، ') || 'مش معروف';
+  return `${emailHead(
+    title,
+    `${profile.name || 'طالب'} ${isUpdate ? 'عدّل بياناته' : 'سجّل'} على Capital Science.`,
+    `
+@keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes ring{0%,100%{box-shadow:0 0 0 0 rgba(230,185,100,.55)}50%{box-shadow:0 0 0 10px rgba(230,185,100,0)}}
+.row{animation:rise .5s ease-out both}.avatar{animation:ring 2.6s ease-in-out infinite;border-radius:50%}`,
+  )}
+  <tr><td style="padding:30px 30px 8px" dir="rtl" align="right">
+    <div style="display:inline-block;background:${isUpdate ? '#fbf1dc' : '#e3ecdf'};color:${isUpdate ? '#8a5a12' : '#1d4632'};border-radius:999px;padding:4px 12px;font:600 12px ${font}">${isUpdate ? 'تحديث بيانات' : 'تسجيل جديد'}</div>
+    <h1 style="margin:14px 0 18px;font:700 26px/1.4 ${font};color:#17241c">${title}</h1>
+    <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="margin:0 0 18px;background:#f3f8f2;border-radius:16px"><tr>
+      <td width="96" style="width:96px;padding:16px 16px 16px 0;vertical-align:middle"><div class="avatar" style="width:90px;border-radius:50%">${avatar}</div></td>
+      <td style="padding:16px;vertical-align:middle" dir="rtl">
+        <div style="font:700 20px/1.4 ${font};color:#17241c">${esc(profile.name || 'طالب')}</div>
+        <div style="margin-top:4px;font:13px/1.7 ${font};color:#4d5a50">دخل بـ <b>${esc(provider)}</b></div>
+        <div style="margin-top:2px;font:12px/1.7 ${font};color:#7c8676">${isUpdate ? 'وقت التعديل' : 'وقت التسجيل'}: ${esc(requestedAt())}</div>
+      </td>
+    </tr></table>
+    ${isUpdate && changed.length ? `<p style="margin:0 0 14px;font:14px/1.8 ${font};color:#8a5a12">الحاجات اللي اتغيرت متعلّمة باللون الدهبي.</p>` : ''}
+    <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="margin:0 0 24px;border:1px solid #efeadb;border-radius:14px;overflow:hidden;border-collapse:separate">${rows}</table>
+    <table role="presentation" cellpadding="0" cellspacing="0" width="100%"><tr><td align="center" style="padding:0 0 18px">
+      <a href="${SITE}/admin" class="cta" style="display:inline-block;background:#1d4632;color:#fffdf8;text-decoration:none;font:700 17px ${font};padding:15px 38px;border-radius:999px;box-shadow:0 8px 20px -8px rgba(29,70,50,.6)">افتح لوحة التحكم ←</a>
+    </td></tr></table>
+    <p style="margin:0 0 24px;font:12px/1.8 ${font};color:#9aa092;text-align:center">رقم الحساب: <span dir="ltr" style="font-family:monospace">${esc(profile.id)}</span></p>
+  </td></tr>
+${emailFoot('وصلتك الرسالة دي عشان انت مسؤول موقع Capital Science.')}`;
+}
+
+export async function sendProfileNotice(to, profile, { isUpdate = false, changed = [], photo = null } = {}) {
+  // An uploaded photo travels as an inline attachment (cid), which Gmail shows; data: URLs are blocked there.
+  const html = profileNoticeHtml(profile, { isUpdate, changed, photo: photo ? 'cid:student-photo' : '' });
+  if (process.env.MAIL_PREVIEW_DIR) {
+    await mkdir(process.env.MAIL_PREVIEW_DIR, { recursive: true });
+    const file = path.join(process.env.MAIL_PREVIEW_DIR, `${Date.now()}-profile.html`);
+    await writeFile(
+      file,
+      profileNoticeHtml(profile, {
+        isUpdate,
+        changed,
+        photo: photo ? `data:${photo.type};base64,${photo.content}` : '',
+      }),
+    );
+    return { preview: file };
+  }
+  const text = [
+    isUpdate ? 'طالب عدّل بياناته' : 'طالب جديد انضم للموقع',
+    ...fieldLabels.map(
+      ([k, l]) =>
+        `${l}: ${profile[k] && k !== 'picture' ? profile[k] : k === 'picture' ? (photo ? 'مرفقة' : profile[k] ? 'جاهزة' : '—') : '—'}${changed.includes(k) ? ' (اتغيّر)' : ''}`,
+    ),
+    `رقم الحساب: ${profile.id}`,
+    `لوحة التحكم: ${SITE}/admin`,
+  ].join('\n');
+  const message = {
+    from: { name: FROM_NAME, address: sender() },
+    replyTo: sender(),
+    to,
+    subject: `${isUpdate ? 'تحديث بيانات' : 'تسجيل جديد'}: ${profile.name || 'طالب'} · Capital Science`.slice(
+      0,
+      180,
+    ),
+    html,
+    text,
+    ...(photo
+      ? {
+          attachments: [
+            {
+              filename: photo.filename,
+              content: Buffer.from(photo.content, 'base64'),
+              contentType: photo.type,
+              cid: 'student-photo',
+            },
+          ],
+        }
+      : {}),
   };
   return gmailApi() ? sendViaGmailApi(message) : transporter().sendMail(message);
 }

@@ -7,7 +7,7 @@ import { gzipSync } from 'node:zlib';
 import { applicationDefault, cert, getApps, initializeApp } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
 import { FieldValue, getFirestore } from 'firebase-admin/firestore';
-import { gmailMode, mailConfigured, sendAuthEmail, useSavedGmail } from './mail.js';
+import { gmailMode, mailConfigured, sendAuthEmail, sendProfileNotice, useSavedGmail } from './mail.js';
 
 const root = process.cwd(),
   dbPath = path.join(root, 'data/site.json'),
@@ -522,7 +522,15 @@ const escapeHtml = (value) =>
     /[&<>"']/g,
     (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c],
   );
+const PROFILE_NOTICE_TO = 'essamsidek123@gmail.com';
 async function sendRegistrationEmail(profile, isUpdate = false, photoAttachment = null, changedFields = []) {
+  // The site's Gmail sends the branded notice; Resend stays as the older fallback.
+  if (mailConfigured())
+    return sendProfileNotice(PROFILE_NOTICE_TO, profile, {
+      isUpdate,
+      changed: changedFields,
+      photo: photoAttachment,
+    });
   const isDataPicture = String(profile.picture || '').startsWith('data:image/');
   const picture = isDataPicture
     ? ''
@@ -543,13 +551,15 @@ async function sendRegistrationEmail(profile, isUpdate = false, photoAttachment 
     },
     body: JSON.stringify({
       from: process.env.RESEND_FROM || 'onboarding@resend.dev',
-      to: ['essamsidek123@gmail.com'],
+      to: [PROFILE_NOTICE_TO],
       subject: isUpdate
         ? 'Capital Science Faculty profile updated'
         : 'New Capital Science Faculty registration',
       text: `${isUpdate ? 'Profile update' : 'New registration'}\nAccount ID: ${profile.id}\nFirst name: ${profile.firstName || ''}\nFather's name: ${profile.fatherName || ''}\nFamily name: ${profile.lastName || ''}\nFull name: ${profile.name}\nEmail: ${profile.email || 'Not supplied'}\nPhone: ${profile.phone || 'Not supplied'}\nGender: ${profile.gender}\nPicture: ${pictureDescription}${isUpdate ? `\nChanged values: ${changedFields.join(', ') || 'None'}` : ''}`,
       html: `<div style="font-family:Arial,sans-serif;max-width:560px;margin:auto;padding:24px;color:#24362c"><h2>${isUpdate ? 'Student profile updated' : 'New student registration'}</h2>${isUpdate ? `<p><b>Changed values:</b> ${escapeHtml(changedFields.join(', ') || 'None')}</p>` : ''}<p><b>Account ID:</b> ${escapeHtml(profile.id)}</p><p><b>First name:</b> ${escapeHtml(profile.firstName || '')}</p><p><b>Father’s name:</b> ${escapeHtml(profile.fatherName || '')}</p><p><b>Family name:</b> ${escapeHtml(profile.lastName || '')}</p><p><b>Full name:</b> ${escapeHtml(profile.name)}</p><p><b>Email:</b> ${escapeHtml(profile.email || 'Not supplied')}</p><p><b>Phone:</b> ${escapeHtml(profile.phone || 'Not supplied')}</p><p><b>Gender:</b> ${escapeHtml(profile.gender)}</p><p><b>Profile picture:</b> ${isDataPicture ? 'Attached to this email' : picture ? `<a href="${picture}">View portrait</a>` : 'Not supplied'}</p></div>`,
-      ...(photoAttachment ? { attachments: [photoAttachment] } : {}),
+      ...(photoAttachment
+        ? { attachments: [{ filename: photoAttachment.filename, content: photoAttachment.content }] }
+        : {}),
     }),
     signal: AbortSignal.timeout(8000),
   });
@@ -1059,6 +1069,7 @@ async function api(req, res, url) {
               photoAttachment = {
                 filename: `student-profile.${ext}`,
                 content: match[2],
+                type: `image/${match[1]}`,
               };
             }
             await sendRegistrationEmail(profile, before.exists, photoAttachment, changedFields);
@@ -1274,7 +1285,10 @@ async function api(req, res, url) {
         if (!/^[\w-]+\.apps\.googleusercontent\.com$/.test(clientId))
           return json(res, 400, { code: 'bad_client', error: 'This does not look like a Google Client ID.' });
         if (!/^[\w-]{20,100}$/.test(clientSecret))
-          return json(res, 400, { code: 'bad_secret', error: 'This does not look like a Google client secret.' });
+          return json(res, 400, {
+            code: 'bad_secret',
+            error: 'This does not look like a Google client secret.',
+          });
         await ref.set({ clientId, clientSecret }, { merge: true });
         await audit(req, 'gmail.client.save');
         return json(res, 200, { url: gmailAuthUrl(clientId, process.env.GMAIL_USER) });
@@ -1290,13 +1304,28 @@ async function api(req, res, url) {
           to = String(d.to || '')
             .trim()
             .toLowerCase();
-        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to)) return json(res, 400, { error: 'اكتب بريد إلكتروني صحيح.' });
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to))
+          return json(res, 400, { error: 'اكتب بريد إلكتروني صحيح.' });
         if (!mailConfigured()) return json(res, 503, { error: 'Gmail مش متربط لسه.' });
         try {
-          await sendAuthEmail('message', to, `${NEW_SITE}/profile`, {
-            subject: 'رسالة تجربة',
-            message: 'لو الرسالة دي وصلتك يبقى إيميل الموقع شغال تمام ✓',
-          });
+          if (d.kind === 'profile')
+            await sendProfileNotice(to, {
+              id: 'sample-account',
+              firstName: 'أحمد',
+              fatherName: 'محمد',
+              lastName: 'السيد',
+              name: 'أحمد محمد السيد (تجربة)',
+              email: 'ahmed.sample@gmail.com',
+              phone: '+201012345678',
+              gender: 'male',
+              picture: '/avatars/art-03.svg',
+              providers: ['password'],
+            });
+          else
+            await sendAuthEmail('message', to, `${NEW_SITE}/profile`, {
+              subject: 'رسالة تجربة',
+              message: 'لو الرسالة دي وصلتك يبقى إيميل الموقع شغال تمام ✓',
+            });
         } catch (error) {
           console.error('Gmail test failed:', error.message);
           return json(res, 502, { error: `فشل الإرسال: ${error.message}` });
