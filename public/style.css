@@ -6848,6 +6848,10 @@ html {
    looping animations; they carry on from where they were as soon as they can be seen again. */
 .anim-off,
 .anim-off *,
+.anim-off::before,
+.anim-off::after,
+.anim-off *::before,
+.anim-off *::after,
 body:has(> .onboarding:not(.out)) :is(#app, .ambient) *,
 body:has(> .onboarding:not(.out)) .ambient {
   animation-play-state: paused !important;
@@ -7455,4 +7459,12 @@ body:has(> .onboarding:not(.out)) .ambient {
   100% {
     translate: 120% 0;
   }
+}
+
+/* Phones and weak devices: the top bar's blur had to be recomputed on every frame because the background
+   behind it keeps moving. A slightly denser solid bar looks the same and costs nothing. */
+.low-power .topbar {
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  background: color-mix(in oklab, var(--paper) 95%, transparent);
 }

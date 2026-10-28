@@ -432,11 +432,11 @@ siteUpdates?.addEventListener('message', (event) => {
 window.addEventListener('storage', (event) => {
   if (event.key === 'cs-site-updated') refreshSiteData();
 });
+// Coming back to the tab only asks the cheap change counters; the full site data (over 1 MB) is downloaded
+// and parsed again only when the counter says it changed. Re-fetching it on every return was a visible
+// stall on slow phones, which hide and show the page on every app switch or screen lock.
 document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState === 'visible') {
-    refreshSiteData();
-    pollLive();
-  }
+  if (document.visibilityState === 'visible') pollLive();
 });
 const reduceMotion = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
 // Swap pages through the View Transitions API where supported, then move focus to the new heading
@@ -2020,12 +2020,14 @@ function pauseOffscreen() {
     (es) => es.forEach((e) => e.target.classList.toggle('anim-off', !e.isIntersecting)),
     { rootMargin: '200px 0px' },
   );
-  document.querySelectorAll('#page section, #page .reveal').forEach((e) => offscreenIO.observe(e));
+  document.querySelectorAll('#page section, #page .reveal, .footer').forEach((e) => offscreenIO.observe(e));
 }
 // Phones and low-end machines draw the background network at half the frame rate and a lower pixel density;
 // the drift is time-based, so it moves at the same speed and looks the same.
 const lowPower =
   matchMedia('(pointer: coarse)').matches || navigator.hardwareConcurrency <= 4 || navigator.deviceMemory <= 4;
+// Lets CSS swap the costliest effects (the blurred top bar over the moving background) on these devices.
+document.documentElement.classList.toggle('low-power', lowPower);
 // Behind the home hero and the sign-in panel: a drifting network of atoms joined by bonds, drawn on a canvas. It only runs
 // while the hero is on screen and the tab is visible, and stays still for reduced-motion visitors.
 function moleculeField(hero = document.querySelector('.hero')) {
