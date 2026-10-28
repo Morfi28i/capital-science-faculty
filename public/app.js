@@ -413,6 +413,7 @@ async function pollLive() {
         if (v.site !== liveLast.site) refreshSiteData();
         if (uid && v.user !== liveLast.user) {
           loadMailbox({ quiet: true });
+          loadInbox();
           // Away from the inbox, a pulsing dot on the profile button says something new arrived.
           if (!document.querySelector('#mailbox-list'))
             document.querySelector('.avatar-mini')?.classList.add('has-news');
@@ -500,6 +501,7 @@ const iconPaths = {
     '<path d="M14 8h2.5V4.5H14A3.5 3.5 0 0 0 10.5 8v2.5H8V14h2.5v6.5H14V14h2.5l.5-3.5h-3V8.5A.5.5 0 0 1 14 8Z"/>',
   drive: '<path d="M8.5 3.5h7l6 10.5-3.5 6h-12l-3.5-6Z"/><path d="M8.5 3.5 12 10l-6 10M15.5 3.5 9.5 14h12"/>',
   mail: '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m4 7 8 6 8-6"/>',
+  bell: '<path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>',
   phone:
     '<path d="M5 4h3.5l1.5 4.5-2 1.5a11 11 0 0 0 6 6l1.5-2 4.5 1.5V19a1.5 1.5 0 0 1-1.5 1.5A16.5 16.5 0 0 1 3.5 5.5 1.5 1.5 0 0 1 5 4Z"/>',
   globe: '<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/>',
@@ -695,6 +697,167 @@ const currentPath = () => (location.pathname.length > 1 ? location.pathname.repl
 function navLink(p, label) {
   return `<a href="${p}" data-route="${p}" ${currentPath() === p ? 'aria-current="page"' : ''}>${label}</a>`;
 }
+// The bell in the top bar: unread count plus a drop-down of the latest messages from the site team, on every
+// page and screen size. The list is kept between renders so the badge does not blink on page changes.
+let inbox = { messages: [], unread: 0, loaded: false, loading: null };
+// A tap anywhere outside the open drop-down closes it.
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('.inbox-wrap')) closeInbox();
+});
+// Closing plays a short exit animation before the drop-down is hidden.
+function closeInbox() {
+  const pop = document.querySelector('#inbox-pop');
+  document.querySelector('#inbox-btn')?.setAttribute('aria-expanded', 'false');
+  if (!pop || pop.hidden || pop.classList.contains('closing')) return;
+  if (reduceMotion()) {
+    pop.hidden = true;
+    return;
+  }
+  pop.classList.add('closing');
+  setTimeout(() => {
+    if (pop.classList.contains('closing')) {
+      pop.hidden = true;
+      pop.classList.remove('closing');
+    }
+  }, 180);
+}
+function inboxShortcut(profile) {
+  if (!profile?.id || !firebaseEnabled) return '';
+  // Another account signed in on this device starts from an empty list.
+  if (inbox.uid !== profile.id) inbox = { messages: [], unread: 0, loaded: false, loading: null, uid: profile.id };
+  const L = (ar, en) => (lang === 'ar' ? ar : en);
+  return `<div class="inbox-wrap"><button class="icon-btn inbox-btn ${inbox.unread ? 'has-unread' : ''}" id="inbox-btn" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="inbox-pop" aria-label="${L('الإشعارات والرسائل', 'Notifications and messages')}" title="${L('الإشعارات والرسائل', 'Notifications and messages')}">${icon('bell')}</button><b class="inbox-count" aria-hidden="true" ${inbox.unread ? '' : 'hidden'}>${fmt(inbox.unread)}</b><div class="inbox-pop" id="inbox-pop" role="dialog" aria-label="${L('الإشعارات والرسائل', 'Notifications and messages')}" hidden></div></div>`;
+}
+// "5 minutes ago" style times for the drop-down; the full date stays in the tooltip.
+function relativeStamp(m) {
+  const sec = m.createdAt?.seconds || m.createdAt?._seconds;
+  if (!sec) return '';
+  const diff = Math.round((sec * 1000 - Date.now()) / 1000),
+    rtf = new Intl.RelativeTimeFormat(lang === 'ar' ? 'ar-EG' : 'en', { numeric: 'auto' });
+  for (const [unit, size] of [
+    ['second', 60],
+    ['minute', 60],
+    ['hour', 24],
+    ['day', 7],
+    ['week', 4.35],
+    ['month', 12],
+  ]) {
+    if (Math.abs(diff) < 45 && unit === 'second') return lang === 'ar' ? 'دلوقتي' : 'just now';
+    const value = Math.round(diff / { second: 1, minute: 60, hour: 3600, day: 86400, week: 604800, month: 2629800 }[unit]);
+    if (Math.abs(value) < size) return rtf.format(value, unit);
+  }
+  return messageStamp(m);
+}
+let inboxView = 'all';
+function inboxPopHtml() {
+  const L = (ar, en) => (lang === 'ar' ? ar : en),
+    all = inbox.messages,
+    shown = (inboxView === 'unread' ? all.filter((m) => m.sender !== 'user' && !m.readAt) : all).slice(0, 8);
+  const rows = !inbox.loaded
+    ? Array.from({ length: 3 }, () => '<div class="inbox-skeleton" aria-hidden="true"><i></i><span><b></b><b></b></span></div>').join('')
+    : shown.length
+      ? shown
+          .map((m, i) => {
+            const mine = m.sender === 'user',
+              fresh = !mine && !m.readAt;
+            return `<button class="inbox-item ${fresh ? 'unread' : ''} ${mine ? 'mine' : ''}" type="button" data-open-inbox style="--i:${i}"><span class="inbox-item-icon">${mine ? icon('user') : `<img src="/favicon.svg" alt="" width="38" height="38">`}${fresh ? `<i class="inbox-dot" aria-label="${L('جديدة', 'New')}"></i>` : ''}</span><span class="inbox-item-body"><span class="inbox-item-top"><b>${esc(m.subject || (mine ? L('رسالتك', 'Your message') : L('إدارة الموقع', 'Site team')))}</b><time title="${attr(messageStamp(m))}">${esc(relativeStamp(m))}</time></span><small>${esc(String(m.message || '').slice(0, 120))}</small></span></button>`;
+          })
+          .join('')
+      : `<div class="inbox-empty"><span class="inbox-empty-art" aria-hidden="true">${icon('bell')}<i></i><i></i><i></i></span><b>${inboxView === 'unread' ? L('كله مقروء', 'All caught up') : L('مفيش إشعارات لسه', 'No notifications yet')}</b><p>${inboxView === 'unread' ? L('مفيش رسائل جديدة دلوقتي.', 'No new messages right now.') : L('أي رسالة من إدارة الموقع هتوصلك هنا على طول.', 'Messages from the site team will show up here.')}</p></div>`;
+  return `<span class="inbox-caret" aria-hidden="true"></span><div class="inbox-pop-head"><span class="inbox-head-icon" aria-hidden="true">${icon('bell')}</span><div><b>${L('الإشعارات والرسائل', 'Notifications & messages')}</b><small>${L('من إدارة Capital Science', 'From the Capital Science team')}</small></div>${inbox.unread ? `<button class="inbox-read-all" type="button" data-read-all title="${L('علّم الكل كمقروء', 'Mark all as read')}">${icon('check')}<span>${L('قريت الكل', 'Mark read')}</span></button>` : ''}</div><div class="inbox-tabs" role="tablist"><button type="button" role="tab" data-inbox-view="all" aria-selected="${inboxView === 'all'}">${L('الكل', 'All')}<em>${fmt(all.length)}</em></button><button type="button" role="tab" data-inbox-view="unread" aria-selected="${inboxView === 'unread'}">${L('الجديدة', 'Unread')}<em>${fmt(inbox.unread)}</em></button><span class="inbox-tab-glider" aria-hidden="true"></span></div><div class="inbox-pop-list">${rows}</div><button class="button primary inbox-all" type="button" data-open-inbox>${icon('chat')}<span>${all.length ? L('افتح المحادثة مع الإدارة', 'Open the conversation') : L('ابعت رسالة للإدارة', 'Message the site team')}</span>${icon('arrow', 'inbox-all-arrow')}</button>`;
+}
+function paintInbox() {
+  const count = document.querySelector('.inbox-count'),
+    pop = document.querySelector('#inbox-pop');
+  if (count) {
+    const grew = inbox.unread > Number(count.dataset.n || 0);
+    count.hidden = !inbox.unread;
+    count.textContent = fmt(inbox.unread);
+    count.dataset.n = inbox.unread;
+    document.querySelector('#inbox-btn')?.classList.toggle('has-unread', inbox.unread > 0);
+    const label = lang === 'ar' ? 'الإشعارات والرسائل' : 'Notifications and messages';
+    document
+      .querySelector('#inbox-btn')
+      ?.setAttribute('aria-label', inbox.unread ? `${label} (${fmt(inbox.unread)})` : label);
+    // A new unread message rings the bell once.
+    if (grew) {
+      const btn = document.querySelector('#inbox-btn');
+      btn.classList.remove('bell-ringing');
+      void btn.offsetWidth;
+      btn.classList.add('bell-ringing');
+    }
+  }
+  if (pop && !pop.hidden && !pop.classList.contains('closing')) pop.innerHTML = inboxPopHtml();
+}
+function loadInbox() {
+  if (!getProfile()?.id || !firebaseEnabled) return Promise.resolve();
+  inbox.loading ||= import('/firebase-auth.js')
+    .then((auth) => auth.loadMessages())
+    .then((messages) => {
+      inbox = {
+        messages,
+        unread: messages.filter((m) => m.sender !== 'user' && !m.readAt).length,
+        loaded: true,
+        uid: inbox.uid,
+      };
+      paintInbox();
+    })
+    .catch(() => {
+      inbox.loading = null;
+    });
+  return inbox.loading;
+}
+function wireInbox() {
+  const btn = document.querySelector('#inbox-btn'),
+    pop = document.querySelector('#inbox-pop');
+  if (!btn) return;
+  const setOpen = (open) => {
+    btn.setAttribute('aria-expanded', String(open));
+    if (open) {
+      pop.classList.remove('closing');
+      pop.hidden = false;
+      pop.innerHTML = inboxPopHtml();
+      loadInbox();
+      return;
+    }
+    closeInbox();
+  };
+  btn.onclick = (e) => {
+    e.stopPropagation();
+    setOpen(pop.hidden || pop.classList.contains('closing'));
+  };
+  pop.addEventListener('click', async (e) => {
+    e.stopPropagation();
+    const view = e.target.closest('[data-inbox-view]');
+    if (view) {
+      inboxView = view.dataset.inboxView;
+      pop.innerHTML = inboxPopHtml();
+      return;
+    }
+    if (e.target.closest('[data-read-all]')) {
+      const unread = inbox.messages.filter((m) => m.sender !== 'user' && !m.readAt);
+      unread.forEach((m) => (m.readAt = true));
+      inbox.unread = 0;
+      paintInbox();
+      const auth = await import('/firebase-auth.js');
+      Promise.all(unread.map((m) => auth.markMessageRead(m.id))).catch(() => loadInbox());
+      return;
+    }
+    if (!e.target.closest('[data-open-inbox]')) return;
+    setOpen(false);
+    sessionStorage.setItem('cs-profile-tab', 'messages');
+    if (currentPath() === '/profile') document.querySelector('.profile-tab[data-tab="messages"]')?.click();
+    else navigate('/profile');
+  });
+  pop.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      setOpen(false);
+      btn.focus();
+    }
+  });
+  if (!inbox.loaded) loadInbox();
+  else paintInbox();
+}
 function header() {
   const profile = getProfile(),
     avatar = profile?.picture
@@ -703,7 +866,7 @@ function header() {
         ? esc(profile.name.slice(0, 1).toLocaleUpperCase())
         : icon('user');
   const dark = renderedTheme() === 'dark';
-  return `<header class="topbar"><div class="topbar-inner">${brand()}<nav class="nav" id="site-nav" aria-label="${lang === 'ar' ? 'التنقل الرئيسي' : 'Main'}">${navLink('/', t('home'))}${navLink('/subjects', t('subjects'))}${navLink('/lectures', t('lectures'))}${navLink('/advising', t('advising'))}${navLink('/official', t('official'))}${navLink('/developer', t('developer'))}</nav><div class="tools"><button class="icon-btn lang-btn" id="lang" lang="${lang === 'ar' ? 'en' : 'ar'}">${t('language')}</button><button class="icon-btn" id="theme" aria-label="${dark ? t('toLight') : t('toDark')}" title="${dark ? t('toLight') : t('toDark')}">${dark ? icon('sun') : icon('moon')}</button><a class="avatar-mini" href="/profile" data-route="/profile" aria-label="${t('profile')}" title="${t('profile')}" ${currentPath() === '/profile' ? 'aria-current="page"' : ''}>${avatar}</a><button class="icon-btn mobile-menu" id="mobile-menu" aria-controls="site-nav" aria-expanded="false" aria-label="${t('menu')}">${icon('menu')}</button></div></div></header>`;
+  return `<header class="topbar"><div class="topbar-inner">${brand()}<nav class="nav" id="site-nav" aria-label="${lang === 'ar' ? 'التنقل الرئيسي' : 'Main'}">${navLink('/', t('home'))}${navLink('/subjects', t('subjects'))}${navLink('/lectures', t('lectures'))}${navLink('/advising', t('advising'))}${navLink('/official', t('official'))}${navLink('/developer', t('developer'))}</nav><div class="tools"><button class="icon-btn lang-btn" id="lang" lang="${lang === 'ar' ? 'en' : 'ar'}">${t('language')}</button><button class="icon-btn" id="theme" aria-label="${dark ? t('toLight') : t('toDark')}" title="${dark ? t('toLight') : t('toDark')}">${dark ? icon('sun') : icon('moon')}</button>${inboxShortcut(profile)}<a class="avatar-mini" href="/profile" data-route="/profile" aria-label="${t('profile')}" title="${t('profile')}" ${currentPath() === '/profile' ? 'aria-current="page"' : ''}>${avatar}</a><button class="icon-btn mobile-menu" id="mobile-menu" aria-controls="site-nav" aria-expanded="false" aria-label="${t('menu')}">${icon('menu')}</button></div></div></header>`;
 }
 function banner() {
   return `<a class="dev-banner" href="/developer" data-route="/developer"><span class="banner-dot" aria-hidden="true"></span><span>${t('banner')}</span>${icon('arrow', 'banner-arrow')}</a>`;
@@ -1170,6 +1333,11 @@ async function loadMailbox({ quiet = false } = {}) {
       Promise.all(unread.map((m) => auth.markMessageRead(m.id)))
         .then(() => {
           if (badge) badge.hidden = true;
+          inbox.messages.forEach((m) => {
+            if (m.sender !== 'user') m.readAt ||= true;
+          });
+          inbox.unread = 0;
+          paintInbox();
         })
         .catch(() => {});
     }
@@ -1606,6 +1774,7 @@ function render() {
       menuButton.focus();
     }
   });
+  wireInbox();
   if (p === '/profile') wireProfile();
   else if (p === '/lectures') wireLectureFilters();
   else wireFilters();

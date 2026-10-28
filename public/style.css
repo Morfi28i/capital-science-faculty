@@ -6852,3 +6852,601 @@ body:has(> .onboarding:not(.out)) :is(#app, .ambient) *,
 body:has(> .onboarding:not(.out)) .ambient {
   animation-play-state: paused !important;
 }
+
+/* ---------- Notifications & messages bell in the top bar ---------- */
+.inbox-wrap {
+  position: relative;
+}
+.inbox-btn .ico {
+  transform-origin: 50% 2px;
+}
+/* Unread messages: the bell glows gold and a soft ring breathes around it. */
+.inbox-btn.has-unread {
+  color: var(--gold);
+  border-color: color-mix(in oklab, var(--gold) 45%, var(--line));
+  background: color-mix(in oklab, var(--gold) 10%, var(--surface));
+}
+.inbox-btn[aria-expanded='true'] {
+  border-color: color-mix(in oklab, var(--mint) 60%, var(--line));
+  background: color-mix(in oklab, var(--mint) 14%, var(--surface));
+}
+.inbox-count {
+  position: absolute;
+  top: -6px;
+  inset-inline-end: -6px;
+  z-index: 1;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #f3d27e, var(--gold));
+  color: #1b1408;
+  border: 2px solid var(--paper);
+  box-shadow: 0 4px 12px -2px color-mix(in oklab, var(--gold) 70%, transparent);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 16px;
+  text-align: center;
+  pointer-events: none;
+}
+
+.inbox-pop {
+  --pop-bg: var(--surface);
+  position: absolute;
+  top: calc(100% + 14px);
+  inset-inline-end: -8px;
+  z-index: 60;
+  width: min(390px, calc(100vw - 32px));
+  padding: 0;
+  border-radius: 22px;
+  border: 1px solid color-mix(in oklab, var(--mint) 22%, var(--line));
+  background:
+    radial-gradient(120% 60% at 100% 0%, color-mix(in oklab, var(--mint) 14%, transparent), transparent 60%),
+    radial-gradient(80% 50% at 0% 100%, color-mix(in oklab, var(--gold) 10%, transparent), transparent 60%),
+    var(--pop-bg);
+  backdrop-filter: saturate(1.5) blur(18px);
+  -webkit-backdrop-filter: saturate(1.5) blur(18px);
+  box-shadow:
+    var(--shadow-lg),
+    0 0 0 1px color-mix(in oklab, var(--ink) 4%, transparent) inset;
+  display: grid;
+  transform-origin: top var(--inbox-origin);
+}
+[dir='rtl'] .inbox-pop {
+  --inbox-origin: left;
+}
+[dir='ltr'] .inbox-pop {
+  --inbox-origin: right;
+}
+/* A small pointer connects the drop-down to the bell. */
+.inbox-caret {
+  position: absolute;
+  top: -7px;
+  inset-inline-end: 22px;
+  width: 14px;
+  height: 14px;
+  rotate: 45deg;
+  background: var(--surface);
+  border-top: 1px solid color-mix(in oklab, var(--mint) 22%, var(--line));
+  border-left: 1px solid color-mix(in oklab, var(--mint) 22%, var(--line));
+}
+.inbox-pop-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 16px 12px;
+}
+.inbox-pop-head > div {
+  display: grid;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+.inbox-pop-head b {
+  font-size: 15px;
+}
+.inbox-pop-head small {
+  color: var(--muted);
+  font-size: 12px;
+}
+.inbox-head-icon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 13px;
+  color: #10261a;
+  background: linear-gradient(140deg, var(--mint), color-mix(in oklab, var(--mint) 55%, var(--gold)));
+  box-shadow: 0 8px 20px -8px color-mix(in oklab, var(--mint) 80%, transparent);
+}
+.inbox-head-icon .ico {
+  width: 20px;
+  height: 20px;
+}
+.inbox-read-all {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 11px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+  transition:
+    background 0.2s,
+    border-color 0.2s,
+    color 0.2s;
+}
+.inbox-read-all .ico {
+  width: 14px;
+  height: 14px;
+}
+.inbox-read-all:hover {
+  color: var(--mint);
+  border-color: color-mix(in oklab, var(--mint) 50%, var(--line));
+  background: color-mix(in oklab, var(--mint) 10%, transparent);
+}
+
+.inbox-tabs {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  margin: 0 16px 10px;
+  padding: 4px;
+  border-radius: 14px;
+  background: color-mix(in oklab, var(--ink) 6%, transparent);
+}
+.inbox-tabs button {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 7px 10px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  transition: color 0.25s;
+}
+.inbox-tabs button[aria-selected='true'] {
+  color: var(--ink);
+  font-weight: 600;
+}
+.inbox-tabs em {
+  font-style: normal;
+  min-width: 20px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: color-mix(in oklab, var(--ink) 8%, transparent);
+  font-size: 11px;
+}
+.inbox-tabs button[data-inbox-view='unread'][aria-selected='true'] em {
+  background: color-mix(in oklab, var(--gold) 28%, transparent);
+  color: var(--gold);
+}
+/* The highlight slides under whichever tab is selected. */
+.inbox-tab-glider {
+  position: absolute;
+  inset-block: 4px;
+  inset-inline-start: 4px;
+  width: calc(50% - 4px);
+  border-radius: 10px;
+  background: var(--surface);
+  box-shadow: var(--shadow-sm), 0 0 0 1px var(--line);
+  transition: translate 0.35s var(--ease);
+}
+.inbox-tabs:has([data-inbox-view='unread'][aria-selected='true']) .inbox-tab-glider {
+  translate: calc(var(--glide-dir, 1) * 100%) 0;
+}
+[dir='rtl'] .inbox-tab-glider {
+  --glide-dir: -1;
+}
+
+.inbox-pop-list {
+  display: grid;
+  gap: 4px;
+  padding: 2px 8px 8px;
+  max-height: min(400px, 56dvh);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  mask-image: linear-gradient(to bottom, #000 calc(100% - 18px), transparent);
+}
+.inbox-item {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  width: 100%;
+  padding: 11px 12px;
+  border: 1px solid transparent;
+  border-radius: 16px;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+  transition:
+    background 0.25s,
+    border-color 0.25s,
+    transform 0.25s var(--ease);
+}
+/* A soft light sweeps across the row on hover. */
+.inbox-item::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: linear-gradient(100deg, transparent 30%, color-mix(in oklab, var(--mint) 14%, transparent), transparent 70%);
+  translate: -100% 0;
+  transition: translate 0.6s var(--ease);
+}
+.inbox-item:hover::before,
+.inbox-item:focus-visible::before {
+  translate: 100% 0;
+}
+.inbox-item:hover,
+.inbox-item:focus-visible {
+  background: color-mix(in oklab, var(--mint) 8%, transparent);
+  border-color: color-mix(in oklab, var(--mint) 20%, transparent);
+  transform: translateY(-1px);
+}
+.inbox-item.unread {
+  background: linear-gradient(90deg, color-mix(in oklab, var(--gold) 12%, transparent), transparent);
+  border-color: color-mix(in oklab, var(--gold) 18%, transparent);
+}
+[dir='rtl'] .inbox-item.unread {
+  background: linear-gradient(270deg, color-mix(in oklab, var(--gold) 12%, transparent), transparent);
+}
+.inbox-item-icon {
+  position: relative;
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--paper);
+  border: 1px solid var(--line);
+}
+.inbox-item-icon img {
+  border-radius: 50%;
+}
+.inbox-item.unread .inbox-item-icon {
+  border-color: transparent;
+  box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px color-mix(in oklab, var(--gold) 70%, transparent);
+}
+.inbox-item.mine .inbox-item-icon {
+  color: var(--mint);
+}
+.inbox-item-icon .ico {
+  width: 18px;
+  height: 18px;
+}
+.inbox-item-body {
+  display: grid;
+  gap: 3px;
+  flex: 1;
+  min-width: 0;
+}
+.inbox-item-top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+.inbox-item-top b {
+  font-size: 14px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.inbox-item-top time {
+  flex: none;
+  font-size: 11px;
+  color: var(--muted);
+}
+.inbox-item.unread .inbox-item-top time {
+  color: var(--gold);
+}
+.inbox-item-body small {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.6;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.inbox-item.unread .inbox-item-body small {
+  color: var(--ink);
+}
+.inbox-dot {
+  position: absolute;
+  top: -2px;
+  inset-inline-start: -2px;
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: var(--gold);
+  border: 2px solid var(--surface);
+}
+
+.inbox-skeleton {
+  display: flex;
+  gap: 12px;
+  padding: 12px;
+}
+.inbox-skeleton i {
+  flex: none;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+}
+.inbox-skeleton span {
+  display: grid;
+  gap: 8px;
+  flex: 1;
+  align-content: center;
+}
+.inbox-skeleton b {
+  height: 10px;
+  border-radius: 6px;
+}
+.inbox-skeleton b:last-child {
+  width: 70%;
+}
+.inbox-skeleton i,
+.inbox-skeleton b {
+  background: linear-gradient(90deg, color-mix(in oklab, var(--ink) 7%, transparent) 30%, color-mix(in oklab, var(--ink) 14%, transparent), color-mix(in oklab, var(--ink) 7%, transparent) 70%) 0 0 / 300% 100%;
+}
+
+.inbox-empty {
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  padding: 26px 16px 22px;
+  text-align: center;
+}
+.inbox-empty b {
+  font-size: 15px;
+}
+.inbox-empty p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+.inbox-empty-art {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 64px;
+  height: 64px;
+  margin-bottom: 6px;
+  border-radius: 50%;
+  color: var(--mint);
+  background: radial-gradient(circle, color-mix(in oklab, var(--mint) 20%, transparent), transparent 70%);
+}
+.inbox-empty-art .ico {
+  width: 28px;
+  height: 28px;
+}
+.inbox-empty-art i {
+  position: absolute;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--gold);
+  opacity: 0.8;
+}
+.inbox-empty-art i:nth-of-type(1) {
+  top: 8px;
+  left: 10px;
+}
+.inbox-empty-art i:nth-of-type(2) {
+  top: 18px;
+  right: 4px;
+  background: var(--mint);
+}
+.inbox-empty-art i:nth-of-type(3) {
+  bottom: 8px;
+  left: 18px;
+  width: 4px;
+  height: 4px;
+}
+
+.inbox-all {
+  position: relative;
+  overflow: hidden;
+  justify-content: center;
+  gap: 8px;
+  margin: 4px 16px 16px;
+}
+.inbox-all .inbox-all-arrow {
+  transition: translate 0.3s var(--ease);
+}
+.inbox-all:hover .inbox-all-arrow {
+  translate: calc(var(--glide-dir, 1) * 4px) 0;
+}
+[dir='rtl'] .inbox-all {
+  --glide-dir: -1;
+}
+/* A shine passes over the main button now and then. */
+.inbox-all::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(110deg, transparent 35%, #ffffff55 50%, transparent 65%);
+  translate: -120% 0;
+  pointer-events: none;
+}
+
+/* Phones: the drop-down spans the screen under the top bar instead of hanging off the button. */
+@media (max-width: 560px) {
+  .inbox-pop {
+    position: fixed;
+    top: 64px;
+    inset-inline: 12px;
+    width: auto;
+    transform-origin: top center;
+  }
+  .inbox-caret {
+    display: none;
+  }
+  .inbox-pop-list {
+    max-height: calc(100dvh - 300px);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .inbox-pop:not([hidden]) {
+    animation: inbox-pop-in 0.42s cubic-bezier(0.2, 0.9, 0.25, 1.15) both;
+  }
+  .inbox-pop.closing {
+    animation: inbox-pop-out 0.18s ease-in both;
+  }
+  .inbox-pop:not([hidden]) .inbox-pop-head,
+  .inbox-pop:not([hidden]) .inbox-tabs,
+  .inbox-pop:not([hidden]) .inbox-all {
+    animation: inbox-item-in 0.45s var(--ease) both;
+  }
+  .inbox-pop:not([hidden]) .inbox-tabs {
+    animation-delay: 60ms;
+  }
+  .inbox-pop:not([hidden]) .inbox-all {
+    animation-delay: 220ms;
+  }
+  .inbox-item {
+    animation: inbox-item-in 0.45s var(--ease) both;
+    animation-delay: calc(var(--i, 0) * 55ms + 110ms);
+  }
+  .inbox-head-icon .ico {
+    animation: bell-ring 1s ease-in-out 0.3s;
+    transform-origin: 50% 2px;
+  }
+  .inbox-count:not([hidden]) {
+    animation: inbox-count-in 0.5s cubic-bezier(0.3, 1.6, 0.5, 1) both;
+  }
+  /* The button clips its children, so the halo is the button's own shadow. */
+  .inbox-btn.has-unread {
+    animation: bell-halo 2.4s ease-out infinite;
+  }
+  .inbox-dot {
+    animation: dot-pulse 1.6s ease-out infinite;
+  }
+  .inbox-btn:hover .ico {
+    animation: bell-ring 0.8s ease-in-out;
+  }
+  .inbox-btn.bell-ringing .ico {
+    animation: bell-ring 0.9s ease-in-out 2;
+  }
+  .inbox-skeleton i,
+  .inbox-skeleton b {
+    animation: inbox-shimmer 1.3s linear infinite;
+  }
+  .inbox-empty-art {
+    animation: inbox-float 3.2s ease-in-out infinite;
+  }
+  .inbox-empty-art i {
+    animation: inbox-twinkle 2.2s ease-in-out infinite;
+  }
+  .inbox-empty-art i:nth-of-type(2) {
+    animation-delay: 0.7s;
+  }
+  .inbox-empty-art i:nth-of-type(3) {
+    animation-delay: 1.4s;
+  }
+  .inbox-all::after {
+    animation: inbox-shine 3.6s ease-in-out 0.8s infinite;
+  }
+}
+@keyframes inbox-pop-in {
+  from {
+    opacity: 0;
+    transform: translateY(-10px) scale(0.94);
+    filter: blur(4px);
+  }
+}
+@keyframes inbox-pop-out {
+  to {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.97);
+  }
+}
+@keyframes inbox-item-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+@keyframes inbox-count-in {
+  0% {
+    transform: scale(0);
+  }
+}
+@keyframes bell-halo {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in oklab, var(--gold) 55%, transparent);
+  }
+  70%,
+  100% {
+    box-shadow: 0 0 0 9px transparent;
+  }
+}
+@keyframes bell-ring {
+  0%,
+  100% {
+    rotate: 0deg;
+  }
+  15% {
+    rotate: 14deg;
+  }
+  30% {
+    rotate: -12deg;
+  }
+  45% {
+    rotate: 9deg;
+  }
+  60% {
+    rotate: -6deg;
+  }
+  75% {
+    rotate: 3deg;
+  }
+}
+@keyframes inbox-shimmer {
+  to {
+    background-position: -150% 0;
+  }
+}
+@keyframes inbox-float {
+  50% {
+    transform: translateY(-5px);
+  }
+}
+@keyframes inbox-twinkle {
+  50% {
+    opacity: 0.2;
+    transform: scale(0.5);
+  }
+}
+@keyframes inbox-shine {
+  0%,
+  60% {
+    translate: -120% 0;
+  }
+  100% {
+    translate: 120% 0;
+  }
+}
