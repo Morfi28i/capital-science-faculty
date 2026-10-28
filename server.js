@@ -333,9 +333,9 @@ function nextSyncRun(now = new Date()) {
   return null;
 }
 const firestoreTime = (value) => (value?.toDate ? value.toDate().toISOString() : value || null);
-// The workflow checks every 15 minutes and runs a full sync once the last one is SYNC_INTERVAL_HOURS old,
-// so a check GitHub drops or delays is simply caught up by the next one.
-const SYNC_INTERVAL_HOURS = 8;
+// A full sync runs once the last one is SYNC_INTERVAL_HOURS old. The site starts it itself (autoSync below);
+// the workflow's own 15-minute check does the same as a backup, since GitHub often drops scheduled runs.
+const SYNC_INTERVAL_HOURS = 2;
 function syncDueAt(lastSyncAt, now = new Date()) {
   const last = Date.parse(lastSyncAt || '');
   if (Number.isNaN(last)) return now.toISOString();
@@ -405,6 +405,51 @@ function gmailAuthUrl(clientId, account) {
     ...(account ? { login_hint: account } : {}),
   });
   return auth.toString();
+}
+// Starts the Drive sync workflow on GitHub and records the start, so the dashboard shows it running until
+// the report arrives. Returns GitHub's HTTP status (204 means started).
+async function dispatchSync(token, { dryRun = false, allowRemovals = false } = {}) {
+  const response = await fetch(
+    `https://api.github.com/repos/${syncRepo()}/actions/workflows/${SYNC_WORKFLOW}/dispatches`,
+    {
+      method: 'POST',
+      headers: githubHeaders(token),
+      body: JSON.stringify({
+        ref: 'main',
+        inputs: { dry_run: String(dryRun), allow_removals: String(allowRemovals), allow_large: 'false' },
+      }),
+      signal: AbortSignal.timeout(15000),
+    },
+  );
+  if (response.status === 204 && firebaseConfigured()) {
+    await firebase()
+      .db.collection('syncState')
+      .doc('latest')
+      .set({ runStartedAt: FieldValue.serverTimestamp() }, { merge: true });
+    bump('sync');
+  }
+  return response.status;
+}
+// GitHub's scheduler drops many of the workflow's quarter-hour checks, which left new Drive files off the
+// site for hours. While the site is awake it checks every 10 minutes and starts the sync itself once the
+// last one is SYNC_INTERVAL_HOURS old, unless the dashboard paused syncing or a run is already going.
+async function autoSync() {
+  try {
+    if (!firebaseConfigured()) return;
+    const { token } = await dispatchToken();
+    if (!token) return;
+    const state = await firebase().db.collection('syncState').doc('latest').get();
+    const data = state.exists ? state.data() : {};
+    if (data.paused === true) return;
+    const last = Date.parse(firestoreTime(data.lastSyncAt) || '') || 0,
+      started = Date.parse(firestoreTime(data.runStartedAt) || '') || 0;
+    if (started > last && Date.now() - started < 60 * 60_000) return;
+    if (Date.now() - last < SYNC_INTERVAL_HOURS * 60 * 60_000) return;
+    const status = await dispatchSync(token);
+    console.log(`Automatic Drive sync ${status === 204 ? 'started' : `refused by GitHub (HTTP ${status})`}.`);
+  } catch (error) {
+    console.error('Automatic Drive sync check failed:', error.message);
+  }
 }
 const githubHeaders = (token) => ({
   Authorization: `Bearer ${token}`,
@@ -1374,7 +1419,7 @@ async function api(req, res, url) {
           reportConfigured: true,
           workflowUrl: `https://github.com/${syncRepo()}/actions/workflows/${SYNC_WORKFLOW}`,
           firebaseConfigured: firebaseConfigured(),
-          schedule: 'كل 8 ساعات تقريبًا',
+          schedule: 'كل ساعتين تقريبًا',
           nextRun: nextSyncRun(),
           nextCheck: nextSyncCheck(),
         };
@@ -1444,35 +1489,13 @@ async function api(req, res, url) {
             allowRemovals,
           });
         }
-        const response = await fetch(
-          `https://api.github.com/repos/${syncRepo()}/actions/workflows/${SYNC_WORKFLOW}/dispatches`,
-          {
-            method: 'POST',
-            headers: githubHeaders(dispatch.token),
-            body: JSON.stringify({
-              ref: 'main',
-              inputs: {
-                dry_run: String(dryRun),
-                allow_removals: String(allowRemovals),
-                allow_large: 'false',
-              },
-            }),
-            signal: AbortSignal.timeout(15000),
-          },
-        );
-        if (response.status !== 204)
+        const status = await dispatchSync(dispatch.token, { dryRun, allowRemovals });
+        if (status !== 204)
           return json(res, 502, {
-            error: `GitHub refused the run request (HTTP ${response.status}).`,
-            code: `github_${response.status}`,
+            error: `GitHub refused the run request (HTTP ${status}).`,
+            code: `github_${status}`,
           });
         await audit(req, 'sync.run', { dryRun, allowRemovals });
-        // Remember when it started, so the dashboard can show it running until the report arrives.
-        if (firebaseConfigured())
-          await firebase()
-            .db.collection('syncState')
-            .doc('latest')
-            .set({ runStartedAt: FieldValue.serverTimestamp() }, { merge: true });
-        bump('sync');
         return json(res, 200, { ok: true, dryRun, allowRemovals });
       }
       if (req.method === 'DELETE' && url.pathname === '/api/admin/sync/run') {
@@ -1821,9 +1844,14 @@ export async function handleRequest(req, res) {
     });
   }
 }
-if (!process.env.VERCEL)
+if (!process.env.VERCEL) {
   http
     .createServer(handleRequest)
     .listen(Number(process.env.PORT || 3000), () =>
       console.log(`Capital Science Faculty is running on http://localhost:${process.env.PORT || 3000}`),
     );
+  if (!process.env.FIREBASE_AUTH_EMULATOR_HOST) {
+    setTimeout(autoSync, 60_000).unref();
+    setInterval(autoSync, 10 * 60_000).unref();
+  }
+}

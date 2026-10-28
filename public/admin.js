@@ -829,7 +829,7 @@ async function drawSync() {
       ? `<div class="admin-row"><span>${esc(statusLabels[run.status] || run.status)} · ${run.mode === 'dry-run' ? 'تجربة (من غير حفظ)' : 'حقيقي'}<small>${esc(when(run.finishedAt || run.receivedAt))} · ${esc(triggerLabels[run.trigger] || run.trigger)} · ${run.durationSec ? `${Math.round(run.durationSec / 60)} دقيقة` : ''}${run.commit ? ` · commit ${esc(run.commit.slice(0, 7))}` : run.changed ? ' · فيه تغييرات' : ' · مفيش تغييرات'}</small></span>${run.runUrl ? `<a class="button ghost" href="${esc(run.runUrl)}" target="_blank" rel="noopener">تفاصيل على GitHub</a>` : ''}</div>`
       : '<p class="admin-muted">لسه مفيش أي تشغيل وصل تقريره.</p>'
   }
-  <p class="admin-muted">آخر تحديث ناجح: ${esc(when(status.lastSyncAt))} · التحديث التلقائي الجاي: حوالي ${esc(when(status.nextRun))} (كل 8 ساعات تقريبًا، وGitHub ساعات بيتأخر شوية)</p>
+  <p class="admin-muted">آخر تحديث ناجح: ${esc(when(status.lastSyncAt))} · التحديث التلقائي الجاي: حوالي ${esc(when(status.nextRun))} (${esc(status.schedule || 'كل ساعتين تقريبًا')}، الموقع بيشغّلها لوحده)</p>
   <section class="stats" aria-label="أرقام آخر تشغيل">${[
     [totals.added, 'اتضاف'],
     [totals.removed, 'اتشال'],

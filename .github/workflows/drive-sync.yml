@@ -2,9 +2,9 @@ name: Drive sync
 
 on:
   schedule:
-    # A quick check every 15 minutes. It runs a full sync when the last one is 8 hours old (about three a
-    # day) or when the dashboard asked for a run, and otherwise exits in seconds. GitHub often delays or
-    # drops scheduled runs, so the next check that does fire simply catches up.
+    # A backup check every 15 minutes. It runs a full sync when the last one is 2 hours old or when the
+    # dashboard asked for a run, and otherwise exits in seconds. GitHub often delays or drops scheduled runs,
+    # so the site itself also starts the sync on time (autoSync in server.js); this check just catches up.
     - cron: '4,19,34,49 * * * *'
   workflow_dispatch:
     inputs:
@@ -37,7 +37,7 @@ jobs:
     env:
       SITE_URL: ${{ vars.SITE_URL || 'https://capital-science-faculty.onrender.com' }}
       SYNC_AUDIENCE: capital-science-faculty-sync
-      SYNC_INTERVAL_HOURS: '8'
+      SYNC_INTERVAL_HOURS: '2'
     steps:
       - name: Decide what to run
         id: plan
