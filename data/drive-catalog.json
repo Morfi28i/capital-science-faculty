@@ -38086,6 +38086,19 @@
     "note": "1st Physics Group (B) › General physics I"
   },
   {
+    "id": "1Uux_l74-BUq0pBWBUI-QiiBMu0LUTyTo",
+    "parentId": "1bkxa3tCraEmF05MwAp8_rr0cpD3hNR4N",
+    "title": "مواد تفاعلية",
+    "url": "https://drive.google.com/drive/folders/1Uux_l74-BUq0pBWBUI-QiiBMu0LUTyTo",
+    "kind": "drive",
+    "file": false,
+    "type": "folder",
+    "category": "2026/2027",
+    "categoryAr": "دفعة 2026/2027",
+    "categoryEn": "Class of 2026/27",
+    "note": "1st Physics Group (B) › Introduction to Computer Science"
+  },
+  {
     "id": "1kFn9PUBu8zr7MA-gpLMRnUP3W-LON1ZE",
     "parentId": "1bkxa3tCraEmF05MwAp8_rr0cpD3hNR4N",
     "title": "Book",
@@ -40162,6 +40175,34 @@
     "categoryAr": "دفعة 2026/2027",
     "categoryEn": "Class of 2026/27",
     "note": "1st Physics Group (B) › General physics I › lecture 3",
+    "mime": "application/pdf"
+  },
+  {
+    "id": "1hwDQPPnffGHHwp28RaWXZjf-0XjbcRbS",
+    "parentId": "1Uux_l74-BUq0pBWBUI-QiiBMu0LUTyTo",
+    "title": "Inside Computer.pdf",
+    "url": "https://drive.google.com/file/d/1hwDQPPnffGHHwp28RaWXZjf-0XjbcRbS/view",
+    "kind": "drive",
+    "file": true,
+    "type": "file",
+    "category": "2026/2027",
+    "categoryAr": "دفعة 2026/2027",
+    "categoryEn": "Class of 2026/27",
+    "note": "1st Physics Group (B) › Introduction to Computer Science › مواد تفاعلية",
+    "mime": "application/pdf"
+  },
+  {
+    "id": "15yFraUpbeLo0afIEZ8V0TlPq-R0kKSEw",
+    "parentId": "1Uux_l74-BUq0pBWBUI-QiiBMu0LUTyTo",
+    "title": "Introduction to Computer.pdf",
+    "url": "https://drive.google.com/file/d/15yFraUpbeLo0afIEZ8V0TlPq-R0kKSEw/view",
+    "kind": "drive",
+    "file": true,
+    "type": "file",
+    "category": "2026/2027",
+    "categoryAr": "دفعة 2026/2027",
+    "categoryEn": "Class of 2026/27",
+    "note": "1st Physics Group (B) › Introduction to Computer Science › مواد تفاعلية",
     "mime": "application/pdf"
   },
   {
