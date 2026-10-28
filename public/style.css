@@ -6904,8 +6904,6 @@ body:has(> .onboarding:not(.out)) .ambient {
     radial-gradient(120% 60% at 100% 0%, color-mix(in oklab, var(--mint) 14%, transparent), transparent 60%),
     radial-gradient(80% 50% at 0% 100%, color-mix(in oklab, var(--gold) 10%, transparent), transparent 60%),
     var(--pop-bg);
-  backdrop-filter: saturate(1.5) blur(18px);
-  -webkit-backdrop-filter: saturate(1.5) blur(18px);
   box-shadow:
     var(--shadow-lg),
     0 0 0 1px color-mix(in oklab, var(--ink) 4%, transparent) inset;
@@ -7338,8 +7336,14 @@ body:has(> .onboarding:not(.out)) .ambient {
   .inbox-count:not([hidden]) {
     animation: inbox-count-in 0.5s cubic-bezier(0.3, 1.6, 0.5, 1) both;
   }
-  /* The button clips its children, so the halo is the button's own shadow. */
-  .inbox-btn.has-unread {
+  /* The halo is a separate layer that only scales and fades, so it never repaints the bar on slow phones. */
+  .inbox-wrap:has(.has-unread)::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    border: 2px solid var(--gold);
+    pointer-events: none;
     animation: bell-halo 2.4s ease-out infinite;
   }
   .inbox-dot {
@@ -7397,11 +7401,13 @@ body:has(> .onboarding:not(.out)) .ambient {
 }
 @keyframes bell-halo {
   0% {
-    box-shadow: 0 0 0 0 color-mix(in oklab, var(--gold) 55%, transparent);
+    opacity: 0.7;
+    transform: scale(1);
   }
   70%,
   100% {
-    box-shadow: 0 0 0 9px transparent;
+    opacity: 0;
+    transform: scale(1.45);
   }
 }
 @keyframes bell-ring {
