@@ -457,7 +457,8 @@ function transition(update) {
 }
 function navigate(p) {
   if (!paths.includes(p)) p = '/';
-  if (p === currentPath()) {
+  // An open lecture folder lives in the query string, so the same path with one still goes back to the top level.
+  if (p === currentPath() && !location.search) {
     window.scrollTo({ top: 0, behavior: reduceMotion() ? 'auto' : 'smooth' });
     return;
   }
@@ -1721,6 +1722,23 @@ function wireLectureFilters() {
     typeFilter = 'all';
   const hierarchy = driveHierarchy(items);
   for (const node of hierarchy.nodes) node.fileType = fileType(node.item);
+  // Each open folder gets its own link (/lectures?folder=<Drive folder ID>), so it can be shared, reloaded
+  // and reached with the back button. The Drive ID stays the same when the catalog is rebuilt; indexes do not.
+  const folderKey = (n) => n.item.id || String(n.item.url || '').match(/folders\/([\w-]+)/)?.[1] || '';
+  const fromUrl = () => {
+    const key = new URLSearchParams(location.search).get('folder');
+    const node = key && hierarchy.nodes.find((n) => n.item.type === 'folder' && folderKey(n) === key);
+    return node ? String(node.index) : 'root';
+  };
+  const folderUrl = () => {
+    const key = current === 'root' ? '' : folderKey(hierarchy.nodes[Number(current)]);
+    return key ? `/lectures?folder=${encodeURIComponent(key)}` : '/lectures';
+  };
+  const syncUrl = (push) => {
+    const url = folderUrl();
+    if (url !== location.pathname + location.search) history[push ? 'pushState' : 'replaceState']({}, '', url);
+  };
+  current = fromUrl();
   function draw() {
     const selected = hierarchy.nodes.filter((n) => filter === 'all' || n.item.category === filter),
       q = query.trim().toLocaleLowerCase();
@@ -1769,6 +1787,7 @@ function wireLectureFilters() {
       query = '';
       search.value = '';
     }
+    syncUrl(true);
     draw();
   });
   document.querySelectorAll('.filter').forEach(
@@ -1777,6 +1796,7 @@ function wireLectureFilters() {
         setActiveFilter(b);
         filter = b.dataset.filter;
         current = 'root';
+        syncUrl(false);
         draw();
       }),
   );
@@ -1789,6 +1809,7 @@ function wireLectureFilters() {
         });
         typeFilter = b.dataset.type;
         current = 'root';
+        syncUrl(false);
         draw();
       }),
   );
