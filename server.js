@@ -7,7 +7,14 @@ import { gzipSync } from 'node:zlib';
 import { applicationDefault, cert, getApps, initializeApp } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
 import { FieldValue, getFirestore } from 'firebase-admin/firestore';
-import { gmailMode, mailConfigured, sendAuthEmail, sendProfileNotice, useSavedGmail } from './mail.js';
+import {
+  gmailMode,
+  mailConfigured,
+  sendAuthEmail,
+  sendMessageNotice,
+  sendProfileNotice,
+  useSavedGmail,
+} from './mail.js';
 
 const root = process.cwd(),
   dbPath = path.join(root, 'data/site.json'),
@@ -523,6 +530,13 @@ const escapeHtml = (value) =>
     (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c],
   );
 const PROFILE_NOTICE_TO = 'essamsidek123@gmail.com';
+// An uploaded profile photo (a data: URL) as an email attachment; ready-made portraits return null.
+function photoFrom(picture) {
+  const match = String(picture || '').match(/^data:image\/(png|jpeg|webp);base64,([A-Za-z0-9+/=]+)$/);
+  if (!match) return null;
+  const ext = match[1] === 'jpeg' ? 'jpg' : match[1];
+  return { filename: `student-profile.${ext}`, content: match[2], type: `image/${match[1]}` };
+}
 async function sendRegistrationEmail(profile, isUpdate = false, photoAttachment = null, changedFields = []) {
   // The site's Gmail sends the branded notice; Resend stays as the older fallback.
   if (mailConfigured())
@@ -998,6 +1012,14 @@ async function api(req, res, url) {
         });
         await ref.set(threadUpdate('user', text), { merge: true });
         bump('threads', decoded.uid);
+        // The owner gets the message by email too; the student's reply never waits on it.
+        if (mailConfigured() && emailNotificationsEnabled()) {
+          const data = profile.data();
+          sendMessageNotice(PROFILE_NOTICE_TO, { ...data, id: decoded.uid }, text, {
+            photo: photoFrom(data.picture),
+            count: Number(data.thread?.adminUnread || 0) + 1,
+          }).catch((error) => console.error('Message notice email failed:', error.message));
+        }
         return json(res, 200, { ok: true, id: doc.id });
       }
       const readMessage = url.pathname.match(/^\/api\/firebase\/messages\/([A-Za-z0-9_-]+)\/read$/);
@@ -1062,16 +1084,7 @@ async function api(req, res, url) {
         let emailSent = false;
         if ((!before.exists || changedFields.length) && emailNotificationsEnabled()) {
           try {
-            let photoAttachment = null;
-            const match = profile.picture.match(/^data:image\/(png|jpeg|webp);base64,([A-Za-z0-9+/=]+)$/);
-            if (match) {
-              const ext = match[1] === 'jpeg' ? 'jpg' : match[1];
-              photoAttachment = {
-                filename: `student-profile.${ext}`,
-                content: match[2],
-                type: `image/${match[1]}`,
-              };
-            }
+            const photoAttachment = photoFrom(profile.picture);
             await sendRegistrationEmail(profile, before.exists, photoAttachment, changedFields);
             emailSent = true;
           } catch (error) {
@@ -1207,7 +1220,8 @@ async function api(req, res, url) {
         signed = `${token}.${issued}.${signAdminToken(`${token}.${issued}`)}`;
       res.setHeader(
         'Set-Cookie',
-        `admin_session=${signed}; HttpOnly; SameSite=Strict; Path=/${secureCookie()}`,
+        // Kept for the whole session lifetime, so a reload or a reopened phone browser stays signed in.
+        `admin_session=${signed}; HttpOnly; SameSite=Strict; Path=/; Max-Age=${ADMIN_SESSION_MS / 1000}${secureCookie()}`,
       );
       return json(res, 200, { ok: true });
     }
@@ -1308,7 +1322,20 @@ async function api(req, res, url) {
           return json(res, 400, { error: 'اكتب بريد إلكتروني صحيح.' });
         if (!mailConfigured()) return json(res, 503, { error: 'Gmail مش متربط لسه.' });
         try {
-          if (d.kind === 'profile')
+          if (d.kind === 'chat')
+            await sendMessageNotice(
+              to,
+              {
+                id: 'sample-account',
+                firstName: 'أحمد',
+                name: 'أحمد محمد السيد (تجربة)',
+                email: 'ahmed.sample@gmail.com',
+                phone: '+201012345678',
+              },
+              'السلام عليكم، ملفات سكشن الكيمياء العملي بتاعة الأسبوع ده مش ظاهرة عندي في صفحة المحاضرات.\nممكن تشوفوها؟ شكراً جداً على الموقع ❤',
+              { count: 2 },
+            );
+          else if (d.kind === 'profile')
             await sendProfileNotice(to, {
               id: 'sample-account',
               firstName: 'أحمد',

@@ -12,6 +12,12 @@ if (gmailResult) {
   kind = 'messages';
   history.replaceState(null, '', location.pathname);
 }
+// The "new message" email links straight to its conversation with #thread=<account ID>.
+let threadFromLink = (location.hash.match(/^#thread=([A-Za-z0-9_-]{1,128})$/) || [])[1];
+if (threadFromLink) {
+  kind = 'messages';
+  history.replaceState(null, '', location.pathname);
+}
 const labels = {
   subjects: 'جروبات المواد',
   lectures: 'ملفات المحاضرات',
@@ -486,7 +492,7 @@ async function drawGmail() {
     box.innerHTML = `<h2>إيميل الموقع</h2><p class="storage-status">${esc(error.message)}</p>`;
     return;
   }
-  const test = `<form class="admin-form" id="gmail-test"><label class="wide">ابعت إيميل تجربة على<input name="to" type="email" dir="ltr" required placeholder="you@gmail.com"></label><div class="admin-form-actions"><button class="button primary" value="message">ابعت تجربة</button><button class="button" value="profile">تجربة إشعار تسجيل</button></div></form>`;
+  const test = `<form class="admin-form" id="gmail-test"><label class="wide">ابعت إيميل تجربة على<input name="to" type="email" dir="ltr" required placeholder="you@gmail.com"></label><div class="admin-form-actions"><button class="button primary" value="message">ابعت تجربة</button><button class="button" value="profile">تجربة إشعار تسجيل</button><button class="button" value="chat">تجربة إشعار رسالة</button></div></form>`;
   if (st.mode === 'env')
     box.innerHTML = `<h2>إيميل الموقع</h2><div class="admin-row"><span>متربط ✓<small>عن طريق إعدادات Render</small></span></div>${test}`;
   else if (st.connected)
@@ -544,7 +550,8 @@ async function drawGmail() {
       }
     };
 }
-let openThread = null;
+let openThread = threadFromLink || null;
+threadFromLink = null;
 async function messagesDashboard() {
   app.innerHTML = `<div class="admin-layout">${sidebar()}<main class="admin-main">${dhikrStrip()}<div class="admin-head"><div><span class="section-index">MESSAGES</span><h1>${labels.messages}</h1></div>${livePill}<a class="button ghost" href="/" target="_blank" rel="noopener">عرض الموقع</a><button class="button" id="logout">تسجيل الخروج</button></div><section class="admin-box admin-chat"><div class="admin-threads"><div class="admin-toolbar"><h2>المحادثات</h2><button class="button ghost" id="refresh-threads" type="button">تحديث</button></div><div id="thread-list" class="thread-list"><p class="admin-muted">جارٍ التحميل…</p></div></div><div class="admin-conversation" id="conversation"><p class="admin-muted conversation-empty">اختار محادثة من القايمة عشان تقراها وترد.</p></div></section><section class="admin-box" id="gmail-box"><h2>إيميل الموقع</h2><p class="admin-muted">جارٍ التحميل…</p></section><section class="admin-box"><h2>رسالة جديدة</h2><p>الرسالة بتوصل جوه الموقع في صفحة الطالب، والطالب يقدر يرد عليها. لو الإيميل متوصل بتتبعت كمان على إيميله.</p><form class="admin-form" id="email-form"><label>نوع الإرسال<select name="mode"><option value="private">شخص محدد</option><option value="all">كل المستخدمين</option></select></label><label>المستلم: ID أو بريد أو هاتف<input name="target" placeholder="معرّف الحساب أو البريد أو +20…" dir="ltr"></label><label class="wide">عنوان الرسالة<input name="subject" maxlength="180" required></label><label class="wide">نص الرسالة<textarea name="message" maxlength="10000" rows="5" required></textarea></label><div class="admin-form-actions"><button class="button primary">إرسال الرسالة</button></div></form><div class="admin-toolbar"><input id="user-search" type="search" placeholder="ابحث عن حساب بالاسم أو ID أو البريد أو الهاتف"><button class="button ghost" id="load-users">بحث</button></div><div class="admin-list" id="user-results"></div></section></main></div>`;
   wireShell();

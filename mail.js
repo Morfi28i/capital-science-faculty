@@ -352,3 +352,85 @@ export async function sendProfileNotice(to, profile, { isUpdate = false, changed
   };
   return gmailApi() ? sendViaGmailApi(message) : transporter().sendMail(message);
 }
+
+// Sent to the site owner when a student writes to the team from their profile page.
+export function messageNoticeHtml(profile, text, { photo = '', count = 0 } = {}) {
+  const first = String(profile.firstName || profile.name || '؟')
+      .trim()
+      .charAt(0),
+    avatar = photo
+      ? `<img src="${photo}" width="64" height="64" alt="" style="display:block;width:64px;height:64px;border-radius:50%;border:3px solid #e6b964;object-fit:cover">`
+      : `<div style="width:64px;height:64px;line-height:64px;border-radius:50%;background:#1d4632;border:3px solid #e6b964;text-align:center;font:700 26px/64px ${font};color:#fffdf8">${esc(first)}</div>`,
+    contact = [profile.email, profile.phone].filter(Boolean),
+    link = `${SITE}/admin#thread=${encodeURIComponent(profile.id)}`;
+  return `${emailHead(
+    'رسالة جديدة من طالب',
+    `${profile.name || 'طالب'}: ${String(text).slice(0, 90)}`,
+    `
+@keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@keyframes ring{0%,100%{box-shadow:0 0 0 0 rgba(230,185,100,.55)}50%{box-shadow:0 0 0 10px rgba(230,185,100,0)}}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.35}}
+.who{animation:rise .5s ease-out both}.bubble{animation:rise .6s .2s ease-out both}.meta{animation:rise .6s .35s ease-out both}
+.avatar{animation:ring 2.6s ease-in-out infinite;border-radius:50%}.live{animation:blink 1.4s ease-in-out infinite}`,
+  )}
+  <tr><td style="padding:30px 30px 8px" dir="rtl" align="right">
+    <div style="display:inline-block;background:#e3ecdf;color:#1d4632;border-radius:999px;padding:4px 12px;font:600 12px ${font}"><span class="live" style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#2f8a57;vertical-align:middle;margin-inline-end:6px"></span>رسالة جديدة</div>
+    <h1 style="margin:14px 0 18px;font:700 26px/1.4 ${font};color:#17241c">طالب بعتلك رسالة على الموقع</h1>
+    <table role="presentation" cellpadding="0" cellspacing="0" width="100%" class="who" style="margin:0 0 14px"><tr>
+      <td width="74" style="width:74px;padding:0 0 0 12px;vertical-align:top"><div class="avatar" style="width:70px;border-radius:50%">${avatar}</div></td>
+      <td style="vertical-align:middle" dir="rtl">
+        <div style="font:700 18px/1.4 ${font};color:#17241c">${esc(profile.name || 'طالب')}</div>
+        ${contact.length ? `<div style="margin-top:3px;font:13px/1.7 ${font};color:#4d5a50">${contact.map((c) => `<span dir="ltr" style="display:inline-block">${esc(c)}</span>`).join(' · ')}</div>` : ''}
+        <div style="margin-top:2px;font:12px/1.7 ${font};color:#7c8676">${esc(requestedAt())}</div>
+      </td>
+    </tr></table>
+    <div class="bubble" style="position:relative;margin:0 0 18px;padding:18px 20px;background:#f3f8f2;border:1px solid #dfe9db;border-radius:6px 20px 20px 20px;font:16px/1.9 ${font};color:#17241c;white-space:pre-wrap;word-break:break-word">${esc(text)}</div>
+    ${count > 1 ? `<p class="meta" style="margin:0 0 18px;font:13px/1.8 ${font};color:#8a5a12;background:#fbf1dc;border-radius:12px;padding:10px 14px">عندك ${count} رسايل من الطالب ده لسه مقريتهاش.</p>` : ''}
+    <table role="presentation" cellpadding="0" cellspacing="0" width="100%" class="meta"><tr><td align="center" style="padding:0 0 18px">
+      <a href="${link}" class="cta" style="display:inline-block;background:#1d4632;color:#fffdf8;text-decoration:none;font:700 17px ${font};padding:15px 38px;border-radius:999px;box-shadow:0 8px 20px -8px rgba(29,70,50,.6)">رُد على الطالب ←</a>
+    </td></tr></table>
+    <p style="margin:0 0 24px;font:12px/1.8 ${font};color:#9aa092;text-align:center">الرد بيوصل للطالب جوه الموقع في صفحة رسايله. رقم الحساب: <span dir="ltr" style="font-family:monospace">${esc(profile.id)}</span></p>
+  </td></tr>
+${emailFoot('وصلتك الرسالة دي عشان انت مسؤول موقع Capital Science.')}`;
+}
+
+export async function sendMessageNotice(to, profile, text, { photo = null, count = 0 } = {}) {
+  const html = messageNoticeHtml(profile, text, { photo: photo ? 'cid:student-photo' : '', count });
+  if (process.env.MAIL_PREVIEW_DIR) {
+    await mkdir(process.env.MAIL_PREVIEW_DIR, { recursive: true });
+    const file = path.join(process.env.MAIL_PREVIEW_DIR, `${Date.now()}-message.html`);
+    await writeFile(
+      file,
+      messageNoticeHtml(profile, text, { photo: photo ? `data:${photo.type};base64,${photo.content}` : '', count }),
+    );
+    return { preview: file };
+  }
+  const message = {
+    from: { name: FROM_NAME, address: sender() },
+    replyTo: sender(),
+    to,
+    subject: `رسالة جديدة من ${profile.name || 'طالب'} · Capital Science`.slice(0, 180),
+    html,
+    text: [
+      `رسالة جديدة من ${profile.name || 'طالب'}`,
+      [profile.email, profile.phone].filter(Boolean).join(' · '),
+      '',
+      text,
+      '',
+      `رُد من لوحة التحكم: ${SITE}/admin#thread=${encodeURIComponent(profile.id)}`,
+    ].join('\n'),
+    ...(photo
+      ? {
+          attachments: [
+            {
+              filename: photo.filename,
+              content: Buffer.from(photo.content, 'base64'),
+              contentType: photo.type,
+              cid: 'student-photo',
+            },
+          ],
+        }
+      : {}),
+  };
+  return gmailApi() ? sendViaGmailApi(message) : transporter().sendMail(message);
+}
