@@ -37526,19 +37526,6 @@
     "by": "Leader"
   },
   {
-    "id": "1VSf5xZnpxc6rMQwVbAd1ZQULUZ0WgWyo",
-    "parentId": "1r1VT0p5kOKFReaHfs8162PiMjKFZ190K",
-    "title": "1st Physics Group (B)",
-    "url": "https://drive.google.com/drive/folders/1VSf5xZnpxc6rMQwVbAd1ZQULUZ0WgWyo",
-    "kind": "drive",
-    "file": false,
-    "type": "folder",
-    "category": "2026/2027",
-    "categoryAr": "دفعة 2026/2027",
-    "categoryEn": "Class of 2026/27",
-    "note": "1st Physics Group (B)"
-  },
-  {
     "id": "1A5orV7nwqbPGabLculWIJkYAytrmAHvJ",
     "parentId": "1r1VT0p5kOKFReaHfs8162PiMjKFZ190K",
     "title": "امان معملي",
@@ -37813,33 +37800,6 @@
     "note": "1st Physics Group B"
   },
   {
-    "id": "1aGEo58txmCfpl4qQHkkH5z0a83waJXf4",
-    "parentId": "1VSf5xZnpxc6rMQwVbAd1ZQULUZ0WgWyo",
-    "title": "Algebra",
-    "url": "https://drive.google.com/drive/folders/1aGEo58txmCfpl4qQHkkH5z0a83waJXf4",
-    "kind": "drive",
-    "file": false,
-    "type": "folder",
-    "category": "2026/2027",
-    "categoryAr": "دفعة 2026/2027",
-    "categoryEn": "Class of 2026/27",
-    "note": "1st Physics Group (B) › 1st Physics Group (B)"
-  },
-  {
-    "id": "1t2rWkBqhSBuAFIo9bN4gqJ-HpOQe89FS",
-    "parentId": "1VSf5xZnpxc6rMQwVbAd1ZQULUZ0WgWyo",
-    "title": ".DS_Store",
-    "url": "https://drive.google.com/file/d/1t2rWkBqhSBuAFIo9bN4gqJ-HpOQe89FS/view",
-    "kind": "drive",
-    "file": true,
-    "type": "file",
-    "category": "2026/2027",
-    "categoryAr": "دفعة 2026/2027",
-    "categoryEn": "Class of 2026/27",
-    "note": "1st Physics Group (B) › 1st Physics Group (B)",
-    "mime": "application/octet-stream"
-  },
-  {
     "id": "1i1oRe5Shyxg5IlqJnJVbPLbx9rZPOCZT",
     "parentId": "1A5orV7nwqbPGabLculWIJkYAytrmAHvJ",
     "title": "الامان المعملى -محاضرة 1",
@@ -37890,33 +37850,6 @@
     "categoryAr": "دفعة 2026/2027",
     "categoryEn": "Class of 2026/27",
     "note": "1st Physics Group (B) › امان معملي"
-  },
-  {
-    "id": "1XsByVmErFG4YYQx9dDPGSvv66utgXldM",
-    "parentId": "1A5orV7nwqbPGabLculWIJkYAytrmAHvJ",
-    "title": ".DS_Store",
-    "url": "https://drive.google.com/file/d/1XsByVmErFG4YYQx9dDPGSvv66utgXldM/view",
-    "kind": "drive",
-    "file": true,
-    "type": "file",
-    "category": "2026/2027",
-    "categoryAr": "دفعة 2026/2027",
-    "categoryEn": "Class of 2026/27",
-    "note": "1st Physics Group (B) › امان معملي",
-    "mime": "application/octet-stream"
-  },
-  {
-    "id": "1KB_XFcN_rPYCZvZnq8UUd0cH4MwKTB5l",
-    "parentId": "1yYqq32c_WUHeMmjsFjTOMyRH5ckUIPcg",
-    "title": "اسئلة محلولة",
-    "url": "https://drive.google.com/drive/folders/1KB_XFcN_rPYCZvZnq8UUd0cH4MwKTB5l",
-    "kind": "drive",
-    "file": false,
-    "type": "folder",
-    "category": "2026/2027",
-    "categoryAr": "دفعة 2026/2027",
-    "categoryEn": "Class of 2026/27",
-    "note": "1st Physics Group (B) › Algebra"
   },
   {
     "id": "1g6752Yj9gDc5GboZwPLB5QP0OE9gThBM",
@@ -37997,20 +37930,6 @@
     "note": "1st Physics Group (B) › Algebra"
   },
   {
-    "id": "1NxsqgTXsoicaKJFKPrO-vt72GNDXvpu0",
-    "parentId": "1yYqq32c_WUHeMmjsFjTOMyRH5ckUIPcg",
-    "title": ".DS_Store",
-    "url": "https://drive.google.com/file/d/1NxsqgTXsoicaKJFKPrO-vt72GNDXvpu0/view",
-    "kind": "drive",
-    "file": true,
-    "type": "file",
-    "category": "2026/2027",
-    "categoryAr": "دفعة 2026/2027",
-    "categoryEn": "Class of 2026/27",
-    "note": "1st Physics Group (B) › Algebra",
-    "mime": "application/octet-stream"
-  },
-  {
     "id": "1CIe3YgApV1_Nzx_bXkwG-xDCTgQ3OWCq",
     "parentId": "1e7s8gYBAK03JbiYo6CtYSDpmoDfCINeV",
     "title": "Book",
@@ -38035,20 +37954,6 @@
     "categoryAr": "دفعة 2026/2027",
     "categoryEn": "Class of 2026/27",
     "note": "1st Physics Group (B) › Discrete Mathematics"
-  },
-  {
-    "id": "1YfpSr4zw_8pHnuytzd4TNrrohOOo1TbC",
-    "parentId": "1e7s8gYBAK03JbiYo6CtYSDpmoDfCINeV",
-    "title": ".DS_Store",
-    "url": "https://drive.google.com/file/d/1YfpSr4zw_8pHnuytzd4TNrrohOOo1TbC/view",
-    "kind": "drive",
-    "file": true,
-    "type": "file",
-    "category": "2026/2027",
-    "categoryAr": "دفعة 2026/2027",
-    "categoryEn": "Class of 2026/27",
-    "note": "1st Physics Group (B) › Discrete Mathematics",
-    "mime": "application/octet-stream"
   },
   {
     "id": "1vboliZGVCvIziIeGienY-6lIcgM_0bZj",
@@ -38104,20 +38009,6 @@
     "note": "1st Physics Group (B) › General Chemistry"
   },
   {
-    "id": "1XYx4bQh5oycH6BSYwHrRxiEkDLDPuYVf",
-    "parentId": "1vlvWmNzTGiYDgz3elXhv7j-QVBM2Tcas",
-    "title": ".DS_Store",
-    "url": "https://drive.google.com/file/d/1XYx4bQh5oycH6BSYwHrRxiEkDLDPuYVf/view",
-    "kind": "drive",
-    "file": true,
-    "type": "file",
-    "category": "2026/2027",
-    "categoryAr": "دفعة 2026/2027",
-    "categoryEn": "Class of 2026/27",
-    "note": "1st Physics Group (B) › General Chemistry",
-    "mime": "application/octet-stream"
-  },
-  {
     "id": "1M2hhafQ1nslIo6fbnvJbuYmXbqzG4EO9",
     "parentId": "1ojCOg2JMhwwQyZY_pOhSdRdvNZdPtqVW",
     "title": "المحاضرات والعروض",
@@ -38155,20 +38046,6 @@
     "categoryAr": "دفعة 2026/2027",
     "categoryEn": "Class of 2026/27",
     "note": "1st Physics Group (B) › General Mathematics I (Calculus I)"
-  },
-  {
-    "id": "1R0XtYeUzx-LCmSX3_LYgaqWf0CgRpnrG",
-    "parentId": "1ojCOg2JMhwwQyZY_pOhSdRdvNZdPtqVW",
-    "title": ".DS_Store",
-    "url": "https://drive.google.com/file/d/1R0XtYeUzx-LCmSX3_LYgaqWf0CgRpnrG/view",
-    "kind": "drive",
-    "file": true,
-    "type": "file",
-    "category": "2026/2027",
-    "categoryAr": "دفعة 2026/2027",
-    "categoryEn": "Class of 2026/27",
-    "note": "1st Physics Group (B) › General Mathematics I (Calculus I)",
-    "mime": "application/octet-stream"
   },
   {
     "id": "1U1SpmgVxEQjdAm3JoHu5fudTsO5-w3cG",
@@ -38221,20 +38098,6 @@
     "categoryAr": "دفعة 2026/2027",
     "categoryEn": "Class of 2026/27",
     "note": "1st Physics Group (B) › General physics I"
-  },
-  {
-    "id": "1UQgk_ZjnlV-tL-C6xNSP6JcAq9kQKCOB",
-    "parentId": "1kVAP2wjXfGXbZuuk02OciOnoN6CY9VWF",
-    "title": ".DS_Store",
-    "url": "https://drive.google.com/file/d/1UQgk_ZjnlV-tL-C6xNSP6JcAq9kQKCOB/view",
-    "kind": "drive",
-    "file": true,
-    "type": "file",
-    "category": "2026/2027",
-    "categoryAr": "دفعة 2026/2027",
-    "categoryEn": "Class of 2026/27",
-    "note": "1st Physics Group (B) › General physics I",
-    "mime": "application/octet-stream"
   },
   {
     "id": "1Uux_l74-BUq0pBWBUI-QiiBMu0LUTyTo",
@@ -38315,20 +38178,6 @@
     "note": "1st Physics Group (B) › Introduction to Computer Science"
   },
   {
-    "id": "1yxTdFD46QfGkONMMKR9rLaB8JCVHolvM",
-    "parentId": "1bkxa3tCraEmF05MwAp8_rr0cpD3hNR4N",
-    "title": ".DS_Store",
-    "url": "https://drive.google.com/file/d/1yxTdFD46QfGkONMMKR9rLaB8JCVHolvM/view",
-    "kind": "drive",
-    "file": true,
-    "type": "file",
-    "category": "2026/2027",
-    "categoryAr": "دفعة 2026/2027",
-    "categoryEn": "Class of 2026/27",
-    "note": "1st Physics Group (B) › Introduction to Computer Science",
-    "mime": "application/octet-stream"
-  },
-  {
     "id": "1jNaMwh-6VQ_u95AtkLfEQPlLLAqu18yy",
     "parentId": "1yu7GSOTm9xAc2q-iAXOu6kCg-6RTmRrN",
     "title": "Not summarized",
@@ -38353,20 +38202,6 @@
     "categoryAr": "دفعة 2026/2027",
     "categoryEn": "Class of 2026/27",
     "note": "1st Physics Group (B) › unsorted"
-  },
-  {
-    "id": "1y7wLvSsw6hOSvbyjhDkoR-kp93wIpGJs",
-    "parentId": "1yu7GSOTm9xAc2q-iAXOu6kCg-6RTmRrN",
-    "title": ".DS_Store",
-    "url": "https://drive.google.com/file/d/1y7wLvSsw6hOSvbyjhDkoR-kp93wIpGJs/view",
-    "kind": "drive",
-    "file": true,
-    "type": "file",
-    "category": "2026/2027",
-    "categoryAr": "دفعة 2026/2027",
-    "categoryEn": "Class of 2026/27",
-    "note": "1st Physics Group (B) › unsorted",
-    "mime": "application/octet-stream"
   },
   {
     "id": "14As_nq8_4vRXsJd_6_haEXfPj_uW3C8b",
@@ -38419,20 +38254,6 @@
     "categoryAr": "دفعة 2026/2027",
     "categoryEn": "Class of 2026/27",
     "note": "1st Physics Group (B) › zoology"
-  },
-  {
-    "id": "1oF05cv6LKdRKA_5sC-2rNxY-s8Zi_vkg",
-    "parentId": "1oLZnavL07RvDRumuhKDAKaofB_qfK7h3",
-    "title": ".DS_Store",
-    "url": "https://drive.google.com/file/d/1oF05cv6LKdRKA_5sC-2rNxY-s8Zi_vkg/view",
-    "kind": "drive",
-    "file": true,
-    "type": "file",
-    "category": "2026/2027",
-    "categoryAr": "دفعة 2026/2027",
-    "categoryEn": "Class of 2026/27",
-    "note": "1st Physics Group (B) › zoology",
-    "mime": "application/octet-stream"
   },
   {
     "id": "1WO2ap2YsaKb_OehUx6_5hPPCAdd5NF3P",
@@ -38865,46 +38686,6 @@
     "note": "1st Physics Group B › Zoology"
   },
   {
-    "id": "1nZ4Z2AnGmU3wobC9sN8Fb0Uzdtkms8Hc",
-    "parentId": "1aGEo58txmCfpl4qQHkkH5z0a83waJXf4",
-    "title": "Matrices",
-    "url": "https://drive.google.com/drive/folders/1nZ4Z2AnGmU3wobC9sN8Fb0Uzdtkms8Hc",
-    "kind": "drive",
-    "file": false,
-    "type": "folder",
-    "category": "2026/2027",
-    "categoryAr": "دفعة 2026/2027",
-    "categoryEn": "Class of 2026/27",
-    "note": "1st Physics Group (B) › 1st Physics Group (B) › Algebra"
-  },
-  {
-    "id": "1NV6dsis8tIAfVs8JJsE6pQtEH6b8QxxB",
-    "parentId": "1aGEo58txmCfpl4qQHkkH5z0a83waJXf4",
-    "title": "Sets and Functions",
-    "url": "https://drive.google.com/drive/folders/1NV6dsis8tIAfVs8JJsE6pQtEH6b8QxxB",
-    "kind": "drive",
-    "file": false,
-    "type": "folder",
-    "category": "2026/2027",
-    "categoryAr": "دفعة 2026/2027",
-    "categoryEn": "Class of 2026/27",
-    "note": "1st Physics Group (B) › 1st Physics Group (B) › Algebra"
-  },
-  {
-    "id": "1XKfpeEs5I_hpiFrB6nXaQOH8ltmohnpG",
-    "parentId": "1i1oRe5Shyxg5IlqJnJVbPLbx9rZPOCZT",
-    "title": ".DS_Store",
-    "url": "https://drive.google.com/file/d/1XKfpeEs5I_hpiFrB6nXaQOH8ltmohnpG/view",
-    "kind": "drive",
-    "file": true,
-    "type": "file",
-    "category": "2026/2027",
-    "categoryAr": "دفعة 2026/2027",
-    "categoryEn": "Class of 2026/27",
-    "note": "1st Physics Group (B) › امان معملي › الامان المعملى -محاضرة 1",
-    "mime": "application/octet-stream"
-  },
-  {
     "id": "1hCAwLXGQFsDnVL7HhRDqVa3CNZo9mk25",
     "parentId": "1i1oRe5Shyxg5IlqJnJVbPLbx9rZPOCZT",
     "title": "أمان معملى-1 - ترجمة.pdf",
@@ -39126,34 +38907,6 @@
     "categoryAr": "دفعة 2026/2027",
     "categoryEn": "Class of 2026/27",
     "note": "1st Physics Group (B) › امان معملي › Book",
-    "mime": "application/pdf"
-  },
-  {
-    "id": "1YcwSaSVpWzpR6-v9-6dBr8aSJpFWFXV7",
-    "parentId": "1KB_XFcN_rPYCZvZnq8UUd0cH4MwKTB5l",
-    "title": "اسئلة محلولة على Relations.pdf",
-    "url": "https://drive.google.com/file/d/1YcwSaSVpWzpR6-v9-6dBr8aSJpFWFXV7/view",
-    "kind": "drive",
-    "file": true,
-    "type": "file",
-    "category": "2026/2027",
-    "categoryAr": "دفعة 2026/2027",
-    "categoryEn": "Class of 2026/27",
-    "note": "1st Physics Group (B) › Algebra › اسئلة محلولة",
-    "mime": "application/pdf"
-  },
-  {
-    "id": "1D66RDxugBC-Ou1XfPljG8qBjOuQKX72l",
-    "parentId": "1KB_XFcN_rPYCZvZnq8UUd0cH4MwKTB5l",
-    "title": "اسئلة محلولة على Sets and Functions.pdf",
-    "url": "https://drive.google.com/file/d/1D66RDxugBC-Ou1XfPljG8qBjOuQKX72l/view",
-    "kind": "drive",
-    "file": true,
-    "type": "file",
-    "category": "2026/2027",
-    "categoryAr": "دفعة 2026/2027",
-    "categoryEn": "Class of 2026/27",
-    "note": "1st Physics Group (B) › Algebra › اسئلة محلولة",
     "mime": "application/pdf"
   },
   {
@@ -39570,20 +39323,6 @@
     "note": "1st Physics Group (B) › General Chemistry › inorganic"
   },
   {
-    "id": "16Zoq1VO9pukQKVexFv716SYZZ_N_4U24",
-    "parentId": "1bzFNaw-PSOzS5qo42njgbXgEOcGrwhB-",
-    "title": ".DS_Store",
-    "url": "https://drive.google.com/file/d/16Zoq1VO9pukQKVexFv716SYZZ_N_4U24/view",
-    "kind": "drive",
-    "file": true,
-    "type": "file",
-    "category": "2026/2027",
-    "categoryAr": "دفعة 2026/2027",
-    "categoryEn": "Class of 2026/27",
-    "note": "1st Physics Group (B) › General Chemistry › inorganic",
-    "mime": "application/octet-stream"
-  },
-  {
     "id": "1vSJBrdNq4qEvNLDKMVItcrV8FGWws7SM",
     "parentId": "1Ph18Y3fHaib0KcMC7524LLGanzDcEkQK",
     "title": "2--Practical-General-Chemistry-_I_--Chm1103.pdf",
@@ -39824,20 +39563,6 @@
     "note": "1st Physics Group (B) › General Chemistry › Physical"
   },
   {
-    "id": "17KybeFWd99cwKySBwv2ZGBDnrAAvA5pY",
-    "parentId": "1MN6Y5q_KXCJo9_PlZrmF3fVS8qUG28ju",
-    "title": ".DS_Store",
-    "url": "https://drive.google.com/file/d/17KybeFWd99cwKySBwv2ZGBDnrAAvA5pY/view",
-    "kind": "drive",
-    "file": true,
-    "type": "file",
-    "category": "2026/2027",
-    "categoryAr": "دفعة 2026/2027",
-    "categoryEn": "Class of 2026/27",
-    "note": "1st Physics Group (B) › General Chemistry › Physical",
-    "mime": "application/octet-stream"
-  },
-  {
     "id": "1elfCMhZqtw_VYRdcV0sTjjX24HK3qFrO",
     "parentId": "1M2hhafQ1nslIo6fbnvJbuYmXbqzG4EO9",
     "title": "التكامل المحدد وتطبيقاته",
@@ -39901,20 +39626,6 @@
     "categoryAr": "دفعة 2026/2027",
     "categoryEn": "Class of 2026/27",
     "note": "1st Physics Group (B) › General Mathematics I (Calculus I) › المحاضرات والعروض"
-  },
-  {
-    "id": "1VN9sYcOr5hH5u75jDb9oBn1iJnyqd5qu",
-    "parentId": "1M2hhafQ1nslIo6fbnvJbuYmXbqzG4EO9",
-    "title": ".DS_Store",
-    "url": "https://drive.google.com/file/d/1VN9sYcOr5hH5u75jDb9oBn1iJnyqd5qu/view",
-    "kind": "drive",
-    "file": true,
-    "type": "file",
-    "category": "2026/2027",
-    "categoryAr": "دفعة 2026/2027",
-    "categoryEn": "Class of 2026/27",
-    "note": "1st Physics Group (B) › General Mathematics I (Calculus I) › المحاضرات والعروض",
-    "mime": "application/octet-stream"
   },
   {
     "id": "1MzPvlYrHSsYpQdzOMJul0PlkhF9Xy9FO",
@@ -40055,20 +39766,6 @@
     "categoryEn": "Class of 2026/27",
     "note": "1st Physics Group (B) › General Mathematics I (Calculus I) › Book",
     "mime": "application/pdf"
-  },
-  {
-    "id": "1e2YzHFgJHjQHNwfDSl1d-wvDKVDolmU1",
-    "parentId": "1U1SpmgVxEQjdAm3JoHu5fudTsO5-w3cG",
-    "title": ".DS_Store",
-    "url": "https://drive.google.com/file/d/1e2YzHFgJHjQHNwfDSl1d-wvDKVDolmU1/view",
-    "kind": "drive",
-    "file": true,
-    "type": "file",
-    "category": "2026/2027",
-    "categoryAr": "دفعة 2026/2027",
-    "categoryEn": "Class of 2026/27",
-    "note": "1st Physics Group (B) › General physics I › Book",
-    "mime": "application/octet-stream"
   },
   {
     "id": "1k77GkjqIAZPF5WaChOCXk3jJXdeOiE2p",
@@ -40307,20 +40004,6 @@
     "categoryEn": "Class of 2026/27",
     "note": "1st Physics Group (B) › General physics I › Book",
     "mime": "application/pdf"
-  },
-  {
-    "id": "12JFlbGrMyx0s_WxMRjbOoPzqwvwhzNRS",
-    "parentId": "1TiLyLvfWbOhSJN3rHwoo2wycIABVlTvT",
-    "title": ".DS_Store",
-    "url": "https://drive.google.com/file/d/12JFlbGrMyx0s_WxMRjbOoPzqwvwhzNRS/view",
-    "kind": "drive",
-    "file": true,
-    "type": "file",
-    "category": "2026/2027",
-    "categoryAr": "دفعة 2026/2027",
-    "categoryEn": "Class of 2026/27",
-    "note": "1st Physics Group (B) › General physics I › lecture 1",
-    "mime": "application/octet-stream"
   },
   {
     "id": "1HpwjEy5sWPjJiaiIVr8sOhsryKtbHVs3",
@@ -40603,6 +40286,20 @@
     "mime": "application/pdf"
   },
   {
+    "id": "1P5FIfYMQO_GwIW34vJqBAllvQJNp7LeS",
+    "parentId": "1Uux_l74-BUq0pBWBUI-QiiBMu0LUTyTo",
+    "title": "Introduction to Computer - ملخص وأهم النقاط (سلايدز).pdf",
+    "url": "https://drive.google.com/file/d/1P5FIfYMQO_GwIW34vJqBAllvQJNp7LeS/view",
+    "kind": "drive",
+    "file": true,
+    "type": "file",
+    "category": "2026/2027",
+    "categoryAr": "دفعة 2026/2027",
+    "categoryEn": "Class of 2026/27",
+    "note": "1st Physics Group (B) › Introduction to Computer Science › مواد تفاعلية",
+    "mime": "application/pdf"
+  },
+  {
     "id": "15yFraUpbeLo0afIEZ8V0TlPq-R0kKSEw",
     "parentId": "1Uux_l74-BUq0pBWBUI-QiiBMu0LUTyTo",
     "title": "Introduction to Computer.pdf",
@@ -40671,20 +40368,6 @@
     "categoryEn": "Class of 2026/27",
     "note": "1st Physics Group (B) › Introduction to Computer Science › Book",
     "mime": "application/pdf"
-  },
-  {
-    "id": "1aecRbr9FWAeIRUwu16fYoIkx4XmX9Un4",
-    "parentId": "1_WPX1Rs2o2MUR0oXGFJnMxMFhSs0nobQ",
-    "title": ".DS_Store",
-    "url": "https://drive.google.com/file/d/1aecRbr9FWAeIRUwu16fYoIkx4XmX9Un4/view",
-    "kind": "drive",
-    "file": true,
-    "type": "file",
-    "category": "2026/2027",
-    "categoryAr": "دفعة 2026/2027",
-    "categoryEn": "Class of 2026/27",
-    "note": "1st Physics Group (B) › Introduction to Computer Science › Intro to CS Session 1",
-    "mime": "application/octet-stream"
   },
   {
     "id": "1mKyJWLXE6dfmjOTYcVxqvCpgg4jbFLZB",
@@ -40925,34 +40608,6 @@
     "mime": "application/pdf"
   },
   {
-    "id": "1FVT7JvrfvtFP3q5oQnZD1e1QYBbJQEJA",
-    "parentId": "1jNaMwh-6VQ_u95AtkLfEQPlLLAqu18yy",
-    "title": ".DS_Store",
-    "url": "https://drive.google.com/file/d/1FVT7JvrfvtFP3q5oQnZD1e1QYBbJQEJA/view",
-    "kind": "drive",
-    "file": true,
-    "type": "file",
-    "category": "2026/2027",
-    "categoryAr": "دفعة 2026/2027",
-    "categoryEn": "Class of 2026/27",
-    "note": "1st Physics Group (B) › unsorted › Not summarized",
-    "mime": "application/octet-stream"
-  },
-  {
-    "id": "1mN2r_gY8lATfSnW0myeQL6Xn9jrtXl6_",
-    "parentId": "1HiQPnJE1AWBHII-bg39zCCZeCT1ex9ud",
-    "title": ".DS_Store",
-    "url": "https://drive.google.com/file/d/1mN2r_gY8lATfSnW0myeQL6Xn9jrtXl6_/view",
-    "kind": "drive",
-    "file": true,
-    "type": "file",
-    "category": "2026/2027",
-    "categoryAr": "دفعة 2026/2027",
-    "categoryEn": "Class of 2026/27",
-    "note": "1st Physics Group (B) › unsorted › summarized",
-    "mime": "application/octet-stream"
-  },
-  {
     "id": "1OWv07KwXZQVEZxayOoZDiLyFebox3ln_",
     "parentId": "14As_nq8_4vRXsJd_6_haEXfPj_uW3C8b",
     "title": "2.Practical-Principles-of-Zoology1st-year-physics.pdf",
@@ -41051,20 +40706,6 @@
     "mime": "application/pdf"
   },
   {
-    "id": "18o7MyZ6-LEA0s4KLanddqzNBfIYblBFA",
-    "parentId": "183P7na67fw2QLJD3BomlPEgzQJcn8L4e",
-    "title": "1st lecture physics nutrition - ملخص وأهم النقاط (سلايدز).pdf",
-    "url": "https://drive.google.com/file/d/18o7MyZ6-LEA0s4KLanddqzNBfIYblBFA/view",
-    "kind": "drive",
-    "file": true,
-    "type": "file",
-    "category": "2026/2027",
-    "categoryAr": "دفعة 2026/2027",
-    "categoryEn": "Class of 2026/27",
-    "note": "1st Physics Group (B) › zoology › Lecture 1",
-    "mime": "application/pdf"
-  },
-  {
     "id": "1AlzkGdynxfKSNTKC8-CcHFRa91NwKcDN",
     "parentId": "183P7na67fw2QLJD3BomlPEgzQJcn8L4e",
     "title": "1st lecture physics nutrition.pdf",
@@ -41076,48 +40717,6 @@
     "categoryAr": "دفعة 2026/2027",
     "categoryEn": "Class of 2026/27",
     "note": "1st Physics Group (B) › zoology › Lecture 1",
-    "mime": "application/pdf"
-  },
-  {
-    "id": "1qBSGCd_Nwcn46v8tKfI_BHG-saf_-5wK",
-    "parentId": "183P7na67fw2QLJD3BomlPEgzQJcn8L4e",
-    "title": "Human_Physiology_and_Nutrition ترجمة.pdf",
-    "url": "https://drive.google.com/file/d/1qBSGCd_Nwcn46v8tKfI_BHG-saf_-5wK/view",
-    "kind": "drive",
-    "file": true,
-    "type": "file",
-    "category": "2026/2027",
-    "categoryAr": "دفعة 2026/2027",
-    "categoryEn": "Class of 2026/27",
-    "note": "1st Physics Group (B) › zoology › Lecture 1",
-    "mime": "application/pdf"
-  },
-  {
-    "id": "1XeHUJnBmFeznrGlvefucNxNLj60fWJjm",
-    "parentId": "1o4y4QPsPp6TD66sJWN8JuMn_xEHaJISV",
-    "title": "Enzyme_Biology_Study_Guide ترجمة.pdf",
-    "url": "https://drive.google.com/file/d/1XeHUJnBmFeznrGlvefucNxNLj60fWJjm/view",
-    "kind": "drive",
-    "file": true,
-    "type": "file",
-    "category": "2026/2027",
-    "categoryAr": "دفعة 2026/2027",
-    "categoryEn": "Class of 2026/27",
-    "note": "1st Physics Group (B) › zoology › Lecture 2",
-    "mime": "application/pdf"
-  },
-  {
-    "id": "1WobkgGMbEL7_YvAtlce5Z8T_8A3rneWT",
-    "parentId": "1o4y4QPsPp6TD66sJWN8JuMn_xEHaJISV",
-    "title": "Enzyme_Biology_Study_Guide.pdf",
-    "url": "https://drive.google.com/file/d/1WobkgGMbEL7_YvAtlce5Z8T_8A3rneWT/view",
-    "kind": "drive",
-    "file": true,
-    "type": "file",
-    "category": "2026/2027",
-    "categoryAr": "دفعة 2026/2027",
-    "categoryEn": "Class of 2026/27",
-    "note": "1st Physics Group (B) › zoology › Lecture 2",
     "mime": "application/pdf"
   },
   {
@@ -41175,76 +40774,6 @@
     "categoryEn": "Class of 2026/27",
     "note": "1st Physics Group (B) › zoology › Lecture 2",
     "mime": "application/vnd.openxmlformats-officedocument.presentationml.presentation"
-  },
-  {
-    "id": "10ohboh0l827scKjmH8rFsbsTabE4YNxF",
-    "parentId": "1o4y4QPsPp6TD66sJWN8JuMn_xEHaJISV",
-    "title": "General_Chemistry_Blueprint.pdf",
-    "url": "https://drive.google.com/file/d/10ohboh0l827scKjmH8rFsbsTabE4YNxF/view",
-    "kind": "drive",
-    "file": true,
-    "type": "file",
-    "category": "2026/2027",
-    "categoryAr": "دفعة 2026/2027",
-    "categoryEn": "Class of 2026/27",
-    "note": "1st Physics Group (B) › zoology › Lecture 2",
-    "mime": "application/pdf"
-  },
-  {
-    "id": "1B66pZSw7fxKJwH6wvVryLGnhja3H_7L9",
-    "parentId": "1o4y4QPsPp6TD66sJWN8JuMn_xEHaJISV",
-    "title": "Human_Physiology_and_Nutrition.pdf",
-    "url": "https://drive.google.com/file/d/1B66pZSw7fxKJwH6wvVryLGnhja3H_7L9/view",
-    "kind": "drive",
-    "file": true,
-    "type": "file",
-    "category": "2026/2027",
-    "categoryAr": "دفعة 2026/2027",
-    "categoryEn": "Class of 2026/27",
-    "note": "1st Physics Group (B) › zoology › Lecture 2",
-    "mime": "application/pdf"
-  },
-  {
-    "id": "17DsgdRKgZkMl85K2OZE99LpHfAJ301nl",
-    "parentId": "1o4y4QPsPp6TD66sJWN8JuMn_xEHaJISV",
-    "title": "Practical_Zoology_and_Histology.pdf",
-    "url": "https://drive.google.com/file/d/17DsgdRKgZkMl85K2OZE99LpHfAJ301nl/view",
-    "kind": "drive",
-    "file": true,
-    "type": "file",
-    "category": "2026/2027",
-    "categoryAr": "دفعة 2026/2027",
-    "categoryEn": "Class of 2026/27",
-    "note": "1st Physics Group (B) › zoology › Lecture 2",
-    "mime": "application/pdf"
-  },
-  {
-    "id": "1teJzXfak-QGyNX9HM27dR-mqQQnISWgg",
-    "parentId": "1o4y4QPsPp6TD66sJWN8JuMn_xEHaJISV",
-    "title": "The_Blueprint_of_Continuous_Change.pdf",
-    "url": "https://drive.google.com/file/d/1teJzXfak-QGyNX9HM27dR-mqQQnISWgg/view",
-    "kind": "drive",
-    "file": true,
-    "type": "file",
-    "category": "2026/2027",
-    "categoryAr": "دفعة 2026/2027",
-    "categoryEn": "Class of 2026/27",
-    "note": "1st Physics Group (B) › zoology › Lecture 2",
-    "mime": "application/pdf"
-  },
-  {
-    "id": "1BQCI4vdjQk8stMwWxXcfN0mP7EF58yo6",
-    "parentId": "1o4y4QPsPp6TD66sJWN8JuMn_xEHaJISV",
-    "title": "The_Molecular_Ledger.pdf",
-    "url": "https://drive.google.com/file/d/1BQCI4vdjQk8stMwWxXcfN0mP7EF58yo6/view",
-    "kind": "drive",
-    "file": true,
-    "type": "file",
-    "category": "2026/2027",
-    "categoryAr": "دفعة 2026/2027",
-    "categoryEn": "Class of 2026/27",
-    "note": "1st Physics Group (B) › zoology › Lecture 2",
-    "mime": "application/pdf"
   },
   {
     "id": "14ywuCtk8krCu0xDqh1ihi4WXGYyDjlYY",
@@ -41800,34 +41329,6 @@
     "mime": "application/pdf"
   },
   {
-    "id": "1GbXJiVbErManpqkjdSuRgljPIul0Ld3A",
-    "parentId": "1nZ4Z2AnGmU3wobC9sN8Fb0Uzdtkms8Hc",
-    "title": "Types of Matrix.mp4",
-    "url": "https://drive.google.com/file/d/1GbXJiVbErManpqkjdSuRgljPIul0Ld3A/view",
-    "kind": "drive",
-    "file": true,
-    "type": "file",
-    "category": "2026/2027",
-    "categoryAr": "دفعة 2026/2027",
-    "categoryEn": "Class of 2026/27",
-    "note": "1st Physics Group (B) › 1st Physics Group (B) › Algebra › Matrices",
-    "mime": "video/mp4"
-  },
-  {
-    "id": "1mGMA5UFCPsyY1CU25Yvq2BWodnZCHt2_",
-    "parentId": "1NV6dsis8tIAfVs8JJsE6pQtEH6b8QxxB",
-    "title": "Chapter 2 - MT131 - Revision.mp4",
-    "url": "https://drive.google.com/file/d/1mGMA5UFCPsyY1CU25Yvq2BWodnZCHt2_/view",
-    "kind": "drive",
-    "file": true,
-    "type": "file",
-    "category": "2026/2027",
-    "categoryAr": "دفعة 2026/2027",
-    "categoryEn": "Class of 2026/27",
-    "note": "1st Physics Group (B) › 1st Physics Group (B) › Algebra › Sets and Functions",
-    "mime": "video/mp4"
-  },
-  {
     "id": "1uMkK18FOGboiQhLMty7H6VgCdb_WDGje",
     "parentId": "1hBYWhJF40QHVOSrDKYEJn67R77Ns0bIi",
     "title": "Relation 5.mp4",
@@ -41952,20 +41453,6 @@
     "categoryEn": "Class of 2026/27",
     "note": "1st Physics Group (B) › Algebra › Sets and Functions › Chapter 2 (Sets, Functions, Sequence)",
     "mime": "video/mp4"
-  },
-  {
-    "id": "1_1zN5kOC7QX8WTU7UPHoKvBR4TsIPBV7",
-    "parentId": "17uCKDjUCHuzkia-DWTnrqCVemJg5p5cX",
-    "title": ".DS_Store",
-    "url": "https://drive.google.com/file/d/1_1zN5kOC7QX8WTU7UPHoKvBR4TsIPBV7/view",
-    "kind": "drive",
-    "file": true,
-    "type": "file",
-    "category": "2026/2027",
-    "categoryAr": "دفعة 2026/2027",
-    "categoryEn": "Class of 2026/27",
-    "note": "1st Physics Group (B) › General Chemistry › inorganic › Book",
-    "mime": "application/octet-stream"
   },
   {
     "id": "1OU1YTToPts4bEBIyFlNjfiOLasTL9eqZ",
@@ -42182,20 +41669,6 @@
     "parentId": "1C0dmISgQIbhTvF2J_aoBm4twIOrA7Kup",
     "title": "Chapter II-physical - ملخص وأهم النقاط (سلايدز).pdf",
     "url": "https://drive.google.com/file/d/1NJftjzzklXTgKnG2-8pvC4aFqKje0x7S/view",
-    "kind": "drive",
-    "file": true,
-    "type": "file",
-    "category": "2026/2027",
-    "categoryAr": "دفعة 2026/2027",
-    "categoryEn": "Class of 2026/27",
-    "note": "1st Physics Group (B) › General Chemistry › Physical › Chapter II-physical",
-    "mime": "application/pdf"
-  },
-  {
-    "id": "1YZHv1QatOeuTUxyEWexn4j9seMutS6FI",
-    "parentId": "1C0dmISgQIbhTvF2J_aoBm4twIOrA7Kup",
-    "title": "Chapter II-physical - ملخص وأهم النقاط (سلايدز).pdf",
-    "url": "https://drive.google.com/file/d/1YZHv1QatOeuTUxyEWexn4j9seMutS6FI/view",
     "kind": "drive",
     "file": true,
     "type": "file",
@@ -42458,20 +41931,6 @@
     "mime": "application/vnd.openxmlformats-officedocument.presentationml.presentation"
   },
   {
-    "id": "1c1ZBK1Mnk1jHXX7_qSBlyy7X_6MH7064",
-    "parentId": "1bbwfzrFh9aoTg_ElYsFmQZtjVLDoy12c",
-    "title": ".DS_Store",
-    "url": "https://drive.google.com/file/d/1c1ZBK1Mnk1jHXX7_qSBlyy7X_6MH7064/view",
-    "kind": "drive",
-    "file": true,
-    "type": "file",
-    "category": "2026/2027",
-    "categoryAr": "دفعة 2026/2027",
-    "categoryEn": "Class of 2026/27",
-    "note": "1st Physics Group (B) › General Chemistry › Physical › General Chemistry | Physical | Lecture 1",
-    "mime": "application/octet-stream"
-  },
-  {
     "id": "15t3QFqFI5qsS1SoNZZzZJ-kWqlLmXR-d",
     "parentId": "1bbwfzrFh9aoTg_ElYsFmQZtjVLDoy12c",
     "title": "1st General Chemistry - ترجمة.pdf",
@@ -42528,20 +41987,6 @@
     "mime": "application/pdf"
   },
   {
-    "id": "1XUKWZX4vOx7Kr6pMhaDB3qkGahAG2zcv",
-    "parentId": "1seTzsZx18PYrLS4wjRR7Vh4iBNAvyF_G",
-    "title": ".DS_Store",
-    "url": "https://drive.google.com/file/d/1XUKWZX4vOx7Kr6pMhaDB3qkGahAG2zcv/view",
-    "kind": "drive",
-    "file": true,
-    "type": "file",
-    "category": "2026/2027",
-    "categoryAr": "دفعة 2026/2027",
-    "categoryEn": "Class of 2026/27",
-    "note": "1st Physics Group (B) › General Chemistry › Physical › General Chemistry | Physical | Lecture 2",
-    "mime": "application/octet-stream"
-  },
-  {
     "id": "1BV0JyuPWzeoroXhlOZX7ojTxB1e40_ku",
     "parentId": "1seTzsZx18PYrLS4wjRR7Vh4iBNAvyF_G",
     "title": "General Chemistry | Physical | Lecture 2 - ترجمة.pdf",
@@ -42596,20 +42041,6 @@
     "categoryEn": "Class of 2026/27",
     "note": "1st Physics Group (B) › General Chemistry › Physical › General Chemistry | Physical | Lecture 2",
     "mime": "application/pdf"
-  },
-  {
-    "id": "1hQFWd4FZlkM71BjFLWWSEAnfymHhHLT-",
-    "parentId": "1XPjHx7FM-O2dw-ceq88aqgS0nvZnz5V5",
-    "title": ".DS_Store",
-    "url": "https://drive.google.com/file/d/1hQFWd4FZlkM71BjFLWWSEAnfymHhHLT-/view",
-    "kind": "drive",
-    "file": true,
-    "type": "file",
-    "category": "2026/2027",
-    "categoryAr": "دفعة 2026/2027",
-    "categoryEn": "Class of 2026/27",
-    "note": "1st Physics Group (B) › General Chemistry › Physical › General Chemistry | Physical | Lecture 3",
-    "mime": "application/octet-stream"
   },
   {
     "id": "13utPiSAEpsqiuFRgEvclIDczzkNSlV0E",
@@ -43092,20 +42523,6 @@
     "parentId": "1yWCMINNm6gtVGxoyZcaHz8ce5-j88H04",
     "title": "Chapter 2 - العرض التقديمي - ملخص وأهم النقاط (سلايدز).pdf",
     "url": "https://drive.google.com/file/d/102jPmt7Rye-DLD0d7ENyxYskubyclaZv/view",
-    "kind": "drive",
-    "file": true,
-    "type": "file",
-    "category": "2026/2027",
-    "categoryAr": "دفعة 2026/2027",
-    "categoryEn": "Class of 2026/27",
-    "note": "1st Physics Group (B) › General Mathematics I (Calculus I) › المحاضرات والعروض › Chapter 2",
-    "mime": "application/pdf"
-  },
-  {
-    "id": "1bavucA9aQ43dOnIWiamwjPg_n65oHOHY",
-    "parentId": "1yWCMINNm6gtVGxoyZcaHz8ce5-j88H04",
-    "title": "Chapter 2 - العرض التقديمي - ملخص وأهم النقاط (سلايدز).pdf",
-    "url": "https://drive.google.com/file/d/1bavucA9aQ43dOnIWiamwjPg_n65oHOHY/view",
     "kind": "drive",
     "file": true,
     "type": "file",
