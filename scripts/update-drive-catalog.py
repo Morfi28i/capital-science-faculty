@@ -37,6 +37,8 @@ CATALOG = Path(__file__).resolve().parent.parent / 'data' / 'drive-catalog.json'
 UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 14_0) AppleWebKit/537.36 Chrome/128 Safari/537.36'
 FOLDER = 'application/vnd.google-apps.folder'
 SHORTCUT = 'application/vnd.google-apps.shortcut'
+# Morfi's own working notes (rules, handoff) live in the Drive folders but are not for students.
+HIDDEN = re.compile(r'(\.md$|^\.DS_Store$|^desktop\.ini$)', re.IGNORECASE)
 ROOT_NOTE = 'المجلد الرئيسي'
 # The three year roots, in display order, with their fixed names. Edit here to add a new year.
 YEAR_ROOTS = [
@@ -50,7 +52,7 @@ YEAR_ROOTS = [
      'category': '2026/2027', 'categoryAr': 'دفعة 2026/2027', 'categoryEn': 'Class of 2026/27',
      'url': 'https://drive.google.com/drive/folders/1r1VT0p5kOKFReaHfs8162PiMjKFZ190K',
      'sources': [{'id': '1r1VT0p5kOKFReaHfs8162PiMjKFZ190K', 'name': '1st Physics Group (B)', 'by': 'Morfi'},
-                 {'id': '10egV3LBAs9fEo3HjghyjnsQBuzcdnvgX', 'name': '1st Physics Group B', 'by': 'Leader'}]},
+                 {'id': '1NEofbClxNNOd8U-NRnDLNU0vdYERYW2W', 'name': '1st Physics Group B', 'by': 'Leader'}]},
 ]
 ESC = {'n': '\n', 't': '\t', 'r': '\r', 'b': '\b', 'f': '\f', 'v': '\v', '0': '\0'}
 
@@ -201,6 +203,8 @@ def visit_batch(batch, jobs, previous_children, seen, rows, problems, stale, nex
             stale.append({'id': folder_id, 'note': ' › '.join(path), 'reason': failure, 'kept': len(children)})
         for child in children:
             if child['id'] in seen or child['mime'] == SHORTCUT:
+                continue
+            if child['mime'] != FOLDER and HIDDEN.search(child['name']):
                 continue
             seen.add(child['id'])
             rows.append({**child, 'parentId': folder_id, 'path': path})
