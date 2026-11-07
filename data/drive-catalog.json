@@ -38348,6 +38348,19 @@
     "note": "1st Physics Group (B) › unsorted"
   },
   {
+    "id": "1onR6ez_Sx-B_hymJA9lxotzMHQ1dAJ5K",
+    "parentId": "1yu7GSOTm9xAc2q-iAXOu6kCg-6RTmRrN",
+    "title": "zoology",
+    "url": "https://drive.google.com/drive/folders/1onR6ez_Sx-B_hymJA9lxotzMHQ1dAJ5K",
+    "kind": "drive",
+    "file": false,
+    "type": "folder",
+    "category": "2026/2027",
+    "categoryAr": "دفعة 2026/2027",
+    "categoryEn": "Class of 2026/27",
+    "note": "1st Physics Group (B) › unsorted"
+  },
+  {
     "id": "14As_nq8_4vRXsJd_6_haEXfPj_uW3C8b",
     "parentId": "1oLZnavL07RvDRumuhKDAKaofB_qfK7h3",
     "title": "Book",
@@ -42688,6 +42701,19 @@
     "note": "1st Physics Group (B) › unsorted › summarized"
   },
   {
+    "id": "1muh_RRngnth3m1EwWfgL00KLcJO9M17D",
+    "parentId": "1onR6ez_Sx-B_hymJA9lxotzMHQ1dAJ5K",
+    "title": "Lecture 6",
+    "url": "https://drive.google.com/drive/folders/1muh_RRngnth3m1EwWfgL00KLcJO9M17D",
+    "kind": "drive",
+    "file": false,
+    "type": "folder",
+    "category": "2026/2027",
+    "categoryAr": "دفعة 2026/2027",
+    "categoryEn": "Class of 2026/27",
+    "note": "1st Physics Group (B) › unsorted › zoology"
+  },
+  {
     "id": "1OWv07KwXZQVEZxayOoZDiLyFebox3ln_",
     "parentId": "14As_nq8_4vRXsJd_6_haEXfPj_uW3C8b",
     "title": "2.Practical-Principles-of-Zoology1st-year-physics.pdf",
@@ -46813,6 +46839,20 @@
     "note": "1st Physics Group (B) › unsorted › summarized › zoology"
   },
   {
+    "id": "1_sh3nDQGnechwdxGHp7n6WGHd7swLQpO",
+    "parentId": "1muh_RRngnth3m1EwWfgL00KLcJO9M17D",
+    "title": "Lecture 6",
+    "url": "https://drive.google.com/file/d/1_sh3nDQGnechwdxGHp7n6WGHd7swLQpO/view",
+    "kind": "drive",
+    "file": true,
+    "type": "file",
+    "category": "2026/2027",
+    "categoryAr": "دفعة 2026/2027",
+    "categoryEn": "Class of 2026/27",
+    "note": "1st Physics Group (B) › unsorted › zoology › Lecture 6",
+    "mime": "application/vnd.openxmlformats-officedocument.presentationml.presentation"
+  },
+  {
     "id": "1sxy78XJdQxcZNDLYmdPx1fAoXTtJUlLh",
     "parentId": "1nJiMRofSTebsJ4ojcLXMcxajIDC1NXAj",
     "title": "Physics .pdf",
@@ -48552,6 +48592,20 @@
     "categoryEn": "Class of 2026/27",
     "note": "1st Physics Group B › Materials › Zoology › Lectures",
     "mime": "application/pdf"
+  },
+  {
+    "id": "1vAxLUT-jNuVd67NQ9SueSnZH0CX-bKpA",
+    "parentId": "1BhnW-CJf_RqKZrOWNowu_LjjMmJAttXY",
+    "title": "Lec 6",
+    "url": "https://drive.google.com/file/d/1vAxLUT-jNuVd67NQ9SueSnZH0CX-bKpA/view",
+    "kind": "drive",
+    "file": true,
+    "type": "file",
+    "category": "2026/2027",
+    "categoryAr": "دفعة 2026/2027",
+    "categoryEn": "Class of 2026/27",
+    "note": "1st Physics Group B › Materials › Zoology › Lectures",
+    "mime": "application/vnd.openxmlformats-officedocument.presentationml.presentation"
   },
   {
     "id": "1UhAan4b_GfzLLf2o3q2xlPF4in7qin4w",
