@@ -6,6 +6,8 @@ const dict = {
     home: 'الرئيسية',
     subjects: 'جروبات المواد',
     lectures: 'ملفات المحاضرات',
+    slidesTool: 'لخصها تجيب عرقها',
+    slidesToolSub: 'ابعت محاضرة وخد سلايدز',
     advising: 'الإرشاد الأكاديمي',
     official: 'الجروبات الرسمية',
     developer: 'عن المطور',
@@ -82,6 +84,8 @@ const dict = {
     home: 'Home',
     subjects: 'Subject groups',
     lectures: 'Lecture files',
+    slidesTool: 'Squeeze It Dry',
+    slidesToolSub: 'Send a lecture, get slides',
     advising: 'Academic advising',
     official: 'Official groups',
     developer: 'Developer',
@@ -282,7 +286,7 @@ Object.assign(dict.ar, {
   statAdvising: 'مرشد أكاديمي',
   statOfficial: 'رابط رسمي',
   sectionsTitle: 'اختر عنصرك',
-  sectionsCopy: 'أربعة أقسام تجمع كل روابط الكلية. اضغط على أي عنصر لتبدأ.',
+  sectionsCopy: 'خمسة أقسام تجمع كل روابط الكلية. اضغط على أي عنصر لتبدأ.',
   ideaTitle: 'عندك فكرة تفيد الدفعة؟',
   ideaCopy: 'الموقع مبني بإيد طالب لزمايله، وبيكبر باقتراحاتكم. ابعت فكرتك لـ Morfi.',
   ideaCta: 'تواصل مع المطور',
@@ -312,7 +316,7 @@ Object.assign(dict.en, {
   statAdvising: 'academic advisers',
   statOfficial: 'official links',
   sectionsTitle: 'Pick your element',
-  sectionsCopy: 'Four sections hold every faculty link. Tap any element to begin.',
+  sectionsCopy: 'Five sections hold every faculty link. Tap any element to begin.',
   ideaTitle: 'Have an idea that helps the cohort?',
   ideaCopy:
     'This site is built by a student for fellow students, and it grows with your suggestions. Send your idea to Morfi.',
@@ -354,7 +358,7 @@ document.addEventListener('click', (e) => {
   target.append(dot);
   setTimeout(() => dot.remove(), 650);
 });
-const paths = ['/', '/subjects', '/lectures', '/advising', '/official', '/developer', '/profile'];
+const paths = ['/', '/subjects', '/lectures', '/slides', '/advising', '/official', '/developer', '/profile'];
 let siteSnapshot = '';
 // The last site data is kept in the browser so the next visit can draw at once: the API runs on a free
 // host that can take seconds to wake up, and the page used to stay blank until it answered.
@@ -393,7 +397,12 @@ async function fetchSiteData() {
     // otherwise returning to the tab would wipe half-filled profile fields or the open Drive folder.
     if (text === siteSnapshot) return;
     applySite(text);
-    if (document.activeElement?.matches('input,select,textarea') || document.querySelector('.onboarding'))
+    // The slides page uses none of this data, and a redraw would drop the file a student has just picked.
+    if (
+      document.activeElement?.matches('input,select,textarea') ||
+      document.querySelector('.onboarding') ||
+      location.pathname === '/slides'
+    )
       return;
     render();
   } catch {}
@@ -544,6 +553,14 @@ function brand(sub = 'STUDENT COMMONS') {
 }
 // Each section is presented as an element tile, like a periodic table cell.
 const sections = [
+  {
+    key: 'slidesTool',
+    path: '/slides',
+    num: '00',
+    sym: 'Sq',
+    icon: 'spark',
+    sub: 'slidesToolSub',
+  },
   {
     key: 'subjects',
     path: '/subjects',
@@ -866,7 +883,7 @@ function header() {
         ? esc(profile.name.slice(0, 1).toLocaleUpperCase())
         : icon('user');
   const dark = renderedTheme() === 'dark';
-  return `<header class="topbar"><div class="topbar-inner">${brand()}<nav class="nav" id="site-nav" aria-label="${lang === 'ar' ? 'التنقل الرئيسي' : 'Main'}">${navLink('/', t('home'))}${navLink('/subjects', t('subjects'))}${navLink('/lectures', t('lectures'))}${navLink('/advising', t('advising'))}${navLink('/official', t('official'))}${navLink('/developer', t('developer'))}</nav><div class="tools"><button class="icon-btn lang-btn" id="lang" lang="${lang === 'ar' ? 'en' : 'ar'}">${t('language')}</button><button class="icon-btn" id="theme" aria-label="${dark ? t('toLight') : t('toDark')}" title="${dark ? t('toLight') : t('toDark')}">${dark ? icon('sun') : icon('moon')}</button>${inboxShortcut(profile)}<a class="avatar-mini" href="/profile" data-route="/profile" aria-label="${t('profile')}" title="${t('profile')}" ${currentPath() === '/profile' ? 'aria-current="page"' : ''}>${avatar}</a><button class="icon-btn mobile-menu" id="mobile-menu" aria-controls="site-nav" aria-expanded="false" aria-label="${t('menu')}">${icon('menu')}</button></div></div></header>`;
+  return `<header class="topbar"><div class="topbar-inner">${brand()}<nav class="nav" id="site-nav" aria-label="${lang === 'ar' ? 'التنقل الرئيسي' : 'Main'}">${navLink('/', t('home'))}${navLink('/subjects', t('subjects'))}${navLink('/lectures', t('lectures'))}<a class="nav-new" href="/slides" data-route="/slides" ${currentPath() === '/slides' ? 'aria-current="page"' : ''}>${slidesWord()}<span class="new-pill">${lang === 'ar' ? 'جديد' : 'New'}</span></a>${navLink('/advising', t('advising'))}${navLink('/official', t('official'))}${navLink('/developer', t('developer'))}</nav><div class="tools"><button class="icon-btn lang-btn" id="lang" lang="${lang === 'ar' ? 'en' : 'ar'}">${t('language')}</button><button class="icon-btn" id="theme" aria-label="${dark ? t('toLight') : t('toDark')}" title="${dark ? t('toLight') : t('toDark')}">${dark ? icon('sun') : icon('moon')}</button>${inboxShortcut(profile)}<a class="avatar-mini" href="/profile" data-route="/profile" aria-label="${t('profile')}" title="${t('profile')}" ${currentPath() === '/profile' ? 'aria-current="page"' : ''}>${avatar}</a><button class="icon-btn mobile-menu" id="mobile-menu" aria-controls="site-nav" aria-expanded="false" aria-label="${t('menu')}">${icon('menu')}</button></div></div></header>`;
 }
 function banner() {
   return `<a class="dev-banner" href="/developer" data-route="/developer"><span class="banner-dot" aria-hidden="true"></span><span>${t('banner')}</span>${icon('arrow', 'banner-arrow')}</a>`;
@@ -980,7 +997,7 @@ function home() {
     [db.advising?.length, 'statAdvising'],
     [db.official?.length, 'statOfficial'],
   ];
-  return `<main class="home"><section class="hero"><div class="hero-copy"><div class="eyebrow"><span class="eyebrow-dot"></span>${t('heroTag')}</div><h1 tabindex="-1">${words(t('heroLead'))}<br><span class="hero-accent">${t('heroAccent')}<svg viewBox="0 0 300 18" preserveAspectRatio="none" aria-hidden="true"><path d="M3 13C60 5 140 3 297 9"/></svg></span>.</h1><p>${t('heroCopy')}</p><div class="hero-actions"><a class="button primary" href="/subjects" data-route="/subjects">${t('explore')} ${icon('arrow')}</a><a class="button ghost" href="/lectures" data-route="/lectures">${icon('folder')} ${t('lectures')}</a></div></div>${atomArt()}</section><section class="stats" aria-label="${lang === 'ar' ? 'أرقام الموقع' : 'Site numbers'}">${stats.map(([n, k]) => `<div class="stat reveal"><b data-count="${Number(n) || 0}">${fmt(n)}</b><span>${t(k)}</span></div>`).join('')}</section><section class="home-bottom"><div class="bottom-heading"><span class="section-index">${t('heroKicker')}</span><h2>${t('sectionsTitle')}</h2><p>${t('sectionsCopy')}</p></div><div class="quick-grid">${sections
+  return `<main class="home"><section class="hero"><div class="hero-copy"><a class="hero-new" href="/slides" data-route="/slides"><span class="new-pill">${lang === 'ar' ? 'جديد' : 'New'}</span>${slidesWord()}${icon('arrow')}</a><div class="eyebrow"><span class="eyebrow-dot"></span>${t('heroTag')}</div><h1 tabindex="-1">${words(t('heroLead'))}<br><span class="hero-accent">${t('heroAccent')}<svg viewBox="0 0 300 18" preserveAspectRatio="none" aria-hidden="true"><path d="M3 13C60 5 140 3 297 9"/></svg></span>.</h1><p>${t('heroCopy')}</p><div class="hero-actions"><a class="button primary" href="/subjects" data-route="/subjects">${t('explore')} ${icon('arrow')}</a><a class="button ghost" href="/lectures" data-route="/lectures">${icon('folder')} ${t('lectures')}</a></div></div>${atomArt()}</section>${slidesHype()}<section class="stats" aria-label="${lang === 'ar' ? 'أرقام الموقع' : 'Site numbers'}">${stats.map(([n, k]) => `<div class="stat reveal"><b data-count="${Number(n) || 0}">${fmt(n)}</b><span>${t(k)}</span></div>`).join('')}</section><section class="home-bottom"><div class="bottom-heading"><span class="section-index">${t('heroKicker')}</span><h2>${t('sectionsTitle')}</h2><p>${t('sectionsCopy')}</p></div><div class="quick-grid">${sections
     .map(
       (s, i) =>
         `<a class="quick-card element-tile reveal" href="${s.path}" data-route="${s.path}" style="--delay:${i * 70}ms"><span class="tile-num">${s.num}</span><span class="tile-icon">${icon(s.icon)}</span><span class="tile-symbol" aria-hidden="true">${s.sym}</span><span class="quick-name">${t(s.key)}<small>${t(s.sub)}</small></span>${icon('arrow', 'quick-arrow')}</a>`,
@@ -989,6 +1006,61 @@ function home() {
       '',
     )}</div></section><section class="idea-band reveal"><div><span class="section-index">${t('made')}</span><h2>${t('ideaTitle')}</h2><p>${t('ideaCopy')}</p></div><a class="button primary" href="/developer" data-route="/developer">${t('ideaCta')} ${icon('arrow')}</a></section></main>`;
 }
+const slidesWord = () => (lang === 'ar' ? 'لخصها تجيب عرقها' : 'Squeeze It Dry');
+// The press: a lecture is squeezed and its slides drop out. It is the one big moment of this feature.
+const pressArt = `<div class="press" aria-hidden="true"><span class="press-rod r1"></span><span class="press-rod r2"></span><span class="press-plate"></span><div class="press-stack"><i></i><i></i><i></i><i></i><i></i><i></i></div><span class="press-base"></span><div class="press-drops"><b></b><b></b><b></b></div><div class="press-tray"><span class="press-slide s1"><u></u><i></i><i></i></span><span class="press-slide s2"><u></u><i></i><i></i></span><span class="press-slide s3"><u></u><i></i><i></i></span></div></div>`;
+// The big announcement on the home page. Its promises stay true: free, direct, no Drive.
+function slidesRibbon() {
+  if (currentPath() === '/slides' || ribbonClosed()) return '';
+  const ar = lang === 'ar';
+  return `<div class="sq-ribbon" id="sq-ribbon"><a href="/slides" data-route="/slides"><span class="new-pill">${ar ? 'جديد' : 'New'}</span><b>${slidesWord()}</b><span class="sq-ribbon-text">${ar ? 'ابعت أي محاضرة وخد سلايدز جاهزة في دقايق، ببلاش.' : 'Send any lecture and get finished slides in minutes, for free.'}</span>${icon('arrow')}</a><button type="button" id="sq-ribbon-close" aria-label="${ar ? 'إخفاء' : 'Hide'}">×</button></div>`;
+}
+const ribbonClosed = () => {
+  try {
+    return localStorage.getItem('cs-sq-ribbon') === '1';
+  } catch {
+    return false;
+  }
+};
+// On the lecture files page, the offer sits right where students pick a file.
+function lecturesPromo() {
+  const ar = lang === 'ar';
+  return `<a class="sq-promo" href="/slides" data-route="/slides"><span class="sq-promo-art" aria-hidden="true"><i></i><i></i><i></i></span><span class="sq-promo-text"><b>${ar ? 'ملف طويل؟ لخصها تجيب عرقها.' : 'A long file? Squeeze it dry.'}</b><small>${ar ? 'نزّل الملف وارفعه هنا، وخده سلايدز بالعربي أو بلغته.' : 'Download the file, upload it here, and get it as slides in Arabic or its own language.'}</small></span>${icon('arrow')}</a>`;
+}
+function slidesHype() {
+  const L = (ar, en) => (lang === 'ar' ? ar : en);
+  const steps = [
+    [L('ارفع المحاضرة', 'Upload the lecture'), L('PDF أو Word أو PowerPoint أو صور أو صوت أو فيديو.', 'PDF, Word, PowerPoint, images, audio or video.')],
+    [L('خصّصها على مزاجك', 'Make it yours'), L('اللغة والأسلوب والتفصيل والشكل والموديل.', 'Language, tone, detail, look and model.')],
+    [L('حمّل السلايدز', 'Download the slides'), L('مرسومة ومفصّلة، PDF على جهازك.', 'Drawn and detailed, as a PDF on your device.')],
+  ];
+  return `<section class="squeeze" aria-labelledby="squeeze-title"><div class="sq-main"><div class="sq-copy"><span class="new-pill big">${L('جديد في الموقع', 'New on the site')}</span><h2 id="squeeze-title">${slidesWord()}</h2><p class="sq-lead">${L('ابعت المحاضرة، خد السلايدز.', 'Send the lecture. Get the slides.')}</p><p>${L('الذكاء الاصطناعي بيعصر المحاضرة كلها ويطلّعلك أهم ما فيها في سلايدز مفصّلة. مجانًا لطلبة الكلية، ومن غير Drive.', 'AI squeezes the whole lecture and hands you what matters in detailed slides. Free for faculty students, with no Drive involved.')}</p><a class="button primary sq-cta" href="/slides" data-route="/slides">${L('جرّبها دلوقتي', 'Try it now')} ${icon('arrow')}</a></div><div class="sq-stage">${pressArt}</div></div><ol class="sq-steps">${steps.map(([h, d], i) => `<li><b class="sq-num">${fmt(i + 1)}</b><span><strong>${h}</strong><small>${d}</small></span></li>`).join('')}</ol><div class="sq-gallery" id="sq-gallery" hidden><p>${L('شكل السلايدز اللي بتطلع: أمثلة، وانت تختار الثيم والترتيب', 'What the slides look like: samples, and you choose the theme and layout')}</p><div class="sq-gallery-track"></div></div><div class="sq-models" id="sq-models" hidden></div></section>`;
+}
+// Names the models that really work now; the row stays hidden if there are none.
+async function fillHypeModels() {
+  const box = document.querySelector('#sq-models');
+  if (!box) return;
+  try {
+    const { models } = await (await fetch('/api/slides-models')).json();
+    if (!models?.length || !box.isConnected) return;
+    const row = models.map((m) => `<span>${esc(m)}</span>`).join('');
+    box.innerHTML = `<p>${lang === 'ar' ? 'شغالة بموديلات مجانية:' : 'Runs on free models:'}</p><div class="sq-track"><div>${row}</div><div aria-hidden="true">${row}</div></div>`;
+    box.hidden = false;
+  } catch {}
+}
+function slidesPage() {
+  const L = (ar, en) => (lang === 'ar' ? ar : en);
+  return `<main class="page slides-page" id="slides-page"><header class="slides-head"><div class="sq-copy"><span class="new-pill big">${L('جديد', 'New')}</span><h1 tabindex="-1">${slidesWord()}</h1><p class="sq-lead">${L('ابعت المحاضرة، خد السلايدز.', 'Send the lecture. Get the slides.')}</p><p>${L('ارفع الملف، واستنى دقايق، وخد السلايدز جاهزة تتحمّل. الملف مش بيتحفظ عندنا ولا على Drive.', 'Upload the file, wait a few minutes, and download your finished slides. The file is not kept with us or on Drive.')}</p></div><div class="slides-head-art" id="slides-press">${pressArt}</div></header><div id="slides-panel"></div></main>`;
+}
+const slidesContext = () => ({
+  lang: () => lang,
+  icon,
+  esc,
+  getProfile,
+  navigate,
+  openSignup: () => onboarding(true),
+  pressArt,
+});
 function notFound() {
   return `<main class="page not-found"><div class="nf-tile" aria-hidden="true"><small>404</small><b>Nf</b><span>Not found</span></div><h1 tabindex="-1">${t('notFoundTitle')}</h1><p>${t('notFoundCopy')}</p><a class="button primary" href="/" data-route="/">${t('backHome')} ${icon('arrow')}</a></main>`;
 }
@@ -1112,6 +1184,7 @@ function profilePage() {
       .join(
         '',
       )}</ul></div></article><article class="profile-card inbox-preview"><div class="profile-section-head with-action"><div><h2>${L('آخر الرسائل', 'Latest messages')}</h2></div><button class="link-button" type="button" data-go-tab="messages">${L('كل الرسائل', 'All messages')}</button></div><div id="inbox-preview"><p class="mailbox-loading">${L('جارٍ تحميل الرسائل…', 'Loading messages…')}</p></div></article></div><div class="profile-shortcuts">${[
+      ['/slides', 'spark', lang === 'ar' ? 'سلايداتي' : 'My slides', slidesWord()],
       ['/lectures', 'folder', t('lectures'), t('filesSub')],
       ['/subjects', 'users', t('subjects'), t('groups')],
       ['/official', 'shield', t('official'), t('officialLabel')],
@@ -1691,7 +1764,7 @@ function showToast(message) {
   setTimeout(() => node.remove(), 3200);
 }
 function shell(content) {
-  return `<div class="shell">${header()}<div class="dhikr-wrap">${dhikrStrip()}</div><div class="content">${banner()}<div id="page" class="page-transition" tabindex="-1">${content}</div></div>${footer()}</div>`;
+  return `<div class="shell">${header()}<div class="dhikr-wrap">${dhikrStrip()}</div><div class="content">${slidesRibbon()}${banner()}<div id="page" class="page-transition" tabindex="-1">${content}</div></div>${footer()}</div>`;
 }
 function render() {
   startDhikrRotation();
@@ -1707,6 +1780,8 @@ function render() {
         ? collection('subjects', t('subjectsTitle'), t('subjectsDesc'))
         : p === '/lectures'
           ? collection('lectures', t('filesTitle'), t('lecturesDesc'), true)
+          : p === '/slides'
+            ? slidesPage()
           : p === '/advising'
             ? collection('advising', t('advisingTitle'), t('advisory'))
             : p === '/official'
@@ -1720,6 +1795,7 @@ function render() {
     '/': '',
     '/subjects': t('subjectsTitle'),
     '/lectures': t('filesTitle'),
+    '/slides': slidesWord(),
     '/advising': t('advisingTitle'),
     '/official': t('officialTitle'),
     '/developer': t('developer'),
@@ -1733,6 +1809,30 @@ function render() {
   document.body.classList.remove('menu-open');
   app.innerHTML = shell(content);
   startMotion();
+  if (p === '/slides') import('/slides.js?v=22').then((m) => m.mountSlides(slidesContext()));
+  // The one-time question for students who have not answered it yet, right after signing up or on their next visit.
+  else if (getProfile()) import('/slides.js?v=22').then((m) => m.askConsentOnce(slidesContext()));
+  if (p === '/') {
+    fillHypeModels();
+    import('/slides.js?v=22').then((m) => m.mountShowcase(slidesContext()));
+    const block = document.querySelector('.squeeze');
+    if (block)
+      new IntersectionObserver((entries, seen) => {
+        if (entries[0].isIntersecting) {
+          block.classList.add('is-in');
+          seen.disconnect();
+        }
+      }, { threshold: 0.18 }).observe(block);
+  }
+  if (p === '/lectures') document.querySelector('#page main')?.firstElementChild?.insertAdjacentHTML('afterend', lecturesPromo());
+  const ribbonClose = document.querySelector('#sq-ribbon-close');
+  if (ribbonClose)
+    ribbonClose.onclick = () => {
+      try {
+        localStorage.setItem('cs-sq-ribbon', '1');
+      } catch {}
+      document.querySelector('#sq-ribbon')?.remove();
+    };
   moleculeField();
   document.querySelectorAll('[data-route]').forEach((a) =>
     a.addEventListener('click', (e) => {

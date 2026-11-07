@@ -24,6 +24,7 @@ const labels = {
   advising: 'الإرشاد الأكاديمي',
   official: 'الجروبات الرسمية',
   messages: 'الرسائل',
+  slides: 'لخصها تجيب عرقها',
   sync: 'مزامنة Drive',
 };
 const brand = `<a class="brand" href="/"><svg class="brand-logo" viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="16" class="brand-logo-bg"/><ellipse cx="32" cy="32" rx="22" ry="9" fill="none" class="brand-logo-orbit" stroke-width="2.5" transform="rotate(-32 32 32)"/><path d="M41.5 22.5A13.5 13.5 0 1 0 41.5 41.5" fill="none" class="brand-logo-c" stroke-width="5.5" stroke-linecap="round"/><circle cx="47" cy="17" r="4.5" class="brand-logo-dot"/></svg><span class="brand-text"><span>CAPITAL <b>SCIENCE</b></span><small>ADMIN CONSOLE</small></span></a>`;
@@ -165,6 +166,7 @@ function wireShell() {
 function dashboard() {
   editingId = null;
   if (kind === 'sync') return syncDashboard();
+  if (kind === 'slides') return slidesDashboard();
   if (kind === 'messages') return messagesDashboard();
   app.innerHTML = `<div class="admin-layout">${sidebar()}<main class="admin-main">${dhikrStrip()}<div class="admin-head"><div><span class="section-index">CONTENT MANAGEMENT</span><h1>${labels[kind]}</h1></div>${livePill}<button class="button ghost" id="mode-toggle">الوضع البسيط</button><a class="button ghost" href="/" target="_blank" rel="noopener">عرض الموقع</a><button class="button" id="logout">تسجيل الخروج</button></div><div id="storage-status" class="storage-status" role="status"></div><section class="admin-overview" id="overview" aria-label="نظرة سريعة"></section><section class="admin-box"><h2 id="item-form-title">إضافة عنصر</h2><form class="admin-form" id="item-form">${itemFormFields()}<datalist id="category-options"></datalist><div class="admin-form-actions"><button class="button primary" id="item-submit">إضافة العنصر</button><button class="button ghost" type="button" id="cancel-edit" hidden>إلغاء التعديل</button></div></form></section><section class="admin-box"><div class="admin-toolbar"><h2>العناصر الحالية</h2><input id="item-search" type="search" placeholder="ابحث في العناصر…"></div><div class="admin-list" id="list"><p class="admin-muted">جارٍ التحميل…</p></div></section></main></div>`;
   wireShell();
@@ -552,6 +554,50 @@ async function drawGmail() {
 }
 let openThread = threadFromLink || null;
 threadFromLink = null;
+// The lecture-to-slides agent: today's use, the off switch, the limits and the latest jobs.
+async function slidesDashboard() {
+  app.innerHTML = `<div class="admin-layout">${sidebar()}<main class="admin-main">${dhikrStrip()}<div class="admin-head"><div><span class="section-index">SLIDES AGENT</span><h1>${labels.slides}</h1></div><button class="button ghost" id="logout">خروج</button></div><div id="slides-admin"><p class="muted">بنحمّل…</p></div></main></div>`;
+  wireShell();
+  const box = document.querySelector('#slides-admin');
+  let s;
+  try {
+    s = await req('/api/admin/slides');
+  } catch (e) {
+    box.innerHTML = `<p role="alert">${esc(e.message || 'حصلت مشكلة')}</p>`;
+    return;
+  }
+  const { config: c } = s;
+  const readyCount = s.providers.filter((p) => p.ready).length;
+  box.innerHTML = `<div class="slides-admin-top"><div class="sa-stat"><b>${esc(s.usedToday)}</b><span>من ${esc(c.globalDaily)} طلب النهارده</span></div><div class="sa-stat"><b>${s.mock ? 'تجربة' : `${readyCount} من ${s.providers.length}`}</b><span>شركات متوصلة</span></div><div class="sa-stat"><b>${c.paused ? 'واقفة' : 'شغالة'}</b><span>حالة الخدمة</span></div></div><form id="slides-config" class="sa-form"><label>كل طالب في اليوم<input name="perStudentDaily" type="number" min="0" max="50" value="${esc(c.perStudentDaily)}"></label><label>الموقع كله في اليوم<input name="globalDaily" type="number" min="0" max="100000" value="${esc(c.globalDaily)}"></label><label>رسالة للطلبة وقت الإيقاف<input name="message" maxlength="240" value="${esc(c.message)}"></label><div class="sa-buttons"><button class="button primary">احفظ</button><button type="button" class="button ghost" id="slides-pause">${c.paused ? 'شغّل الخدمة' : 'وقّف الخدمة دلوقتي'}</button></div></form><h2>الشركات</h2><ul class="sa-jobs">${s.providers.map((p) => `<li><b>${esc(p.label)}</b><span>${p.ready ? `${esc(p.keys)} مفتاح · ${esc(p.used)}${p.daily ? ` من ${esc(p.daily)}` : ''} النهارده` : `مفيش مفتاح: <code dir="ltr">${esc(p.env.join(' + '))}</code>`}</span></li>`).join('')}</ul><h2>الموديلات</h2><div class="sa-buttons"><button type="button" class="button ghost" id="slides-check">جرّب كل الموديلات دلوقتي</button></div><ul class="sa-jobs" id="slides-families">${s.families.map((f) => `<li><label><input type="checkbox" data-family="${esc(f.id)}" ${f.enabled ? 'checked' : ''}> <b>${esc(f.label)}</b></label><span dir="ltr">${f.routes.map((r) => esc(r.provider)).join(' · ')}</span></li>`).join('')}</ul><ul class="sa-jobs" id="slides-check-out"></ul><h2>آخر الطلبات</h2><ul class="sa-jobs">${s.jobs.map((j) => `<li><b dir="auto">${esc(j.title || j.name)}</b><span>${esc(j.family || '')} · ${esc(j.status)}${j.error ? ` · ${esc(j.error)}` : ''}</span></li>`).join('') || '<li>لسه مفيش طلبات.</li>'}</ul>`;
+  const save = async (data) => {
+    await req('/api/admin/slides', { method: 'POST', body: JSON.stringify(data) });
+    toast('اتحفظ');
+    slidesDashboard();
+  };
+  box.querySelector('#slides-pause').onclick = () => save({ paused: !c.paused });
+  box.querySelector('#slides-config').onsubmit = (e) => {
+    e.preventDefault();
+    const f = e.target.elements;
+    save({ perStudentDaily: Number(f.perStudentDaily.value), globalDaily: Number(f.globalDaily.value), message: f.message.value });
+  };
+  box.querySelectorAll('[data-family]').forEach((input) => {
+    input.onchange = () =>
+      save({ disabled: [...box.querySelectorAll('[data-family]')].filter((x) => !x.checked).map((x) => x.dataset.family) });
+  });
+  const words = { ok: 'شغال', nokey: 'مفيش مفتاح', busy: 'زحمة', blocked: 'المفتاح مرفوض', gemini: 'الموديل مش بيرد', badjson: 'رد غير مفهوم' };
+  box.querySelector('#slides-check').onclick = async (e) => {
+    e.target.disabled = true;
+    const out = box.querySelector('#slides-check-out');
+    out.innerHTML = '<li>بنجرّب…</li>';
+    try {
+      const { routes } = await req('/api/admin/slides/check', { method: 'POST', body: '{}' });
+      out.innerHTML = routes.map((r) => `<li><b>${esc(r.family)}</b><span dir="ltr">${esc(r.provider)}${r.key ? ` #${esc(r.key)}` : ''} · ${esc(r.model)}</span><span>${esc(words[r.result] || r.result)}</span></li>`).join('');
+    } catch (error) {
+      out.innerHTML = `<li role="alert">${esc(error.message)}</li>`;
+    }
+    e.target.disabled = false;
+  };
+}
 async function messagesDashboard() {
   app.innerHTML = `<div class="admin-layout">${sidebar()}<main class="admin-main">${dhikrStrip()}<div class="admin-head"><div><span class="section-index">MESSAGES</span><h1>${labels.messages}</h1></div>${livePill}<a class="button ghost" href="/" target="_blank" rel="noopener">عرض الموقع</a><button class="button" id="logout">تسجيل الخروج</button></div><section class="admin-box admin-chat"><div class="admin-threads"><div class="admin-toolbar"><h2>المحادثات</h2><button class="button ghost" id="refresh-threads" type="button">تحديث</button></div><div id="thread-list" class="thread-list"><p class="admin-muted">جارٍ التحميل…</p></div></div><div class="admin-conversation" id="conversation"><p class="admin-muted conversation-empty">اختار محادثة من القايمة عشان تقراها وترد.</p></div></section><section class="admin-box" id="gmail-box"><h2>إيميل الموقع</h2><p class="admin-muted">جارٍ التحميل…</p></section><section class="admin-box"><h2>رسالة جديدة</h2><p>الرسالة بتوصل جوه الموقع في صفحة الطالب، والطالب يقدر يرد عليها. لو الإيميل متوصل بتتبعت كمان على إيميله.</p><form class="admin-form" id="email-form"><label>نوع الإرسال<select name="mode"><option value="private">شخص محدد</option><option value="all">كل المستخدمين</option></select></label><label>المستلم: ID أو بريد أو هاتف<input name="target" placeholder="معرّف الحساب أو البريد أو +20…" dir="ltr"></label><label class="wide">عنوان الرسالة<input name="subject" maxlength="180" required></label><label class="wide">نص الرسالة<textarea name="message" maxlength="10000" rows="5" required></textarea></label><div class="admin-form-actions"><button class="button primary">إرسال الرسالة</button></div></form><div class="admin-toolbar"><input id="user-search" type="search" placeholder="ابحث عن حساب بالاسم أو ID أو البريد أو الهاتف"><button class="button ghost" id="load-users">بحث</button></div><div class="admin-list" id="user-results"></div></section></main></div>`;
   wireShell();

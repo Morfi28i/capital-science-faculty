@@ -15,6 +15,15 @@ import {
   sendProfileNotice,
   useSavedGmail,
 } from './mail.js';
+import {
+  checkSlideRoutes,
+  handleStudentSlides,
+  kickSlideQueue,
+  runSlideQueue,
+  saveSlidesConfig,
+  slidesAdminStatus,
+  slidesPublicModels,
+} from './slides-agent.js';
 
 const root = process.cwd(),
   dbPath = path.join(root, 'data/site.json'),
@@ -942,6 +951,7 @@ async function api(req, res, url) {
     });
   }
   if (req.method === 'GET' && url.pathname === '/api/site') {
+    if (firebaseConfigured()) kickSlideQueue(firebase().db);
     const db = await readDB();
     let driveFiles = [];
     try {
@@ -985,6 +995,25 @@ async function api(req, res, url) {
       phoneAuthEnabled: firebaseConfigured() && process.env.PHONE_AUTH_ENABLED === 'true',
     });
   }
+  if (req.method === 'GET' && url.pathname === '/api/slides-models')
+    return json(res, 200, { models: firebaseConfigured() ? await slidesPublicModels(firebase().db) : [] });
+  // The big lecture PDF skips the Vercel proxy and goes straight to this server, so this one route allows that origin.
+  if (url.pathname === '/api/firebase/slides/upload') {
+    const origin = String(req.headers.origin || '');
+    if (origin === NEW_SITE) {
+      res.setHeader('Access-Control-Allow-Origin', origin);
+      res.setHeader('Vary', 'Origin');
+    }
+    if (req.method === 'OPTIONS') {
+      res.writeHead(204, {
+        'Access-Control-Allow-Methods': 'POST',
+        'Access-Control-Allow-Headers': 'Authorization, Content-Type',
+        'Access-Control-Max-Age': '600',
+      });
+      return res.end();
+    }
+    if (!sameOrigin(req)) return json(res, 403, { error: 'Cross-site request blocked.' });
+  }
   if (url.pathname.startsWith('/api/firebase/')) {
     if (!firebaseConfigured())
       return json(res, 503, {
@@ -994,6 +1023,11 @@ async function api(req, res, url) {
       const decoded = await verifiedFirebaseUser(req),
         { db } = firebase(),
         ref = db.collection('users').doc(decoded.uid);
+      if (
+        url.pathname.startsWith('/api/firebase/slides/') &&
+        (await handleStudentSlides(req, res, url, { db, decoded, ref, json, body }))
+      )
+        return;
       if (req.method === 'GET' && url.pathname === '/api/firebase/profile') {
         const snap = await ref.get();
         return json(res, 200, { profile: snap.exists ? snap.data() : null });
@@ -1320,6 +1354,19 @@ async function api(req, res, url) {
         total: accounts.length,
         matched: matches.length,
       });
+    }
+    if (url.pathname === '/api/admin/slides/check' && req.method === 'POST')
+      return json(res, 200, { routes: await checkSlideRoutes() });
+    if (url.pathname === '/api/admin/slides') {
+      if (!firebaseConfigured()) return json(res, 503, { error: 'Firebase is not configured.' });
+      const { db } = firebase();
+      if (req.method === 'GET') return json(res, 200, await slidesAdminStatus(db));
+      if (req.method === 'POST') {
+        const config = await saveSlidesConfig(db, await body(req, 4000));
+        await audit(req, 'slides.config');
+        runSlideQueue(db).catch((e) => console.error('[slides]', e.message));
+        return json(res, 200, { config });
+      }
     }
     if (url.pathname.startsWith('/api/admin/gmail')) {
       if (!firebaseConfigured()) return json(res, 503, { error: 'Firebase is not configured.' });
@@ -1752,7 +1799,7 @@ async function api(req, res, url) {
   }
   return json(res, 404, { error: 'Not found' });
 }
-const appRoutes = ['/', '/subjects', '/lectures', '/advising', '/official', '/developer', '/profile'];
+const appRoutes = ['/', '/subjects', '/lectures', '/slides', '/advising', '/official', '/developer', '/profile'];
 const publicRoot = path.join(root, 'public');
 async function sendFile(res, file, status = 200, extraHeaders = {}) {
   const ext = path.extname(file);

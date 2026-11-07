@@ -434,3 +434,28 @@ export async function sendMessageNotice(to, profile, text, { photo = null, count
   };
   return gmailApi() ? sendViaGmailApi(message) : transporter().sendMail(message);
 }
+
+// Tells a student their slides are ready, only when they turned this on.
+export function slidesReadyHtml(title, failed) {
+  const safe = String(title).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+  const head = failed ? 'السلايدز ما اتعملتش' : 'سلايداتك جاهزة';
+  const body = failed ? `حصلت مشكلة في «${safe}». جرّب تاني من الموقع، ومش هتتحسب عليك.` : `«${safe}» جاهزة تتفتح وتتحمّل من حسابك.`;
+  return `<!doctype html><html dir="rtl" lang="ar"><body style="margin:0;background:#0f1612;padding:24px;font-family:Tahoma,Arial,sans-serif"><table role="presentation" width="100%" style="max-width:520px;margin:auto;background:#16201a;border:1px solid #33433a;border-radius:16px"><tr><td style="padding:28px;color:#e8eee5;text-align:right"><p style="margin:0 0 6px;color:#e6b964;font-size:13px">لخصها تجيب عرقها</p><h1 style="margin:0 0 12px;font-size:24px;color:#9fd6b0">${head}</h1><p style="margin:0 0 22px;line-height:1.8">${body}</p><a href="${SITE}/slides" style="display:inline-block;padding:12px 24px;border-radius:999px;background:#9fd6b0;color:#0d1611;font-weight:bold;text-decoration:none">افتح سلايداتي</a><p style="margin:22px 0 0;color:#96a394;font-size:12px">جالك الإيميل ده لأنك فعّلت إشعارات الإيميل. تقدر تقفلها من صفحة السلايدز.</p></td></tr></table></body></html>`;
+}
+export async function sendSlidesReady(to, title, failed = false) {
+  const html = slidesReadyHtml(title, failed);
+  if (process.env.MAIL_PREVIEW_DIR) {
+    await mkdir(process.env.MAIL_PREVIEW_DIR, { recursive: true });
+    const file = path.join(process.env.MAIL_PREVIEW_DIR, `${Date.now()}-slides.html`);
+    await writeFile(file, html);
+    return { preview: file };
+  }
+  const message = {
+    from: { name: FROM_NAME, address: sender() },
+    to,
+    subject: `${failed ? 'السلايدز ما اتعملتش' : 'سلايداتك جاهزة'} · Capital Science`,
+    html,
+    text: `${failed ? 'السلايدز ما اتعملتش' : 'سلايداتك جاهزة'}: ${title}\n${SITE}/slides`,
+  };
+  return gmailApi() ? sendViaGmailApi(message) : transporter().sendMail(message);
+}

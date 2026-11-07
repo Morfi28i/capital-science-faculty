@@ -341,3 +341,24 @@ export async function currentFirebaseUser() {
     });
   });
 }
+
+// The lecture-to-slides agent's API calls, which wait for the signed-in user like the rest of this file.
+export async function slidesToken() {
+  const { auth } = await services();
+  if (auth.authStateReady) await auth.authStateReady();
+  if (!auth.currentUser) throw Object.assign(new Error('Sign in first.'), { status: 401 });
+  return auth.currentUser.getIdToken();
+}
+export async function slidesRequest(path, { method = 'GET', body } = {}) {
+  const response = await fetch(`/api/firebase/slides${path}`, {
+    method,
+    headers: {
+      Authorization: `Bearer ${await slidesToken()}`,
+      ...(body ? { 'Content-Type': 'application/json' } : {}),
+    },
+    ...(body ? { body: JSON.stringify(body) } : {}),
+  });
+  const result = await response.json();
+  if (!response.ok) throw Object.assign(new Error(result.error || 'Request failed.'), { status: response.status, code: result.code });
+  return result;
+}

@@ -55,7 +55,8 @@
       "category": "موارد",
       "url": "https://chat.whatsapp.com/Bxfdg5f1mXfFN3dgOlR9C5?s=cl&p=a&mlu=0&ilr=4",
       "kind": "whatsapp",
-      "note": "مجموعة للاستفسار عن أدوات المعمل والبالطو."
+      "note": "مجموعة للاستفسار عن أدوات المعمل والبالطو.",
+      "noteEn": "A group for questions about lab tools and lab coats."
     },
     {
       "id": "algebra-b",
@@ -296,7 +297,8 @@
       "category": "الإرشاد الأكاديمي",
       "url": "https://chat.whatsapp.com/FrV7ta64hH89bCtlZcYomq?s=cl&p=a&mlu=4&ilr=4",
       "kind": "whatsapp",
-      "note": "انضم إلى مجموعة المرشد الأكاديمي المسجل لك فقط."
+      "note": "انضم إلى مجموعة المرشد الأكاديمي المسجل لك فقط.",
+      "noteEn": "Join only the group of the academic advisor assigned to you."
     },
     {
       "id": "advisor-mahmoud",
@@ -329,7 +331,8 @@
       "category": "الإرشاد الأكاديمي",
       "url": "https://chat.whatsapp.com/DFXEGbopI2d1IeQ4GFMGnC",
       "kind": "whatsapp",
-      "note": "يرجى التواصل معه على الخاص للحصول على رابط التسجيل المشار إليه في الإعلان."
+      "note": "يرجى التواصل معه على الخاص للحصول على رابط التسجيل المشار إليه في الإعلان.",
+      "noteEn": "Please message him privately to get the registration link mentioned in the announcement."
     },
     {
       "id": "advisor-wael",
@@ -378,7 +381,8 @@
       "category": "جروبات الدفعة الرسمية",
       "url": "https://chat.whatsapp.com/GuQbyb1slil1z3kPcMTlS4?s=cl&p=i&mlu=4&ilr=4",
       "kind": "whatsapp",
-      "note": "اختر جروبًا واحدًا فقط من الجروبين الرسميين. الجروبات للطلاب المقيدين بالدفعة فقط."
+      "note": "اختر جروبًا واحدًا فقط من الجروبين الرسميين. الجروبات للطلاب المقيدين بالدفعة فقط.",
+      "noteEn": "Choose only one of the two official groups. The groups are for students enrolled in this class only."
     },
     {
       "id": "cohort-b",
@@ -387,7 +391,8 @@
       "category": "جروبات الدفعة الرسمية",
       "url": "https://chat.whatsapp.com/IdeykcrOnFO2EMFrYgQtKi?s=cl&p=i&mlu=4&ilr=4",
       "kind": "whatsapp",
-      "note": "اختر جروبًا واحدًا فقط. لا ترسل طلب انضمام للجروبين معًا."
+      "note": "اختر جروبًا واحدًا فقط. لا ترسل طلب انضمام للجروبين معًا.",
+      "noteEn": "Choose only one group. Do not request to join both."
     },
     {
       "id": "biology",
