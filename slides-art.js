@@ -47,7 +47,7 @@ export function wrap(text, size, maxWidth, bold, maxLines = 4) {
 
 // One text block. align is the visual side: right-aligned Arabic uses direction=rtl with anchor start.
 function textBlock(lines, { x, y, size, bold, fill = INK, align = 'middle', rtl, gap = 1.28 }) {
-  const dir = rtl ? ' direction="rtl"' : '';
+  const dir = rtl ? ' direction="rtl"' : ' direction="ltr"';
   const anchor = rtl ? { right: 'start', left: 'end', middle: 'middle' }[align] : { left: 'start', right: 'end', middle: 'middle' }[align];
   return lines
     .map((line, i) => `<text x="${x}" y="${Math.round(y + i * size * gap)}" font-family="${FONT}" font-size="${size}"${bold ? ' font-weight="700"' : ''} fill="${fill}" text-anchor="${anchor}"${dir}>${esc(line)}</text>`)
@@ -244,7 +244,7 @@ function titleBlock(title) {
   const big = widthOf(title, 44, true) <= 1160;
   const size = big ? 44 : 38;
   const lines = wrap(title, size, 1160, true, 2);
-  return { svg: textBlock(lines, { x: W / 2, y: 62, size, bold: true, align: 'middle', rtl: isArabic(title), gap: 1.2 }), bottom: 62 + (lines.length - 1) * size * 1.2 + 24 };
+  return { svg: `<g data-part="title">${textBlock(lines, { x: W / 2, y: 62, size, bold: true, align: 'middle', rtl: isArabic(title), gap: 1.2 })}</g>`, bottom: 62 + (lines.length - 1) * size * 1.2 + 24 };
 }
 
 function focusStrip(text, rtl) {

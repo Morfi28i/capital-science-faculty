@@ -1,6 +1,6 @@
 // "لخصها تجيب عرقها": the page, the one-time consent question, the viewer and the PDF export.
 // app.js passes in what it owns (language, icons, escaping, the sign-up flow) so this file loads only when needed.
-import { drawCover, drawSlide } from '/slides-draw.js?v=5';
+import { drawCover, drawSlide, footer } from '/slides-draw.js?v=6';
 
 const auth = () => import('/firebase-auth.js');
 // The Vercel proxy cannot carry a large file, so on the live site the PDF goes straight to the API host.
@@ -320,7 +320,7 @@ const FONTS = {
 const RATIOS = { wide: [1280, 720], classic: [1280, 960], a4: [960, 1358] };
 const lookDefaults = { theme: 'study', font: 'display', layout: 'classic', ratio: 'wide', size: 100, numbers: false, brand: true, cover: false, author: '', footer: '' };
 const getLook = () => {
-  const l = { ...lookDefaults, ...(getMode() === 'simple' ? {} : store.get(LOOK_KEY)) };
+  const l = { ...lookDefaults, ...store.get(LOOK_KEY) };
   if (!THEMES[l.theme]) l.theme = lookDefaults.theme;
   if (!FONTS[l.font]) l.font = lookDefaults.font;
   if (!RATIOS[l.ratio]) l.ratio = lookDefaults.ratio;
@@ -341,7 +341,7 @@ function lookPanel(l) {
   return `<details class="slides-models custom-panel look-panel"><summary>${L('خصّص الشكل', 'Customize the look')}</summary>${lookBody(l)}</details>`;
 }
 function lookBody(l) {
-  return `<div class="custom-body look-body"><p class="slides-small">${L('الثيمات والترتيب بيتطبقوا على المخططات السريعة. السلايدز المرسومة شكلها ثابت زي NotebookLM.', 'Themes and layouts apply to quick diagrams. Drawn slides keep the NotebookLM look.')}</p><div class="theme-row" role="group" aria-label="${L('الثيم', 'Theme')}">${Object.entries(THEMES)
+  return `<div class="custom-body look-body"><div class="theme-row" role="group" aria-label="${L('الثيم', 'Theme')}">${Object.entries(THEMES)
     .map(([k, t]) => `<button type="button" class="theme-chip ${k === l.theme ? 'on' : ''}" data-theme-pick="${k}" aria-pressed="${k === l.theme}" style="--c1:${t.bg};--c2:${t.accent};--c3:${t.second}"><i></i>${t.name()}</button>`)
     .join('')}</div>${segmented('layout', L('الترتيب', 'Layout'), [['classic', L('كلاسيك', 'Classic')], ['center', L('في النص', 'Centered')], ['band', L('شريط جانبي', 'Side band')], ['bigtitle', L('عنوان ضخم', 'Huge title')]], l.layout)}${segmented('font', L('الخط', 'Font'), [['body', L('عادي', 'Regular')], ['display', L('عريض', 'Bold')], ['serif', L('كلاسيكي', 'Classic')]], l.font)}${segmented('ratio', L('المقاس', 'Format'), [['wide', '16:9'], ['classic', '4:3'], ['a4', 'A4']], l.ratio)}<label class="custom-range">${L('حجم الكلام', 'Text size')}: <b class="look-size-now">${l.size}%</b><input type="range" name="size" min="70" max="140" step="5" value="${l.size}"></label><fieldset class="slides-langs"><legend class="sr-only">${L('إضافات', 'Extras')}</legend>${[
     ['numbers', L('أرقام الصفحات', 'Page numbers')],
@@ -928,7 +928,8 @@ export function artLooksRight(svg) {
   const parsed = new DOMParser().parseFromString(svg, 'image/svg+xml').documentElement;
   if (parsed.nodeName !== 'svg') return false;
   const holder = document.createElement('div');
-  holder.style.cssText = 'position:fixed;left:-20000px;top:0;width:1280px;height:720px;visibility:hidden;contain:strict';
+  holder.dir = 'ltr'; // this page is often right-to-left, and an SVG would inherit that while being measured
+  holder.style.cssText = 'position:fixed;left:-20000px;top:0;width:1280px;height:720px;visibility:hidden;contain:strict;direction:ltr';
   parsed.setAttribute('width', '1280');
   parsed.setAttribute('height', '720');
   holder.append(document.importNode(parsed, true));
@@ -937,7 +938,7 @@ export function artLooksRight(svg) {
     const root = holder.firstElementChild,
       page = root.getBoundingClientRect(),
       boxes = [...root.querySelectorAll('rect')]
-        .filter((r) => !r.closest('defs,clipPath,pattern,mask,symbol'))
+        .filter((r) => !r.closest('defs,clipPath,pattern,mask,symbol,svg svg')) // a painted scene holds no words
         .map((r) => r.getBoundingClientRect())
         .filter((b) => b.width > 50 && b.height > 24 && b.width < page.width * 0.95);
     let spilling = 0;
@@ -957,39 +958,101 @@ export function artLooksRight(svg) {
     holder.remove();
   }
 }
-const arts = new Map();
-function loadArt(id) {
-  if (!arts.has(id))
-    arts.set(
+// The student's look, applied to a drawn slide. The painted scenes stay as they are, except in black and white; everything
+// around them follows the theme, font, layout and text size.
+const ART_FONTS = { display: 'Arial, Tahoma, sans-serif', body: 'Verdana, Tahoma, sans-serif', serif: "Georgia, 'Times New Roman', 'Geeza Pro', serif" };
+function dressArt(svg, look, textScale) {
+  const scenes = [];
+  let out = svg.replace(/<svg x=[\s\S]*?<\/svg>/g, (scene) => {
+    scenes.push(scene);
+    return `<!--scene${scenes.length - 1}-->`;
+  });
+  const t = themeOf(look);
+  if (look.theme !== 'study') {
+    out = out.replace(/(<text\b[^>]*fill=")#(?:fff|ffffff)"/gi, `$1${t.bg}"`);
+    const colours = {
+      '#0f1e3c': t.ink, '#33415c': t.ink, '#12907e': t.accent, '#2b5cff': t.second, '#fbfdff': t.bg, '#eef4fa': t.bg, '#dbe5f0': t.soft,
+      '#ffffff': t.card, '#fff': t.card, '#14305c': t.accent, '#eaf3f7': t.soft, '#c9d6e4': t.soft, '#fff9e6': t.card, '#c99a1c': t.second,
+    };
+    out = out.replace(/#(?:[0-9a-f]{6}|fff)\b/gi, (c) => colours[c.toLowerCase()] || c);
+  }
+  if (look.theme === 'mono') out = out.replace(/(<feDisplacementMap\b[^>]*\/>)/, '$1<feColorMatrix type="saturate" values="0"/>');
+  out = out.replaceAll('Arial, Tahoma, sans-serif', ART_FONTS[look.font]);
+  if (textScale !== 1) out = out.replace(/(<text\b[^>]*font-size=")(\d+(?:\.\d+)?)"/g, (_, head, size) => `${head}${(Number(size) * textScale).toFixed(1)}"`);
+  // Slides saved before titles were marked start with the same two possible lines.
+  if (!out.includes('data-part="title"')) out = out.replace(/(?:<text x="640" y="(?:62|108)"[^>]*>[^<]*<\/text>)+/, (t) => `<g data-part="title">${t}</g>`);
+  out = out.replace(/<g data-part="title">([\s\S]*?)<\/g>/, (whole, title) => {
+    const rtl = /direction="rtl"/.test(title),
+      lastY = Math.max(...[...title.matchAll(/\by="(\d+)"/g)].map((m) => Number(m[1]))),
+      firstLine = /font-size="([\d.]+)"[^>]*>([^<]*)</.exec(title),
+      width = firstLine ? [...firstLine[2]].length * Number(firstLine[1]) * 0.56 : 1200;
+    if (look.layout === 'center') return `${whole}<rect x="580" y="${lastY + 10}" width="120" height="5" rx="2.5" fill="${t.accent}"/>`;
+    if (look.layout === 'band') {
+      const side = title.replace(/\bx="640"/g, `x="${rtl ? 1234 : 46}"`).replace(/text-anchor="middle"/g, 'text-anchor="start"');
+      return `<rect x="${rtl ? 1262 : 0}" y="0" width="18" height="720" fill="${t.accent}"/>${side}`;
+    }
+    if (look.layout === 'bigtitle') {
+      const grow = Math.min(1.25, 1210 / width);
+      return title.replace(/font-size="([\d.]+)"/g, (_, size) => `font-size="${(Number(size) * grow).toFixed(1)}"`).replace(/fill="[^"]*"/g, `fill="${t.accent}"`);
+    }
+    return whole;
+  });
+  return out.replace(/<!--scene(\d+)-->/g, (_, i) => scenes[Number(i)]);
+}
+// Bigger text can run out of its place, so the size steps back until the slide measures clean.
+export function fittedArt(svg, look) {
+  const wanted = Math.min(1.2, Math.max(0.8, look.size / 100));
+  for (let scale = wanted; scale > 1; scale = Math.round((scale - 0.05) * 100) / 100) {
+    const dressed = dressArt(svg, look, scale);
+    if (artLooksRight(dressed)) return dressed;
+  }
+  return dressArt(svg, look, Math.min(wanted, 1));
+}
+const rawArts = new Map();
+const artImages = new Map();
+function loadRawArt(id) {
+  if (!rawArts.has(id))
+    rawArts.set(
       id,
       api(`/art/${encodeURIComponent(id)}`)
-        .then(
-          ({ svg }) =>
-            new Promise((resolve) => {
-              if (!artLooksRight(svg)) return resolve(null);
-              const img = new Image();
-              img.onload = () => resolve(img);
-              img.onerror = () => resolve(null);
-              img.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
-            }),
-        )
+        .then(({ svg }) => (artLooksRight(svg) ? svg : null))
         .catch(() => null),
     );
-  return arts.get(id);
+  return rawArts.get(id);
+}
+async function loadArt(id, look) {
+  const raw = await loadRawArt(id);
+  if (!raw) return null;
+  const key = `${id}|${look.theme}|${look.font}|${look.layout}|${look.size}`;
+  if (!artImages.has(key)) {
+    if (artImages.size > 60) artImages.clear();
+    artImages.set(
+      key,
+      new Promise((resolve) => {
+        const img = new Image();
+        img.onload = () => resolve(img);
+        img.onerror = () => resolve(null);
+        img.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(fittedArt(raw, look))}`;
+      }),
+    );
+  }
+  return artImages.get(key);
 }
 const renderCanvas = document.createElement('canvas');
 async function renderPage(canvas, deck, page, index, total, look) {
   const [W, H] = RATIOS[look.ratio];
   canvas.width = W;
   canvas.height = H;
-  const art = page.artId ? await loadArt(page.artId) : null;
+  const art = page.artId ? await loadArt(page.artId, look) : null;
   if (art) {
-    // Drawn slides are 16:9; on other page shapes they sit centred on the same pale paper.
+    // Drawn slides are 16:9; on other page shapes they sit centred on the same paper.
     const c = canvas.getContext('2d'),
-      r = Math.min(W / art.width, H / art.height);
-    c.fillStyle = '#f5f7fc';
+      r = Math.min(W / art.width, H / art.height),
+      theme = themeOf(look);
+    c.fillStyle = look.theme === 'study' ? '#f5f7fc' : theme.bg;
     c.fillRect(0, 0, W, H);
     c.drawImage(art, (W - art.width * r) / 2, (H - art.height * r) / 2, art.width * r, art.height * r);
+    footer(c, W, H, theme, look, FONTS[look.font], `${index + 1} / ${total}`);
     return;
   }
   if (page.cover) drawCover(canvas, deck, look, themeOf(look), FONTS[look.font]);

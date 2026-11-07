@@ -111,7 +111,7 @@ function background(c, W, H, t, l) {
     c.fillRect(0, 0, W, 12);
   }
 }
-function footer(c, W, H, t, l, font, page) {
+export function footer(c, W, H, t, l, font, page) {
   c.save();
   c.fillStyle = t.ink;
   c.globalAlpha = 0.62;

@@ -307,7 +307,7 @@ export function readOptions(raw = {}) {
 }
 const optionsKey = (o) => crypto.createHash('sha256').update(JSON.stringify(o)).digest('hex').slice(0, 12);
 export const slidePrompt = (lang, rawOptions) => prompt(lang, rawOptions);
-const prompt = (lang, rawOptions) => {
+const prompt = (lang, rawOptions, outline) => {
   const o = readOptions(rawOptions);
   const language =
     lang === 'ar'
@@ -335,6 +335,7 @@ Make one opening slide with the topic${o.slides ? `, about ${o.slides} slides in
 Put one key equation per slide in "formula" as plain text when there is one. Put a short focus line or exam tip in "note" when it is useful.
 ${pictures}
 ${o.custom ? `The student's description of the deck they want (follow it as far as it concerns the slides): ${JSON.stringify(o.custom)}` : ''}
+${outline?.length ? `This lecture already has a deck in another language with these ${outline.length} slides. Make exactly ${outline.length} slides, one for each, in the same order, with the same coverage: ${JSON.stringify(outline)}` : ''}
 ${SHAPE}`;
 };
 const clean = (value, max) =>
@@ -421,8 +422,8 @@ function salvageDeck(text) {
 }
 async function callGemini(route, data, lang, maxTokens, key) {
   const parts = data.fileUri
-    ? [{ fileData: { mimeType: data.fileMime || 'application/pdf', fileUri: data.fileUri } }, { text: prompt(lang, data.options) }]
-    : [{ text: prompt(lang, data.options) }, { text: `<document>\n${data.text}\n</document>` }];
+    ? [{ fileData: { mimeType: data.fileMime || 'application/pdf', fileUri: data.fileUri } }, { text: prompt(lang, data.options, data.outline) }]
+    : [{ text: prompt(lang, data.options, data.outline) }, { text: `<document>\n${data.text}\n</document>` }];
   const r = await fetch(`${GEMINI}/v1beta/models/${encodeURIComponent(route.m)}:generateContent`, {
     method: 'POST',
     headers: { ...geminiKey(key), 'Content-Type': 'application/json' },
@@ -447,7 +448,7 @@ async function callOpenAiStyle(route, data, lang, maxTokens, key) {
       ...(provider.bare ? { reasoning_effort: 'low' } : { temperature: 0.2, max_tokens: maxTokens }),
       ...(provider.json ? { response_format: { type: 'json_object' } } : {}),
       messages: [
-        { role: 'system', content: prompt(lang, data.options) },
+        { role: 'system', content: prompt(lang, data.options, data.outline) },
         { role: 'user', content: `<document>\n${data.text}\n</document>` },
       ],
     }),
@@ -812,6 +813,9 @@ async function runJob(db, snap, config) {
       if (decks[lang]) continue;
       // An Arabic file already gives an Arabic deck, so the second one is not made.
       if (lang === 'ar' && decks.source?.language === 'ar') continue;
+      // The second language follows the first deck, or a lite model may give half as many slides.
+      const first = Object.values(decks)[0];
+      data.outline = first?.slides?.map((s) => s.title).filter(Boolean);
       const deck = capSlides(await generateDeck(db, data, lang, config), data.options);
       if (!deck.isStudyMaterial || !deck.slides.length) return await finishFailed(job, 'notlecture', data.fileName, data.fileKey);
       await addImages(db, job, deck, data, lang);

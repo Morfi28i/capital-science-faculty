@@ -1809,12 +1809,12 @@ function render() {
   document.body.classList.remove('menu-open');
   app.innerHTML = shell(content);
   startMotion();
-  if (p === '/slides') import('/slides.js?v=22').then((m) => m.mountSlides(slidesContext()));
+  if (p === '/slides') import('/slides.js?v=23').then((m) => m.mountSlides(slidesContext()));
   // The one-time question for students who have not answered it yet, right after signing up or on their next visit.
-  else if (getProfile()) import('/slides.js?v=22').then((m) => m.askConsentOnce(slidesContext()));
+  else if (getProfile()) import('/slides.js?v=23').then((m) => m.askConsentOnce(slidesContext()));
   if (p === '/') {
     fillHypeModels();
-    import('/slides.js?v=22').then((m) => m.mountShowcase(slidesContext()));
+    import('/slides.js?v=23').then((m) => m.mountShowcase(slidesContext()));
     const block = document.querySelector('.squeeze');
     if (block)
       new IntersectionObserver((entries, seen) => {
