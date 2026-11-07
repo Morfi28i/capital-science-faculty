@@ -960,7 +960,7 @@ export function artLooksRight(svg) {
 }
 // The student's look, applied to a drawn slide. The painted scenes stay as they are, except in black and white; everything
 // around them follows the theme, font, layout and text size.
-const ART_FONTS = { display: 'Arial, Tahoma, sans-serif', body: 'Verdana, Tahoma, sans-serif', serif: "Georgia, 'Times New Roman', 'Geeza Pro', serif" };
+const ART_FONTS = { display: 'Arial, Tahoma, sans-serif', body: 'Tahoma, Verdana, sans-serif', serif: "Georgia, 'Times New Roman', 'Geeza Pro', serif" };
 function dressArt(svg, look, textScale) {
   const scenes = [];
   let out = svg.replace(/<svg x=[\s\S]*?<\/svg>/g, (scene) => {
