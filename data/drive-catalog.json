@@ -38009,20 +38009,6 @@
     "note": "1st Physics Group (B) › EN"
   },
   {
-    "id": "1vboliZGVCvIziIeGienY-6lIcgM_0bZj",
-    "parentId": "1mlJYcQ6TCoQ0vNre4q-75dlKodpyMYzC",
-    "title": "Prefixe & Suffix Quiz.pdf",
-    "url": "https://drive.google.com/file/d/1vboliZGVCvIziIeGienY-6lIcgM_0bZj/view",
-    "kind": "drive",
-    "file": true,
-    "type": "file",
-    "category": "2026/2027",
-    "categoryAr": "دفعة 2026/2027",
-    "categoryEn": "Class of 2026/27",
-    "note": "1st Physics Group (B) › EN",
-    "mime": "application/pdf"
-  },
-  {
     "id": "1bzFNaw-PSOzS5qo42njgbXgEOcGrwhB-",
     "parentId": "1vlvWmNzTGiYDgz3elXhv7j-QVBM2Tcas",
     "title": "inorganic",
@@ -38348,19 +38334,6 @@
     "note": "1st Physics Group (B) › unsorted"
   },
   {
-    "id": "1onR6ez_Sx-B_hymJA9lxotzMHQ1dAJ5K",
-    "parentId": "1yu7GSOTm9xAc2q-iAXOu6kCg-6RTmRrN",
-    "title": "zoology",
-    "url": "https://drive.google.com/drive/folders/1onR6ez_Sx-B_hymJA9lxotzMHQ1dAJ5K",
-    "kind": "drive",
-    "file": false,
-    "type": "folder",
-    "category": "2026/2027",
-    "categoryAr": "دفعة 2026/2027",
-    "categoryEn": "Class of 2026/27",
-    "note": "1st Physics Group (B) › unsorted"
-  },
-  {
     "id": "14As_nq8_4vRXsJd_6_haEXfPj_uW3C8b",
     "parentId": "1oLZnavL07RvDRumuhKDAKaofB_qfK7h3",
     "title": "Book",
@@ -38430,6 +38403,19 @@
     "parentId": "1oLZnavL07RvDRumuhKDAKaofB_qfK7h3",
     "title": "Lecture 5",
     "url": "https://drive.google.com/drive/folders/1LgRnfjc4haHASPAeLZMxKvLPgygvo62_",
+    "kind": "drive",
+    "file": false,
+    "type": "folder",
+    "category": "2026/2027",
+    "categoryAr": "دفعة 2026/2027",
+    "categoryEn": "Class of 2026/27",
+    "note": "1st Physics Group (B) › zoology"
+  },
+  {
+    "id": "1muh_RRngnth3m1EwWfgL00KLcJO9M17D",
+    "parentId": "1oLZnavL07RvDRumuhKDAKaofB_qfK7h3",
+    "title": "Lecture 6",
+    "url": "https://drive.google.com/drive/folders/1muh_RRngnth3m1EwWfgL00KLcJO9M17D",
     "kind": "drive",
     "file": false,
     "type": "folder",
@@ -42701,19 +42687,6 @@
     "note": "1st Physics Group (B) › unsorted › summarized"
   },
   {
-    "id": "1muh_RRngnth3m1EwWfgL00KLcJO9M17D",
-    "parentId": "1onR6ez_Sx-B_hymJA9lxotzMHQ1dAJ5K",
-    "title": "Lecture 6",
-    "url": "https://drive.google.com/drive/folders/1muh_RRngnth3m1EwWfgL00KLcJO9M17D",
-    "kind": "drive",
-    "file": false,
-    "type": "folder",
-    "category": "2026/2027",
-    "categoryAr": "دفعة 2026/2027",
-    "categoryEn": "Class of 2026/27",
-    "note": "1st Physics Group (B) › unsorted › zoology"
-  },
-  {
     "id": "1OWv07KwXZQVEZxayOoZDiLyFebox3ln_",
     "parentId": "14As_nq8_4vRXsJd_6_haEXfPj_uW3C8b",
     "title": "2.Practical-Principles-of-Zoology1st-year-physics.pdf",
@@ -43160,6 +43133,48 @@
     "categoryEn": "Class of 2026/27",
     "note": "1st Physics Group (B) › zoology › Lecture 5",
     "mime": "application/pdf"
+  },
+  {
+    "id": "1NhemT9dZ37M57VA1OSOP169DDRH-b6Ef",
+    "parentId": "1muh_RRngnth3m1EwWfgL00KLcJO9M17D",
+    "title": "Lecture 6 - ملخص وأهم النقاط (سلايدز) - عربي.pdf",
+    "url": "https://drive.google.com/file/d/1NhemT9dZ37M57VA1OSOP169DDRH-b6Ef/view",
+    "kind": "drive",
+    "file": true,
+    "type": "file",
+    "category": "2026/2027",
+    "categoryAr": "دفعة 2026/2027",
+    "categoryEn": "Class of 2026/27",
+    "note": "1st Physics Group (B) › zoology › Lecture 6",
+    "mime": "application/pdf"
+  },
+  {
+    "id": "1sCmd1YATC6pbqE_dy2qhOcWXsK7Go0Gn",
+    "parentId": "1muh_RRngnth3m1EwWfgL00KLcJO9M17D",
+    "title": "Lecture 6 - ملخص وأهم النقاط (سلايدز).pdf",
+    "url": "https://drive.google.com/file/d/1sCmd1YATC6pbqE_dy2qhOcWXsK7Go0Gn/view",
+    "kind": "drive",
+    "file": true,
+    "type": "file",
+    "category": "2026/2027",
+    "categoryAr": "دفعة 2026/2027",
+    "categoryEn": "Class of 2026/27",
+    "note": "1st Physics Group (B) › zoology › Lecture 6",
+    "mime": "application/pdf"
+  },
+  {
+    "id": "1_sh3nDQGnechwdxGHp7n6WGHd7swLQpO",
+    "parentId": "1muh_RRngnth3m1EwWfgL00KLcJO9M17D",
+    "title": "Lecture 6.pptx",
+    "url": "https://drive.google.com/file/d/1_sh3nDQGnechwdxGHp7n6WGHd7swLQpO/view",
+    "kind": "drive",
+    "file": true,
+    "type": "file",
+    "category": "2026/2027",
+    "categoryAr": "دفعة 2026/2027",
+    "categoryEn": "Class of 2026/27",
+    "note": "1st Physics Group (B) › zoology › Lecture 6",
+    "mime": "application/vnd.openxmlformats-officedocument.presentationml.presentation"
   },
   {
     "id": "1jiclAUnoU61iz_j4EFWJ4Oi5gAL2x8jm",
@@ -45107,20 +45122,6 @@
     "mime": "application/pdf"
   },
   {
-    "id": "1Nqi6v7IfDzQeX5GoUyBWxwEP0ZCVZrhR",
-    "parentId": "1AEWtO8IJ8k5CtSTF1jHwrNGtcQdgUOY-",
-    "title": "General chemistry.pptx",
-    "url": "https://drive.google.com/file/d/1Nqi6v7IfDzQeX5GoUyBWxwEP0ZCVZrhR/view",
-    "kind": "drive",
-    "file": true,
-    "type": "file",
-    "category": "2026/2027",
-    "categoryAr": "دفعة 2026/2027",
-    "categoryEn": "Class of 2026/27",
-    "note": "1st Physics Group (B) › General Chemistry › Physical › General chemistry",
-    "mime": "application/vnd.openxmlformats-officedocument.presentationml.presentation"
-  },
-  {
     "id": "15t3QFqFI5qsS1SoNZZzZJ-kWqlLmXR-d",
     "parentId": "1bbwfzrFh9aoTg_ElYsFmQZtjVLDoy12c",
     "title": "1st General Chemistry - ترجمة.pdf",
@@ -46837,20 +46838,6 @@
     "categoryAr": "دفعة 2026/2027",
     "categoryEn": "Class of 2026/27",
     "note": "1st Physics Group (B) › unsorted › summarized › zoology"
-  },
-  {
-    "id": "1_sh3nDQGnechwdxGHp7n6WGHd7swLQpO",
-    "parentId": "1muh_RRngnth3m1EwWfgL00KLcJO9M17D",
-    "title": "Lecture 6",
-    "url": "https://drive.google.com/file/d/1_sh3nDQGnechwdxGHp7n6WGHd7swLQpO/view",
-    "kind": "drive",
-    "file": true,
-    "type": "file",
-    "category": "2026/2027",
-    "categoryAr": "دفعة 2026/2027",
-    "categoryEn": "Class of 2026/27",
-    "note": "1st Physics Group (B) › unsorted › zoology › Lecture 6",
-    "mime": "application/vnd.openxmlformats-officedocument.presentationml.presentation"
   },
   {
     "id": "1sxy78XJdQxcZNDLYmdPx1fAoXTtJUlLh",
