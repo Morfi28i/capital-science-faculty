@@ -43285,6 +43285,19 @@
     "note": "1st Physics Group B › Materials › General Physics"
   },
   {
+    "id": "1ttUxADD57ruJdLnGKvzTyiW25ltfvk3K",
+    "parentId": "17PHclsQPS9p1x8ig4I61zxIswc10Piks",
+    "title": "Questions",
+    "url": "https://drive.google.com/drive/folders/1ttUxADD57ruJdLnGKvzTyiW25ltfvk3K",
+    "kind": "drive",
+    "file": false,
+    "type": "folder",
+    "category": "2026/2027",
+    "categoryAr": "دفعة 2026/2027",
+    "categoryEn": "Class of 2026/27",
+    "note": "1st Physics Group B › Materials › General Physics"
+  },
+  {
     "id": "19PG6wWq9N29b7terYUMv-6QNBAixj0vT",
     "parentId": "17PHclsQPS9p1x8ig4I61zxIswc10Piks",
     "title": "Sections",
@@ -47048,6 +47061,48 @@
     "mime": "application/pdf"
   },
   {
+    "id": "1I2KbgNC9_asLVaiBCMHjg0dWBwoQAqsW",
+    "parentId": "1sTtFxC8OmTpwDTLQLow1zPX9cAxAkUGb",
+    "title": "Physics_Notes_Arabic Mid-term.pdf",
+    "url": "https://drive.google.com/file/d/1I2KbgNC9_asLVaiBCMHjg0dWBwoQAqsW/view",
+    "kind": "drive",
+    "file": true,
+    "type": "file",
+    "category": "2026/2027",
+    "categoryAr": "دفعة 2026/2027",
+    "categoryEn": "Class of 2026/27",
+    "note": "1st Physics Group B › Materials › General Physics › physic ملخصات طلبة",
+    "mime": "application/pdf"
+  },
+  {
+    "id": "1Vo8Tagdg0WoyAxicdzpwC9M5wRVRC8oa",
+    "parentId": "1sTtFxC8OmTpwDTLQLow1zPX9cAxAkUGb",
+    "title": "Physics-summery-Mid-term.pdf",
+    "url": "https://drive.google.com/file/d/1Vo8Tagdg0WoyAxicdzpwC9M5wRVRC8oa/view",
+    "kind": "drive",
+    "file": true,
+    "type": "file",
+    "category": "2026/2027",
+    "categoryAr": "دفعة 2026/2027",
+    "categoryEn": "Class of 2026/27",
+    "note": "1st Physics Group B › Materials › General Physics › physic ملخصات طلبة",
+    "mime": "application/pdf"
+  },
+  {
+    "id": "1f4D6Whzjqlc09lXC3wNSNvfNFDi5KJd3",
+    "parentId": "1ttUxADD57ruJdLnGKvzTyiW25ltfvk3K",
+    "title": "Physics_Midterm_Exam_150_MCQ.pdf",
+    "url": "https://drive.google.com/file/d/1f4D6Whzjqlc09lXC3wNSNvfNFDi5KJd3/view",
+    "kind": "drive",
+    "file": true,
+    "type": "file",
+    "category": "2026/2027",
+    "categoryAr": "دفعة 2026/2027",
+    "categoryEn": "Class of 2026/27",
+    "note": "1st Physics Group B › Materials › General Physics › Questions",
+    "mime": "application/pdf"
+  },
+  {
     "id": "1nd7CQQLOSh1ZgF2Ah13189BIQRnBzkei",
     "parentId": "1KzkUi85ANmLgMp1fBa4TNB5tCapNhRqL",
     "title": "lec 6 (fluids).mp4",
@@ -47872,6 +47927,20 @@
     "categoryAr": "دفعة 2026/2027",
     "categoryEn": "Class of 2026/27",
     "note": "1st Physics Group B › Materials › Calculus › Questions &Exam",
+    "mime": "application/pdf"
+  },
+  {
+    "id": "1160zmJvfetKos7f1mSny4VX7sp_oIyWH",
+    "parentId": "1K8-a56tirHHVhhCtgWpK1OHwNHJ6UZcO",
+    "title": "Sec 7",
+    "url": "https://drive.google.com/file/d/1160zmJvfetKos7f1mSny4VX7sp_oIyWH/view",
+    "kind": "drive",
+    "file": true,
+    "type": "file",
+    "category": "2026/2027",
+    "categoryAr": "دفعة 2026/2027",
+    "categoryEn": "Class of 2026/27",
+    "note": "1st Physics Group B › Materials › Calculus › Sections",
     "mime": "application/pdf"
   },
   {
