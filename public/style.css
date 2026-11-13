@@ -7832,3 +7832,159 @@ body:has(> .onboarding:not(.out)) .ambient {
 .simple-only { display: grid; gap: 12px; }
 .studio[data-mode='advanced'] .simple-only { display: none; }
 .slides-job .link-btn { flex: none; }
+
+/* ---------- Change dashboard password ---------- */
+.admin-pass-open {
+  margin-top: auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--ink-2);
+  font: inherit;
+  font-size: 14px;
+  cursor: pointer;
+  transition:
+    border-color 0.25s,
+    background 0.25s,
+    color 0.25s;
+}
+.admin-pass-open svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  transition: transform 0.35s var(--ease);
+}
+.admin-pass-open:hover {
+  border-color: var(--gold);
+  background: var(--gold-soft);
+  color: var(--ink);
+}
+.admin-pass-open:hover svg {
+  transform: rotate(-12deg) scale(1.08);
+}
+.admin-pass-open:focus-visible,
+.pass-eye:focus-visible {
+  outline: 2px solid var(--mint);
+  outline-offset: 2px;
+}
+.admin-dialog {
+  width: min(440px, calc(100vw - 32px));
+  max-height: calc(100dvh - 32px);
+  overflow: auto;
+  padding: 26px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: var(--shadow-lg);
+}
+.admin-dialog::backdrop {
+  background: color-mix(in oklab, #0d1611 55%, transparent);
+  backdrop-filter: blur(3px);
+}
+.admin-dialog[open] {
+  animation: pass-in 0.35s var(--ease);
+}
+.admin-dialog[open]::backdrop {
+  animation: pass-fade 0.35s ease;
+}
+@keyframes pass-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.97);
+  }
+}
+@keyframes pass-fade {
+  from {
+    opacity: 0;
+  }
+}
+.admin-dialog .admin-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 14px;
+}
+.admin-dialog h2 {
+  margin: 0;
+}
+.admin-dialog .admin-muted {
+  margin: 0;
+}
+.pass-field {
+  position: relative;
+  display: block;
+  margin-top: 6px;
+}
+.pass-field input {
+  width: 100%;
+  padding-inline-end: 44px;
+}
+.pass-eye {
+  position: absolute;
+  inset-block: 0;
+  right: 4px;
+  width: 38px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+}
+.pass-eye svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+}
+.pass-eye[aria-pressed='true'] {
+  color: var(--mint);
+}
+.pass-rules {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: -4px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.pass-rules li {
+  padding: 3px 10px;
+  border-radius: 99px;
+  background: var(--paper-2);
+  color: var(--muted);
+  font-size: 12px;
+  transition:
+    background 0.25s,
+    color 0.25s;
+}
+.pass-rules li::before {
+  content: '○ ';
+}
+.pass-rules li.ok {
+  background: var(--primary-soft);
+  color: var(--primary);
+}
+.pass-rules li.ok::before {
+  content: '✓ ';
+}
+@media (max-width: 920px) {
+  .admin-pass-open {
+    margin-top: 0;
+    align-self: flex-start;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .admin-dialog[open],
+  .admin-dialog[open]::backdrop {
+    animation: none;
+  }
+}

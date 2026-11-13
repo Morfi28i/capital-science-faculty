@@ -665,15 +665,51 @@ async function sendManagedEmail(to, subject, message) {
   return response.json();
 }
 const ADMIN_SESSION_MS = 8 * 60 * 60_000;
-// A dedicated secret lets the admin password rotate without being the signing key.
-const adminSigningKey = () => process.env.ADMIN_SESSION_SECRET || process.env.ADMIN_PASSWORD || '';
+// A password changed from the dashboard is kept as a scrypt hash in Firestore syncSecrets/admin and wins over
+// ADMIN_PASSWORD. Deleting that document (Firebase console) brings the Render password back if it is forgotten.
+let savedAdmin = null,
+  savedAdminAt = 0;
+async function loadSavedAdmin(force = false) {
+  if (!firebaseConfigured() || (!force && Date.now() - savedAdminAt < 5 * 60_000)) return;
+  savedAdminAt = Date.now();
+  try {
+    const doc = await firebase().db.collection('syncSecrets').doc('admin').get();
+    const d = doc.exists ? doc.data() : null;
+    savedAdmin = d?.hash && d?.salt ? { hash: d.hash, salt: d.salt } : null;
+  } catch (error) {
+    console.error('Reading the saved admin password failed:', error.message);
+  }
+}
+const adminConfigured = () => Boolean(savedAdmin || process.env.ADMIN_PASSWORD);
+const hashAdminPassword = (password, salt) =>
+  crypto.scryptSync(String(password).normalize('NFC'), Buffer.from(salt, 'hex'), 64).toString('hex');
+function adminPasswordMatches(password) {
+  if (savedAdmin) {
+    const a = Buffer.from(hashAdminPassword(password, savedAdmin.salt), 'hex'),
+      b = Buffer.from(savedAdmin.hash, 'hex');
+    return a.length === b.length && crypto.timingSafeEqual(a, b);
+  }
+  // Compare fixed-length digests so the comparison time does not reveal the password length.
+  const digest = (value) => crypto.createHash('sha256').update(String(value)).digest();
+  return crypto.timingSafeEqual(digest(password), digest(process.env.ADMIN_PASSWORD || ''));
+}
+// The saved hash is part of the signing key, so changing the password signs out every other device.
+const adminSigningKey = () =>
+  (process.env.ADMIN_SESSION_SECRET || process.env.ADMIN_PASSWORD || '') + (savedAdmin?.hash || '');
+const adminCookie = () => {
+  const token = crypto.randomBytes(32).toString('hex'),
+    issued = String(Date.now());
+  // Kept for the whole session lifetime, so a reload or a reopened phone browser stays signed in.
+  return `admin_session=${token}.${issued}.${signAdminToken(`${token}.${issued}`)}; HttpOnly; SameSite=Strict; Path=/; Max-Age=${ADMIN_SESSION_MS / 1000}${secureCookie()}`;
+};
+const adminPasswordRate = new Map();
 function signAdminToken(token) {
   return crypto.createHmac('sha256', adminSigningKey()).update(token).digest('hex');
 }
 function session(req) {
   const c = req.headers.cookie || '';
   const m = c.match(/(?:^|; )admin_session=([^;]+)/);
-  if (!m || !process.env.ADMIN_PASSWORD) return null;
+  if (!m || !adminConfigured()) return null;
   const [token, issued, signature] = m[1].split('.');
   if (!token || !issued || !signature) return null;
   if (!(Date.now() - Number(issued) < ADMIN_SESSION_MS)) return null;
@@ -716,6 +752,7 @@ function safeUrl(u) {
 }
 async function api(req, res, url) {
   await loadSavedGmail();
+  await loadSavedAdmin();
   if (req.method === 'GET' && url.pathname === '/api/gmail/callback') {
     // Google sends the admin back here after "Connect Gmail". The one-time state proves the request started
     // from the dashboard, since the admin cookie isn't sent on this cross-site redirect.
@@ -1281,7 +1318,8 @@ async function api(req, res, url) {
     if (req.method !== 'GET' && !sameOrigin(req))
       return json(res, 403, { error: 'Cross-site request blocked.' });
     if (req.method === 'POST' && url.pathname === '/api/admin/login') {
-      if (!process.env.ADMIN_PASSWORD)
+      await loadSavedAdmin();
+      if (!adminConfigured())
         return json(res, 503, {
           error: 'Admin password is not configured. Set ADMIN_PASSWORD before starting the server.',
         });
@@ -1290,18 +1328,8 @@ async function api(req, res, url) {
           error: 'Too many sign-in attempts. Wait 15 minutes and try again.',
         });
       const d = await body(req, 4000);
-      // Compare fixed-length digests so the comparison time does not reveal the password length.
-      const digest = (value) => crypto.createHash('sha256').update(String(value)).digest();
-      if (!crypto.timingSafeEqual(digest(d.password || ''), digest(process.env.ADMIN_PASSWORD)))
-        return json(res, 401, { error: 'Incorrect password' });
-      const token = crypto.randomBytes(32).toString('hex'),
-        issued = String(Date.now()),
-        signed = `${token}.${issued}.${signAdminToken(`${token}.${issued}`)}`;
-      res.setHeader(
-        'Set-Cookie',
-        // Kept for the whole session lifetime, so a reload or a reopened phone browser stays signed in.
-        `admin_session=${signed}; HttpOnly; SameSite=Strict; Path=/; Max-Age=${ADMIN_SESSION_MS / 1000}${secureCookie()}`,
-      );
+      if (!adminPasswordMatches(d.password || '')) return json(res, 401, { error: 'Incorrect password' });
+      res.setHeader('Set-Cookie', adminCookie());
       return json(res, 200, { ok: true });
     }
     if (req.method === 'POST' && url.pathname === '/api/admin/logout') {
@@ -1314,6 +1342,36 @@ async function api(req, res, url) {
     if (req.method === 'GET' && url.pathname === '/api/admin/session')
       return json(res, 200, { authenticated: Boolean(session(req)) });
     if (!session(req)) return json(res, 401, { error: 'Sign in required' });
+    if (req.method === 'POST' && url.pathname === '/api/admin/password') {
+      if (!firebaseConfigured())
+        return json(res, 503, { error: 'Firebase must be configured before the password can be changed here.' });
+      if (!withinRate(adminPasswordRate, clientIp(req), 6, 15 * 60_000))
+        return json(res, 429, { error: 'Too many attempts. Wait 15 minutes and try again.' });
+      const d = await body(req, 4000);
+      await loadSavedAdmin(true);
+      if (!adminPasswordMatches(d.current || ''))
+        return json(res, 403, { error: 'Current password is wrong', code: 'wrong-current' });
+      const next = String(d.next || '');
+      if (next.length < 10 || next.length > 200 || !/\p{L}/u.test(next) || !/\p{N}/u.test(next))
+        return json(res, 400, {
+          error: 'The new password needs 10+ characters with letters and numbers.',
+          code: 'weak',
+        });
+      if (adminPasswordMatches(next))
+        return json(res, 400, { error: 'The new password is the same as the current one.', code: 'same' });
+      const salt = crypto.randomBytes(16).toString('hex'),
+        hash = hashAdminPassword(next, salt);
+      await firebase()
+        .db.collection('syncSecrets')
+        .doc('admin')
+        .set({ hash, salt, changedAt: FieldValue.serverTimestamp() });
+      savedAdmin = { hash, salt };
+      savedAdminAt = Date.now();
+      await audit(req, 'admin.password.change');
+      // A fresh cookie signed with the new key keeps this device in; every other device is signed out.
+      res.setHeader('Set-Cookie', adminCookie());
+      return json(res, 200, { ok: true });
+    }
     if (req.method === 'GET' && url.pathname === '/api/admin/users') {
       if (!firebaseConfigured())
         return json(res, 503, {

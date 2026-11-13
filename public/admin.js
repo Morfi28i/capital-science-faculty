@@ -146,7 +146,74 @@ function sidebar() {
       ([k, v]) =>
         `<button data-kind="${k}" class="${kind === k ? 'active' : ''}" ${kind === k ? 'aria-current="page"' : ''}>${v}</button>`,
     )
-    .join('')}</nav></aside>`;
+    .join('')}</nav><button class="admin-pass-open" type="button" id="password-open"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="10.5" width="14" height="10" rx="2.5"/><path d="M8.5 10.5V7.5a3.5 3.5 0 0 1 7 0v3"/><circle cx="12" cy="15.5" r="1.4"/></svg>تغيير كلمة المرور</button></aside>`;
+}
+// Change the dashboard password: the current one, then the new one twice. Every other device is signed out.
+function passwordDialog() {
+  document.querySelector('#password-dialog')?.remove();
+  const field = (name, label, auto) =>
+    `<label>${label}<span class="pass-field"><input type="password" name="${name}" required autocomplete="${auto}" dir="ltr" maxlength="200"><button type="button" class="pass-eye" aria-label="إظهار كلمة المرور" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12Z"/><circle cx="12" cy="12" r="3"/></svg></button></span></label>`;
+  document.body.insertAdjacentHTML(
+    'beforeend',
+    `<dialog class="admin-dialog" id="password-dialog" aria-labelledby="password-title"><form method="dialog" class="admin-form" id="password-form" novalidate><h2 id="password-title">تغيير كلمة المرور</h2><p class="admin-muted">بعد التغيير، أي جهاز تاني داخل على الداشبورد هيخرج، والجهاز ده هيفضل داخل.</p>${field('current', 'كلمة المرور الحالية', 'current-password')}${field('next', 'كلمة المرور الجديدة', 'new-password')}<ul class="pass-rules" aria-live="polite"><li data-rule="len">10 حروف أو أكتر</li><li data-rule="mix">فيها حروف وأرقام</li><li data-rule="match">الجديدة متكررة صح</li></ul>${field('again', 'اكتب الجديدة تاني', 'new-password')}<p class="login-error" role="alert" id="password-error"></p><div class="admin-form-actions"><button class="button primary" value="save" id="password-save" disabled>غيّر كلمة المرور</button><button class="button ghost" type="button" id="password-cancel">إلغاء</button></div></form></dialog>`,
+  );
+  const dialog = document.querySelector('#password-dialog'),
+    form = dialog.querySelector('form'),
+    error = dialog.querySelector('#password-error'),
+    save = dialog.querySelector('#password-save');
+  const rules = () => {
+    const next = form.next.value;
+    const ok = {
+      len: next.length >= 10,
+      mix: /\p{L}/u.test(next) && /\p{N}/u.test(next),
+      match: next.length > 0 && next === form.again.value,
+    };
+    for (const [rule, pass] of Object.entries(ok))
+      dialog.querySelector(`[data-rule="${rule}"]`).classList.toggle('ok', pass);
+    save.disabled = !(ok.len && ok.mix && ok.match && form.current.value);
+  };
+  form.oninput = () => {
+    error.textContent = '';
+    rules();
+  };
+  dialog.querySelectorAll('.pass-eye').forEach(
+    (eye) =>
+      (eye.onclick = () => {
+        const input = eye.previousElementSibling,
+          show = input.type === 'password';
+        input.type = show ? 'text' : 'password';
+        eye.setAttribute('aria-pressed', String(show));
+        eye.setAttribute('aria-label', show ? 'إخفاء كلمة المرور' : 'إظهار كلمة المرور');
+      }),
+  );
+  dialog.querySelector('#password-cancel').onclick = () => dialog.close();
+  dialog.onclose = () => dialog.remove();
+  form.onsubmit = async (e) => {
+    e.preventDefault();
+    save.disabled = true;
+    save.textContent = 'بنغيّر…';
+    try {
+      await req('/api/admin/password', {
+        method: 'POST',
+        body: JSON.stringify({ current: form.current.value, next: form.next.value }),
+      });
+      dialog.close();
+      toast('اتغيرت كلمة المرور. الأجهزة التانية خرجت.');
+    } catch (err) {
+      const words = {
+        'wrong-current': 'كلمة المرور الحالية غلط.',
+        weak: 'الجديدة لازم 10 حروف أو أكتر، فيها حروف وأرقام.',
+        same: 'الجديدة هي هي الحالية. اختار واحدة تانية.',
+      };
+      error.textContent =
+        words[err.code] || (err.status === 429 ? 'محاولات كتير. استنى ربع ساعة وجرّب تاني.' : err.message);
+      save.textContent = 'غيّر كلمة المرور';
+      rules();
+      if (err.code === 'wrong-current') form.current.select();
+    }
+  };
+  dialog.showModal();
+  form.current.focus();
 }
 function wireShell() {
   document.querySelectorAll('[data-kind]').forEach(
@@ -156,6 +223,7 @@ function wireShell() {
         dashboard();
       }),
   );
+  document.querySelector('#password-open').onclick = passwordDialog;
   document.querySelector('#logout').onclick = async () => {
     try {
       await req('/api/admin/logout', { method: 'POST' });
