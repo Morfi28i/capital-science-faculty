@@ -18,6 +18,21 @@ if (threadFromLink) {
   kind = 'messages';
   history.replaceState(null, '', location.pathname);
 }
+// The dashboard "forgot password" email links here with #reset=<one-time token>.
+const readReset = () => {
+  const token = (location.hash.match(/^#reset=([a-f0-9]{64})$/) || [])[1];
+  if (token) history.replaceState(null, '', location.pathname);
+  return token;
+};
+let resetToken = readReset();
+// The link can also land on a tab that already shows the dashboard, where only the hash changes.
+addEventListener('hashchange', () => {
+  const token = readReset();
+  if (token) {
+    resetToken = token;
+    resetPage();
+  }
+});
 const labels = {
   subjects: 'جروبات المواد',
   lectures: 'ملفات المحاضرات',
@@ -108,6 +123,7 @@ function startLive() {
 }
 const livePill = '<span class="live-pill" title="بيتحدث لوحده من غير تحديث للصفحة"><i></i>مباشر</span>';
 async function check() {
+  if (resetToken) return resetPage();
   try {
     const s = await req('/api/admin/session');
     if (s.authenticated) dashboard();
@@ -117,7 +133,25 @@ async function check() {
   }
 }
 function login(error = '') {
-  app.innerHTML = `<div class="login-box">${brand}<div><span class="section-index">DEVELOPER ACCESS</span><h1>تسجيل دخول المطور</h1><p class="admin-muted">منطقة إدارة محتوى الموقع</p></div><form id="login"><label>كلمة المرور<input type="password" name="password" required autofocus autocomplete="current-password"></label><p class="login-error" role="alert">${esc(error)}</p><button class="button primary">دخول</button></form></div>`;
+  app.innerHTML = `<div class="login-box">${brand}<div><span class="section-index">DEVELOPER ACCESS</span><h1>تسجيل دخول المطور</h1><p class="admin-muted">منطقة إدارة محتوى الموقع</p></div><form id="login"><label>كلمة المرور<input type="password" name="password" required autofocus autocomplete="current-password"></label><p class="login-error" role="alert">${esc(error)}</p><button class="button primary">دخول</button></form><button type="button" class="login-forgot" id="forgot">نسيت كلمة المرور؟</button><p class="login-sent" id="forgot-out" role="status"></p></div>`;
+  document.querySelector('#forgot').onclick = async (e) => {
+    const out = document.querySelector('#forgot-out');
+    e.currentTarget.disabled = true;
+    out.textContent = 'بنبعت…';
+    try {
+      const r = await req('/api/admin/reset-request', { method: 'POST' });
+      out.textContent = `بعتنا رابط لإيميلك ${r.to}. افتحه خلال 30 دقيقة واختار كلمة مرور جديدة.`;
+      out.classList.add('ok');
+    } catch (err) {
+      out.textContent =
+        err.code === 'mail-off'
+          ? 'إيميل الموقع مش متوصل، فمش هنعرف نبعت الرابط.'
+          : err.status === 429
+            ? 'بعتنا روابط كتير. استنى ساعة وجرّب تاني.'
+            : err.message;
+      e.currentTarget.disabled = false;
+    }
+  };
   document.querySelector('#login').onsubmit = async (e) => {
     e.preventDefault();
     const button = e.currentTarget.querySelector('button');
@@ -149,6 +183,76 @@ function sidebar() {
     .join('')}</nav><button class="admin-pass-open" type="button" id="password-open"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="10.5" width="14" height="10" rx="2.5"/><path d="M8.5 10.5V7.5a3.5 3.5 0 0 1 7 0v3"/><circle cx="12" cy="15.5" r="1.4"/></svg>تغيير كلمة المرور</button></aside>`;
 }
 // Change the dashboard password: the current one, then the new one twice. Every other device is signed out.
+const passField = (name, label, auto) =>
+  `<label>${label}<span class="pass-field"><input type="password" name="${name}" required autocomplete="${auto}" dir="ltr" maxlength="200"><button type="button" class="pass-eye" aria-label="إظهار كلمة المرور" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12Z"/><circle cx="12" cy="12" r="3"/></svg></button></span></label>`;
+const passRules = `<ul class="pass-rules" aria-live="polite"><li data-rule="len">10 حروف أو أكتر</li><li data-rule="mix">فيها حروف وأرقام</li><li data-rule="match">الجديدة متكررة صح</li></ul>`;
+const passWords = {
+  'wrong-current': 'كلمة المرور الحالية غلط.',
+  weak: 'الجديدة لازم 10 حروف أو أكتر، فيها حروف وأرقام.',
+  same: 'الجديدة هي هي الحالية. اختار واحدة تانية.',
+  'bad-link': 'الرابط ده اتستخدم قبل كده أو خلص وقته. اطلب رابط جديد من صفحة الدخول.',
+};
+// Wire the eye buttons and the live rule chips; returns a function that re-checks the form.
+function wirePassForm(root, form, save, needsCurrent) {
+  root.querySelectorAll('.pass-eye').forEach(
+    (eye) =>
+      (eye.onclick = () => {
+        const input = eye.previousElementSibling,
+          show = input.type === 'password';
+        input.type = show ? 'text' : 'password';
+        eye.setAttribute('aria-pressed', String(show));
+        eye.setAttribute('aria-label', show ? 'إخفاء كلمة المرور' : 'إظهار كلمة المرور');
+      }),
+  );
+  const rules = () => {
+    const next = form.next.value;
+    const ok = {
+      len: next.length >= 10,
+      mix: /\p{L}/u.test(next) && /\p{N}/u.test(next),
+      match: next.length > 0 && next === form.again.value,
+    };
+    for (const [rule, pass] of Object.entries(ok))
+      root.querySelector(`[data-rule="${rule}"]`).classList.toggle('ok', pass);
+    save.disabled = !(ok.len && ok.mix && ok.match && (!needsCurrent || form.current.value));
+  };
+  return rules;
+}
+// Opened from the reset email: choose a new password, then go straight into the dashboard.
+function resetPage() {
+  app.innerHTML = `<div class="login-box">${brand}<div><span class="section-index">DEVELOPER ACCESS</span><h1>كلمة مرور جديدة</h1><p class="admin-muted">اختار كلمة مرور جديدة للداشبورد. أي جهاز تاني داخل هيخرج.</p></div><form id="reset-form" class="admin-form" novalidate>${passField('next', 'كلمة المرور الجديدة', 'new-password')}${passRules}${passField('again', 'اكتب الجديدة تاني', 'new-password')}<p class="login-error" role="alert" id="reset-error"></p><button class="button primary" id="reset-save" disabled>احفظ وادخل</button></form><button type="button" class="login-forgot" id="back-login">رجوع لصفحة الدخول</button></div>`;
+  const form = document.querySelector('#reset-form'),
+    save = document.querySelector('#reset-save'),
+    error = document.querySelector('#reset-error'),
+    rules = wirePassForm(app, form, save, false);
+  form.oninput = () => {
+    error.textContent = '';
+    rules();
+  };
+  document.querySelector('#back-login').onclick = () => {
+    resetToken = null;
+    login();
+  };
+  form.onsubmit = async (e) => {
+    e.preventDefault();
+    save.disabled = true;
+    save.textContent = 'بنحفظ…';
+    try {
+      await req('/api/admin/reset', {
+        method: 'POST',
+        body: JSON.stringify({ token: resetToken, next: form.next.value }),
+      });
+      resetToken = null;
+      dashboard();
+      toast('اتغيرت كلمة المرور، وإنت داخل دلوقتي.');
+    } catch (err) {
+      error.textContent =
+        passWords[err.code] || (err.status === 429 ? 'محاولات كتير. استنى ربع ساعة وجرّب تاني.' : err.message);
+      save.textContent = 'احفظ وادخل';
+      rules();
+    }
+  };
+  form.next.focus();
+}
 function passwordDialog() {
   document.querySelector('#password-dialog')?.remove();
   const field = (name, label, auto) =>

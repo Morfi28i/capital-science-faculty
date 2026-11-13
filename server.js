@@ -702,7 +702,28 @@ const adminCookie = () => {
   // Kept for the whole session lifetime, so a reload or a reopened phone browser stays signed in.
   return `admin_session=${token}.${issued}.${signAdminToken(`${token}.${issued}`)}; HttpOnly; SameSite=Strict; Path=/; Max-Age=${ADMIN_SESSION_MS / 1000}${secureCookie()}`;
 };
-const adminPasswordRate = new Map();
+const adminPasswordRate = new Map(),
+  adminResetRate = new Map();
+// The dashboard's "forgot password" email goes to the site owner, never to an address typed on the page.
+const adminResetTo = () => process.env.ADMIN_RESET_EMAIL || PROFILE_NOTICE_TO;
+const maskEmail = (email) => email.replace(/^(.{2})[^@]*(@.*)$/, '$1•••$2');
+const adminPasswordProblem = (next) =>
+  next.length < 10 || next.length > 200 || !/\p{L}/u.test(next) || !/\p{N}/u.test(next)
+    ? { error: 'The new password needs 10+ characters with letters and numbers.', code: 'weak' }
+    : adminPasswordMatches(next)
+      ? { error: 'The new password is the same as the current one.', code: 'same' }
+      : null;
+async function saveAdminPassword(next) {
+  const salt = crypto.randomBytes(16).toString('hex'),
+    hash = hashAdminPassword(next, salt);
+  await firebase()
+    .db.collection('syncSecrets')
+    .doc('admin')
+    .set({ hash, salt, changedAt: FieldValue.serverTimestamp() });
+  savedAdmin = { hash, salt };
+  savedAdminAt = Date.now();
+}
+const sha256 = (value) => crypto.createHash('sha256').update(String(value)).digest('hex');
 function signAdminToken(token) {
   return crypto.createHmac('sha256', adminSigningKey()).update(token).digest('hex');
 }
@@ -1339,6 +1360,42 @@ async function api(req, res, url) {
       );
       return json(res, 200, { ok: true });
     }
+    // Forgot password: a one-time link (30 minutes) is emailed to the site owner. Only its hash is stored.
+    if (req.method === 'POST' && url.pathname === '/api/admin/reset-request') {
+      if (!firebaseConfigured() || !mailConfigured())
+        return json(res, 503, { error: 'Site email is not connected, so a reset link cannot be sent.', code: 'mail-off' });
+      if (!withinRate(adminResetRate, `ask:${clientIp(req)}`, 3) || !withinRate(adminResetRate, 'ask:all', 6))
+        return json(res, 429, { error: 'Too many reset emails. Wait an hour and try again.' });
+      const token = crypto.randomBytes(32).toString('hex');
+      await firebase()
+        .db.collection('syncSecrets')
+        .doc('adminReset')
+        .set({ hash: sha256(token), expires: Date.now() + 30 * 60_000 });
+      await sendAuthEmail('adminReset', adminResetTo(), `${linkOrigin()}/admin#reset=${token}`);
+      await audit(req, 'admin.password.reset-request');
+      return json(res, 200, { ok: true, to: maskEmail(adminResetTo()) });
+    }
+    if (req.method === 'POST' && url.pathname === '/api/admin/reset') {
+      if (!firebaseConfigured()) return json(res, 503, { error: 'Firebase is not configured.' });
+      if (!withinRate(adminResetRate, `use:${clientIp(req)}`, 10, 15 * 60_000))
+        return json(res, 429, { error: 'Too many attempts. Wait 15 minutes and try again.' });
+      const d = await body(req, 4000),
+        ref = firebase().db.collection('syncSecrets').doc('adminReset'),
+        saved = (await ref.get()).data();
+      const given = Buffer.from(sha256(d.token || ''), 'hex'),
+        stored = Buffer.from(saved?.hash || '', 'hex');
+      if (!saved || saved.expires < Date.now() || given.length !== stored.length || !crypto.timingSafeEqual(given, stored))
+        return json(res, 400, { error: 'This reset link is used or expired.', code: 'bad-link' });
+      await loadSavedAdmin(true);
+      const next = String(d.next || ''),
+        problem = adminPasswordProblem(next);
+      if (problem) return json(res, 400, problem);
+      await ref.delete();
+      await saveAdminPassword(next);
+      await audit(req, 'admin.password.reset');
+      res.setHeader('Set-Cookie', adminCookie());
+      return json(res, 200, { ok: true });
+    }
     if (req.method === 'GET' && url.pathname === '/api/admin/session')
       return json(res, 200, { authenticated: Boolean(session(req)) });
     if (!session(req)) return json(res, 401, { error: 'Sign in required' });
@@ -1351,22 +1408,10 @@ async function api(req, res, url) {
       await loadSavedAdmin(true);
       if (!adminPasswordMatches(d.current || ''))
         return json(res, 403, { error: 'Current password is wrong', code: 'wrong-current' });
-      const next = String(d.next || '');
-      if (next.length < 10 || next.length > 200 || !/\p{L}/u.test(next) || !/\p{N}/u.test(next))
-        return json(res, 400, {
-          error: 'The new password needs 10+ characters with letters and numbers.',
-          code: 'weak',
-        });
-      if (adminPasswordMatches(next))
-        return json(res, 400, { error: 'The new password is the same as the current one.', code: 'same' });
-      const salt = crypto.randomBytes(16).toString('hex'),
-        hash = hashAdminPassword(next, salt);
-      await firebase()
-        .db.collection('syncSecrets')
-        .doc('admin')
-        .set({ hash, salt, changedAt: FieldValue.serverTimestamp() });
-      savedAdmin = { hash, salt };
-      savedAdminAt = Date.now();
+      const next = String(d.next || ''),
+        problem = adminPasswordProblem(next);
+      if (problem) return json(res, 400, problem);
+      await saveAdminPassword(next);
       await audit(req, 'admin.password.change');
       // A fresh cookie signed with the new key keeps this device in; every other device is signed out.
       res.setHeader('Set-Cookie', adminCookie());
