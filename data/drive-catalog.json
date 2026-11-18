@@ -43666,6 +43666,19 @@
     "note": "1st Physics Group B › Materials › Chemistry معمل"
   },
   {
+    "id": "1YQ5N0r1sHwcU2vhDW-_3mjWisoulpAQ4",
+    "parentId": "1x-twIZa6yFQRqqfmKMnuxyyFprhmvSr2",
+    "title": "تجارب فيزيائيه",
+    "url": "https://drive.google.com/drive/folders/1YQ5N0r1sHwcU2vhDW-_3mjWisoulpAQ4",
+    "kind": "drive",
+    "file": false,
+    "type": "folder",
+    "category": "2026/2027",
+    "categoryAr": "دفعة 2026/2027",
+    "categoryEn": "Class of 2026/27",
+    "note": "1st Physics Group B › Materials › Chemistry معمل"
+  },
+  {
     "id": "1dak4_G6zXnlhbX0vs1kGJVtRH1WLa-fU",
     "parentId": "1x-twIZa6yFQRqqfmKMnuxyyFprhmvSr2",
     "title": "صور بورد",
@@ -48191,6 +48204,20 @@
     "categoryAr": "دفعة 2026/2027",
     "categoryEn": "Class of 2026/27",
     "note": "1st Physics Group B › Materials › Chemistry معمل › الإسكيمات",
+    "mime": "application/pdf"
+  },
+  {
+    "id": "1-gUWYBMT0HQi_tk3SwxtdCOFvQU7d9hT",
+    "parentId": "1YQ5N0r1sHwcU2vhDW-_3mjWisoulpAQ4",
+    "title": "Physical EXP'S.pdf",
+    "url": "https://drive.google.com/file/d/1-gUWYBMT0HQi_tk3SwxtdCOFvQU7d9hT/view",
+    "kind": "drive",
+    "file": true,
+    "type": "file",
+    "category": "2026/2027",
+    "categoryAr": "دفعة 2026/2027",
+    "categoryEn": "Class of 2026/27",
+    "note": "1st Physics Group B › Materials › Chemistry معمل › تجارب فيزيائيه",
     "mime": "application/pdf"
   },
   {
