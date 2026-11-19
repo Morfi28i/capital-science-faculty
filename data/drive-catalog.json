@@ -46626,6 +46626,33 @@
     "note": "1st Physics Group (B) › unsorted › Not summarized › Algebra"
   },
   {
+    "id": "1UNOaxGWywpLyqjnQrIlbf9HMahwYyMxC",
+    "parentId": "1fJm4liyLLVRdnJLlEU5Qk1Ou0b1AYw03",
+    "title": "Sections",
+    "url": "https://drive.google.com/drive/folders/1UNOaxGWywpLyqjnQrIlbf9HMahwYyMxC",
+    "kind": "drive",
+    "file": false,
+    "type": "folder",
+    "category": "2026/2027",
+    "categoryAr": "دفعة 2026/2027",
+    "categoryEn": "Class of 2026/27",
+    "note": "1st Physics Group (B) › unsorted › Not summarized › Algebra"
+  },
+  {
+    "id": "15dqFsBkNbLbA2SOUisuqp0pYvv9SjXsW",
+    "parentId": "1fJm4liyLLVRdnJLlEU5Qk1Ou0b1AYw03",
+    "title": "كل المحاضرات حتى الان .pdf",
+    "url": "https://drive.google.com/file/d/15dqFsBkNbLbA2SOUisuqp0pYvv9SjXsW/view",
+    "kind": "drive",
+    "file": true,
+    "type": "file",
+    "category": "2026/2027",
+    "categoryAr": "دفعة 2026/2027",
+    "categoryEn": "Class of 2026/27",
+    "note": "1st Physics Group (B) › unsorted › Not summarized › Algebra",
+    "mime": "application/pdf"
+  },
+  {
     "id": "1qeGmKo1XnV5cT1_dnTh5AFwV8jl0XI0_",
     "parentId": "18XMqnEQCvstMhSmo2t-7HHNwck3YnbCD",
     "title": "Book",
@@ -48996,6 +49023,20 @@
     "mime": "application/pdf"
   },
   {
+    "id": "1Kyz0zHdVwC6W76JpRK1ItSVETGlc3dbh",
+    "parentId": "1UNOaxGWywpLyqjnQrIlbf9HMahwYyMxC",
+    "title": "سكاشن الجبر من 1 : 7 .pdf",
+    "url": "https://drive.google.com/file/d/1Kyz0zHdVwC6W76JpRK1ItSVETGlc3dbh/view",
+    "kind": "drive",
+    "file": true,
+    "type": "file",
+    "category": "2026/2027",
+    "categoryAr": "دفعة 2026/2027",
+    "categoryEn": "Class of 2026/27",
+    "note": "1st Physics Group (B) › unsorted › Not summarized › Algebra › Sections",
+    "mime": "application/pdf"
+  },
+  {
     "id": "1LnGoSA6PZSq6TPYBihEPuTZ508Uqpqlp",
     "parentId": "1Yn3ExHVbS6ekFGWXpDaz2Ck2qJlX9ROG",
     "title": "Book",
@@ -49007,6 +49048,19 @@
     "categoryAr": "دفعة 2026/2027",
     "categoryEn": "Class of 2026/27",
     "note": "1st Physics Group (B) › unsorted › Not summarized › General Chemistry › inorganic"
+  },
+  {
+    "id": "10zfJ9I_tHdIrXg6aXcK7tafQyaKLqEWV",
+    "parentId": "1Gn-7HPLf6fWOu-2sbDK2FYLp9u_eymzf",
+    "title": "التجربة الفيزيائية",
+    "url": "https://drive.google.com/drive/folders/10zfJ9I_tHdIrXg6aXcK7tafQyaKLqEWV",
+    "kind": "drive",
+    "file": false,
+    "type": "folder",
+    "category": "2026/2027",
+    "categoryAr": "دفعة 2026/2027",
+    "categoryEn": "Class of 2026/27",
+    "note": "1st Physics Group (B) › unsorted › Not summarized › General Chemistry › Lab"
   },
   {
     "id": "1bc08ev034-33wW-Q35DUdBHINwNaEvy1",
@@ -50316,6 +50370,20 @@
     "categoryEn": "Class of 2026/27",
     "note": "1st Physics Group B › Materials › physics معمل › صور بورد › Lec 4",
     "mime": "image/jpeg"
+  },
+  {
+    "id": "1xuzKYrcMEZOxQC6FD-E0JkFVxk-MNtGa",
+    "parentId": "10zfJ9I_tHdIrXg6aXcK7tafQyaKLqEWV",
+    "title": "Physical EXP'S.pdf",
+    "url": "https://drive.google.com/file/d/1xuzKYrcMEZOxQC6FD-E0JkFVxk-MNtGa/view",
+    "kind": "drive",
+    "file": true,
+    "type": "file",
+    "category": "2026/2027",
+    "categoryAr": "دفعة 2026/2027",
+    "categoryEn": "Class of 2026/27",
+    "note": "1st Physics Group (B) › unsorted › Not summarized › General Chemistry › Lab › التجربة الفيزيائية",
+    "mime": "application/pdf"
   },
   {
     "id": "1cqyvBf8JJs_XY8bDv_04oOo617gbFX2-",
