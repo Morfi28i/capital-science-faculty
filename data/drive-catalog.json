@@ -38087,6 +38087,19 @@
     "note": "1st Physics Group (B) › General Mathematics I (Calculus I)"
   },
   {
+    "id": "1CdpMSONdiWx8y5TtuMA7h7XnNrOkjvOp",
+    "parentId": "1ojCOg2JMhwwQyZY_pOhSdRdvNZdPtqVW",
+    "title": "مراجعة ميد calc",
+    "url": "https://drive.google.com/drive/folders/1CdpMSONdiWx8y5TtuMA7h7XnNrOkjvOp",
+    "kind": "drive",
+    "file": false,
+    "type": "folder",
+    "category": "2026/2027",
+    "categoryAr": "دفعة 2026/2027",
+    "categoryEn": "Class of 2026/27",
+    "note": "1st Physics Group (B) › General Mathematics I (Calculus I)"
+  },
+  {
     "id": "1OGW4ubcprbwhU6tZbHJ6WkICz8dJxO4w",
     "parentId": "1ojCOg2JMhwwQyZY_pOhSdRdvNZdPtqVW",
     "title": "Book",
@@ -40747,6 +40760,20 @@
     "categoryAr": "دفعة 2026/2027",
     "categoryEn": "Class of 2026/27",
     "note": "1st Physics Group (B) › General Mathematics I (Calculus I) › الواجبات والاختبارات",
+    "mime": "application/pdf"
+  },
+  {
+    "id": "17Fj-Jg6eEc0qSoEJwicX23A_JU8jJVsR",
+    "parentId": "1CdpMSONdiWx8y5TtuMA7h7XnNrOkjvOp",
+    "title": "ميد calc.pdf",
+    "url": "https://drive.google.com/file/d/17Fj-Jg6eEc0qSoEJwicX23A_JU8jJVsR/view",
+    "kind": "drive",
+    "file": true,
+    "type": "file",
+    "category": "2026/2027",
+    "categoryAr": "دفعة 2026/2027",
+    "categoryEn": "Class of 2026/27",
+    "note": "1st Physics Group (B) › General Mathematics I (Calculus I) › مراجعة ميد calc",
     "mime": "application/pdf"
   },
   {
