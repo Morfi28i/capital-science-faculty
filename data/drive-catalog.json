@@ -47180,6 +47180,32 @@
     "note": "1st Physics Group (B) › unsorted › summarized › Introduction to Computer Science"
   },
   {
+    "id": "1VUgW5i1MMJClZaXTUnzrvhEitQ_eoz0F",
+    "parentId": "1j-q-kViquVfvx_XCtUZWshzBFBJ8D53_",
+    "title": "Intro to CS Session 7",
+    "url": "https://drive.google.com/drive/folders/1VUgW5i1MMJClZaXTUnzrvhEitQ_eoz0F",
+    "kind": "drive",
+    "file": false,
+    "type": "folder",
+    "category": "2026/2027",
+    "categoryAr": "دفعة 2026/2027",
+    "categoryEn": "Class of 2026/27",
+    "note": "1st Physics Group (B) › unsorted › summarized › Introduction to Computer Science"
+  },
+  {
+    "id": "1ET3rl1IQ9e-cBohRe0kuzFRmBh11Zwgt",
+    "parentId": "1j-q-kViquVfvx_XCtUZWshzBFBJ8D53_",
+    "title": "Intro to CS Session 8",
+    "url": "https://drive.google.com/drive/folders/1ET3rl1IQ9e-cBohRe0kuzFRmBh11Zwgt",
+    "kind": "drive",
+    "file": false,
+    "type": "folder",
+    "category": "2026/2027",
+    "categoryAr": "دفعة 2026/2027",
+    "categoryEn": "Class of 2026/27",
+    "note": "1st Physics Group (B) › unsorted › summarized › Introduction to Computer Science"
+  },
+  {
     "id": "1rJ8owm9FaEC3CAiOHJHU1YBRDH5zXkkF",
     "parentId": "1j-q-kViquVfvx_XCtUZWshzBFBJ8D53_",
     "title": "Lab",
@@ -49277,6 +49303,34 @@
     "categoryAr": "دفعة 2026/2027",
     "categoryEn": "Class of 2026/27",
     "note": "1st Physics Group (B) › unsorted › summarized › General Chemistry › Physical"
+  },
+  {
+    "id": "1kx2vWbf1TUBqOwU0pnuiBJNUs1TqZJhs",
+    "parentId": "1VUgW5i1MMJClZaXTUnzrvhEitQ_eoz0F",
+    "title": "Intro to CS Session 7.pdf",
+    "url": "https://drive.google.com/file/d/1kx2vWbf1TUBqOwU0pnuiBJNUs1TqZJhs/view",
+    "kind": "drive",
+    "file": true,
+    "type": "file",
+    "category": "2026/2027",
+    "categoryAr": "دفعة 2026/2027",
+    "categoryEn": "Class of 2026/27",
+    "note": "1st Physics Group (B) › unsorted › summarized › Introduction to Computer Science › Intro to CS Session 7",
+    "mime": "application/pdf"
+  },
+  {
+    "id": "1WHkMITy7z_OwbqjHg-2GGOHYDqeOiQnh",
+    "parentId": "1ET3rl1IQ9e-cBohRe0kuzFRmBh11Zwgt",
+    "title": "Intro to CS Session 8.pdf",
+    "url": "https://drive.google.com/file/d/1WHkMITy7z_OwbqjHg-2GGOHYDqeOiQnh/view",
+    "kind": "drive",
+    "file": true,
+    "type": "file",
+    "category": "2026/2027",
+    "categoryAr": "دفعة 2026/2027",
+    "categoryEn": "Class of 2026/27",
+    "note": "1st Physics Group (B) › unsorted › summarized › Introduction to Computer Science › Intro to CS Session 8",
+    "mime": "application/pdf"
   },
   {
     "id": "1_qUy6kaw9AB9_rPZu77tDQM0lmPap4dO",
